@@ -534,11 +534,11 @@ export class PuzzleEngine {
     this.stats.ojamaBreakdown.superchat += 1;
   }
 
-  applyPiecePatches(patches) {
-    applyPiecePatchesOp(this, patches);
+  applyPiecePatches(patches, options) {
+    applyPiecePatchesOp(this, patches, options);
   }
 
-  exportSaveData(settings) {
-    return exportSaveDataOp(this, settings);
+  exportSaveData(settings, contributions = null) {
+    return exportSaveDataOp(this, settings, contributions);
   }
 }

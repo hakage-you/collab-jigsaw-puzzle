@@ -91,7 +91,7 @@ export class TopbarUI {
     this.elProgressBarFill.style.width = `${pct.toFixed(1)}%`;
     this.elTimerText.textContent = formatDuration(engine.stats.elapsedMs);
 
-    this.elContributionCount.textContent = String(engine.stats.placedCount);
+    this.elContributionCount.textContent = String(this.app.getMyContribution());
     this.elOjamaTotalCount.textContent = String(engine.stats.ojamaTotal);
     const bd = engine.stats.ojamaBreakdown;
     this.elOjamaBreakdownText.textContent =

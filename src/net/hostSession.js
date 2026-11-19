@@ -54,7 +54,51 @@ export class HostSession {
         Number(capacity) || MULTIPLAYER_CONFIG.DEFAULT_CAPACITY
       )
     );
-    this.hostContrib = this.room.engine.stats.placedCount;
+    this.hostContrib =
+      this.room.savedHostContrib !== null
+        ? this.room.savedHostContrib
+        : this.room.engine.stats.placedCount;
+  }
+
+  resetContributions() {
+    this.hostContrib = 0;
+    for (const g of this.guests.values()) {
+      g.contrib = 0;
+    }
+  }
+
+  applySavedContributions(hostContrib, savedGuestContribs) {
+    this.hostContrib = hostContrib;
+    for (const g of this.guests.values()) {
+      const idx = savedGuestContribs.findIndex((c) => c.name === g.name);
+      if (idx !== -1) {
+        g.contrib = savedGuestContribs[idx].contrib;
+        savedGuestContribs.splice(idx, 1);
+      } else {
+        g.contrib = 0;
+      }
+    }
+  }
+
+  buildContributionsForSave() {
+    const entries = this.buildRosterList().map(({ name, role, contrib, color }) => ({
+      name,
+      role,
+      contrib,
+      color,
+    }));
+    const existingGuestNames = new Set(entries.filter((e) => e.role === 'guest').map((e) => e.name));
+    for (const saved of this.room.savedGuestContribs) {
+      if (!existingGuestNames.has(saved.name)) {
+        entries.push({
+          name: saved.name,
+          role: 'guest',
+          contrib: saved.contrib,
+          color: saved.color || '#64748b',
+        });
+      }
+    }
+    return entries;
   }
 
   scheduleAutoBackup() {
@@ -63,7 +107,10 @@ export class HostSession {
     this.autoBackupTimer = setTimeout(() => {
       this.autoBackupTimer = null;
       if (this.room.role !== 'host' || this.room.engine.pieces.length === 0) return;
-      const payload = this.room.engine.exportSaveData(this.room.getSettings());
+      const payload = this.room.engine.exportSaveData(
+        this.room.getSettings(),
+        this.room.buildContributionsList()
+      );
       payload.completed = this.room.engine.isCompleted();
       saveAutoBackup(payload);
     }, MULTIPLAYER_CONFIG.AUTO_BACKUP_DEBOUNCE_MS);
@@ -368,10 +415,25 @@ export class HostSession {
   }
 
   _admitNewGuest(connId, displayName) {
+    const offlineMatch = Array.from(this.guests.values()).find(
+      (g) => !g.online && g.name === displayName
+    );
+    if (offlineMatch) {
+      offlineMatch.connId = connId;
+      offlineMatch.online = true;
+      offlineMatch.reconnectToken = generateToken();
+      this.connToPlayer.set(connId, offlineMatch.id);
+      this._sendWelcomeToGuest(offlineMatch);
+      this.syncRoster();
+      return;
+    }
+
+    const saved = this.room.claimSavedGuestContrib(displayName);
     const idx = this.guests.size;
     const playerId = `p-${generateToken().slice(0, 8)}`;
     const reconnectToken = generateToken();
     const color =
+      saved?.color ||
       MULTIPLAYER_CONFIG.PLAYER_COLORS[(idx + 1) % MULTIPLAYER_CONFIG.PLAYER_COLORS.length];
 
     const guest = {
@@ -380,7 +442,7 @@ export class HostSession {
       name: displayName,
       color,
       role: 'guest',
-      contrib: 0,
+      contrib: saved ? saved.contrib : 0,
       online: true,
       reconnectToken,
     };
@@ -404,7 +466,6 @@ export class HostSession {
 
   broadcastFullState() {
     const { isSampleImage } = this.room.getSourceState();
-    this.hostContrib = this.room.engine.stats.placedCount;
     for (const guest of this.guests.values()) {
       if (!guest.online || !guest.connId) continue;
       if (!isSampleImage) this._sendWelcomeToGuest(guest);

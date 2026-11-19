@@ -89,7 +89,7 @@ export function resolveDropOp(engine, groupId) {
   return { type: 'none' };
 }
 
-export function applyPiecePatchesOp(engine, patches) {
+export function applyPiecePatchesOp(engine, patches, { preservePositions = false } = {}) {
   if (!Array.isArray(patches) || patches.length === 0) return;
   const byId = new Map(engine.pieces.map((p) => [p.id, p]));
   let highestGroup = 0;
@@ -101,8 +101,13 @@ export function applyPiecePatchesOp(engine, patches) {
     const nextLocked = !!sp.isLocked;
     if (nextLocked !== p.isLocked) lockChanged = true;
     p.isLocked = nextLocked;
-    p.x = p.isLocked ? p.targetX : sp.x;
-    p.y = p.isLocked ? p.targetY : sp.y;
+    if (p.isLocked) {
+      p.x = p.targetX;
+      p.y = p.targetY;
+    } else if (!preservePositions) {
+      p.x = sp.x;
+      p.y = sp.y;
+    }
     p.rotation = ((sp.rotation % 4) + 4) % 4;
     p.isFlipped = !!sp.isFlipped;
     p.groupId = sp.groupId;
@@ -118,7 +123,7 @@ export function applyPiecePatchesOp(engine, patches) {
   if (lockChanged) engine.bumpLockedVersion();
 }
 
-export function exportSaveDataOp(engine, settings) {
+export function exportSaveDataOp(engine, settings, contributions = null) {
   return {
     version: 1,
     savedAt: new Date().toISOString(),
@@ -136,6 +141,7 @@ export function exportSaveDataOp(engine, settings) {
     },
     settings: structuredClone(settings),
     stats: structuredClone(engine.stats),
+    ...(Array.isArray(contributions) ? { contributions: structuredClone(contributions) } : {}),
     pieces: engine.pieces.map((p) => ({
       id: p.id,
       x: Math.round(p.x * 100) / 100,

@@ -175,6 +175,7 @@ export class GameSession {
 
   startNewPuzzle() {
     this.highlightFilter = 'all';
+    this.room.resetContributions();
     this.engine.initPuzzle({
       sourceCanvas: this.sourceImage.canvas,
       isSampleImage: this.sourceImage.isSample,
@@ -199,8 +200,16 @@ export class GameSession {
     }
   }
 
+  getMyContribution() {
+    if (!this.room.isMultiplayer()) {
+      return this.engine.stats.placedCount;
+    }
+    const mine = this.room.roster.find((m) => m.id === this.room.myPlayerId);
+    return mine ? mine.contrib : 0;
+  }
+
   exportSaveData() {
-    return this.engine.exportSaveData(this.settings);
+    return this.engine.exportSaveData(this.settings, this.room.buildContributionsList());
   }
 
   verifySaveImageMatch(imgCanvas, saveData) {
@@ -233,6 +242,7 @@ export class GameSession {
     }
 
     this.engine.restoreFromSave(saveData, srcCanvas, useSample);
+    this.room.applySavedContributions(saveData.contributions, this.engine.stats.placedCount);
     this._replaceSourceImage(srcCanvas, resolvedName, useSample);
     this.highlightFilter = 'all';
     this.emit('puzzleReset', { ...this.sourceImage, resetEffects: true, fitView: true });
@@ -326,8 +336,8 @@ export class GameSession {
     this.room.sendCursorMove(wx, wy);
   }
 
-  sendDragPreview(groupId) {
-    this.room.sendDragPreview(groupId);
+  sendDragPreview(groupId, force = false) {
+    this.room.sendDragPreview(groupId, force);
   }
 
   submitDrop(groupId) {
@@ -385,6 +395,7 @@ export class GameSession {
       rows: this.engine.rows,
       pieceCount: this.engine.pieces.length,
       placedCount: this.engine.stats.placedCount,
+      myContrib: this.getMyContribution(),
       ojamaTotal: this.engine.stats.ojamaTotal,
       ojamaBreakdown: { ...this.engine.stats.ojamaBreakdown },
       isMultiplayer: this.room.isMultiplayer(),
@@ -432,6 +443,7 @@ export class GameSession {
       ? 'サンプルテスト画像'
       : imgCanvas?._fileName || backup.puzzle?.imageName || '復元画像';
     this.engine.restoreFromSave(backup, resolvedCanvas, isSample);
+    this.room.applySavedContributions(backup.contributions, this.engine.stats.placedCount);
     if (backup.settings) {
       this.patchSettings({ ...backup.settings, playerName: displayName });
     } else {

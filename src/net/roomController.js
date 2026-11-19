@@ -29,6 +29,8 @@ export class RoomController {
     this.lastDragSentAt = 0;
     this.sharedSuperchatHp = 0;
     this.sharedSuperchatMaxHp = MULTIPLAYER_CONFIG.SUPERCHAT_BASE_HP;
+    this.savedHostContrib = null;
+    this.savedGuestContribs = [];
 
     this.hostSession = new HostSession(this);
     this.guestSession = new GuestSession(this);
@@ -123,6 +125,7 @@ export class RoomController {
 
   async joinGuestRoom({ roomId, displayName, passcode = '' }) {
     this.close();
+    this.resetContributions();
     this.role = 'guest';
     this.roomId = roomId.trim();
     this.guestSession.configure({ displayName, passcode });
@@ -206,10 +209,10 @@ export class RoomController {
     }
   }
 
-  sendDragPreview(groupId) {
+  sendDragPreview(groupId, force = false) {
     if (!this.isMultiplayer()) return;
     const now = performance.now();
-    if (now - this.lastDragSentAt < MULTIPLAYER_CONFIG.CURSOR_THROTTLE_MS) return;
+    if (!force && now - this.lastDragSentAt < MULTIPLAYER_CONFIG.CURSOR_THROTTLE_MS) return;
     this.lastDragSentAt = now;
 
     const positions = this.engine
@@ -224,7 +227,13 @@ export class RoomController {
   }
 
   submitDrop(groupId) {
-    if (this.role === 'solo') return this.engine.resolveDrop(groupId);
+    if (this.role === 'solo') {
+      const res = this.engine.resolveDrop(groupId);
+      if (res.type === 'snap' && this.savedHostContrib !== null) {
+        this.savedHostContrib += res.count;
+      }
+      return res;
+    }
     if (this.role === 'host') return this.hostSession.submitDrop(groupId);
     return this.guestSession.submitDrop(groupId);
   }
@@ -330,7 +339,88 @@ export class RoomController {
     return moved;
   }
 
+  resetContributions() {
+    this.savedHostContrib = null;
+    this.savedGuestContribs = [];
+    this.hostSession.resetContributions();
+  }
+
+  applySavedContributions(contributions, fallbackPlacedCount = 0) {
+    if (!Array.isArray(contributions) || contributions.length === 0) {
+      this.resetContributions();
+      if (this.role === 'host') {
+        this.hostSession.hostContrib = fallbackPlacedCount;
+      }
+      return;
+    }
+    const hostEntry = contributions.find((c) => c && c.role === 'host');
+    this.savedHostContrib = Number.isFinite(hostEntry?.contrib) ? Number(hostEntry.contrib) : 0;
+    this.savedGuestContribs = contributions
+      .filter((c) => c && c.role === 'guest' && c.name)
+      .map((c) => ({
+        name: String(c.name),
+        role: 'guest',
+        contrib: Number.isFinite(c.contrib) ? Number(c.contrib) : 0,
+        color: c.color || null,
+      }));
+    if (this.role === 'host') {
+      this.hostSession.applySavedContributions(this.savedHostContrib, this.savedGuestContribs);
+    }
+  }
+
+  claimSavedGuestContrib(displayName) {
+    const idx = this.savedGuestContribs.findIndex((c) => c.name === displayName);
+    if (idx === -1) return null;
+    return this.savedGuestContribs.splice(idx, 1)[0];
+  }
+
+  buildContributionsList() {
+    if (this.role === 'host') {
+      return this.hostSession.buildContributionsForSave();
+    }
+    if (this.role === 'guest' && this.roster.length > 0) {
+      return this.roster.map(({ name, role, contrib, color }) => ({
+        name,
+        role,
+        contrib,
+        color,
+      }));
+    }
+    const settings = this.getSettings();
+    const hostContrib =
+      this.savedHostContrib !== null ? this.savedHostContrib : this.engine.stats.placedCount;
+    return [
+      {
+        name: settings.playerName || 'ホスト（自分）',
+        role: 'host',
+        contrib: hostContrib,
+        color: 'var(--accent)',
+      },
+      ...this.savedGuestContribs.map((g) => ({ ...g })),
+    ];
+  }
+
+  _snapshotHostContributions() {
+    this.savedHostContrib = this.hostSession.hostContrib;
+    const merged = new Map();
+    for (const g of this.savedGuestContribs) {
+      merged.set(g.name, { ...g });
+    }
+    for (const g of this.hostSession.guests.values()) {
+      merged.set(g.name, {
+        name: g.name,
+        role: 'guest',
+        contrib: g.contrib,
+        color: g.color,
+      });
+    }
+    this.savedGuestContribs = Array.from(merged.values());
+  }
+
   close() {
+    if (this.role === 'host') {
+      this._snapshotHostContributions();
+    }
     this.hostSession.reset();
     this.guestSession.reset();
     if (this.transport) {

@@ -16,7 +16,14 @@ export class ResultModalUI {
     document.getElementById('resultTime').textContent = formatDuration(payload.elapsedMs);
     document.getElementById('resultSize').textContent =
       `${payload.cols} × ${payload.rows} (${payload.pieceCount})`;
-    document.getElementById('resultPlaced').textContent = String(payload.placedCount);
+    const resultPlacedEl = document.getElementById('resultPlaced');
+    resultPlacedEl.textContent = String(payload.myContrib ?? payload.placedCount);
+    const placedLabelEl = resultPlacedEl.parentElement?.querySelector('.label');
+    if (placedLabelEl) {
+      placedLabelEl.textContent = payload.isMultiplayer
+        ? 'あなたの貢献度（はめた数）'
+        : '貢献度（はめた数）';
+    }
     document.getElementById('resultOjamaTotal').textContent = String(payload.ojamaTotal);
 
     const bd = payload.ojamaBreakdown;

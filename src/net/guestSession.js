@@ -295,7 +295,13 @@ export class GuestSession {
         }
       }
       if (!skipStaleLocalPatch && Array.isArray(msg.pieces)) {
-        room.engine.applyPiecePatches(msg.pieces);
+        const isRotateOrFlip =
+          msg.actionResult?.type === 'rotate' || msg.actionResult?.type === 'flip';
+        const isLockedByMe =
+          targetGroupId != null && room.groupLocks.get(targetGroupId) === room.myPlayerId;
+        room.engine.applyPiecePatches(msg.pieces, {
+          preservePositions: isRotateOrFlip && isLockedByMe,
+        });
       }
       if (msg.stats) room.engine.stats = msg.stats;
       if (Array.isArray(msg.zoneLabels)) room.engine.zoneLabels = msg.zoneLabels;
