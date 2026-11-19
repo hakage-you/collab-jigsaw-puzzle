@@ -8,6 +8,7 @@ import {
   normalizeCutComplexity,
 } from './jigsawPath.js';
 import { analyzePieceColors } from './colorAnalysis.js';
+import { PieceLodCache } from './pieceLodCache.js';
 import {
   PieceSpriteAtlas,
   renderPieceBackSprite,
@@ -63,6 +64,7 @@ export class PuzzleEngine {
     this.backPatternCanvas = createBacksidePatternCanvas();
     this.spriteAtlas = null;
     this.spriteAtlasPages = [];
+    this.lodCache = new PieceLodCache();
     this.puzzleGeneration = 0;
     this.zVersion = 0;
     this.lockedVersion = 0;
@@ -76,6 +78,14 @@ export class PuzzleEngine {
 
   get spriteAtlases() {
     return this.spriteAtlas ? this.spriteAtlas.canvases : [];
+  }
+
+  get lodCanvasCount() {
+    return this.lodCache.canvasCount;
+  }
+
+  get lodStats() {
+    return this.lodCache.getStats();
   }
 
   ensureBackSprite(piece) {
@@ -182,8 +192,31 @@ export class PuzzleEngine {
     for (const sp of saveData.pieces) {
       savedMap.set(sp.id, sp);
     }
+    let coordScaleX;
+    let coordScaleY;
+    if (pInfo.boardW > 0 && pInfo.boardH > 0) {
+      coordScaleX = this.boardW / pInfo.boardW;
+      coordScaleY = this.boardH / pInfo.boardH;
+    } else {
+      const refW = Math.max(1, Number(pInfo.imageWidth) || sourceCanvas.width);
+      const refH = Math.max(1, Number(pInfo.imageHeight) || sourceCanvas.height);
+      const legacyScale = Math.min(
+        PUZZLE_CONFIG.BOARD_MAX_WIDTH / refW,
+        PUZZLE_CONFIG.BOARD_MAX_HEIGHT / refH
+      );
+      const oldW = Math.max(1, Math.round(refW * legacyScale));
+      const oldH = Math.max(1, Math.round(refH * legacyScale));
+      coordScaleX = this.boardW / oldW;
+      coordScaleY = this.boardH / oldH;
+    }
 
-    this._buildPieces({ allowRotation: false, allowFlip: false, savedMap });
+    this._buildPieces({
+      allowRotation: false,
+      allowFlip: false,
+      savedMap,
+      coordScaleX,
+      coordScaleY,
+    });
 
     const st = saveData.stats || {};
     this.stats = {
@@ -204,13 +237,14 @@ export class PuzzleEngine {
     }
   }
 
-  _buildPieces({ allowRotation, allowFlip, savedMap }) {
+  _buildPieces({ allowRotation, allowFlip, savedMap, coordScaleX = 1, coordScaleY = 1 }) {
     for (const oldP of this.pieces) {
       oldP.frontSprite = null;
       oldP.backSprite = null;
       oldP.path = null;
     }
     this._sortedLooseCache = { version: -1, list: [] };
+    this.lodCache.clear();
 
     const layout = generateCutLayout(this.cols, this.rows, this.boardW, this.boardH, this.seed, this.cutComplexity);
     const colorInfos = analyzePieceColors(this.sourceCanvas, this.cols, this.rows);
@@ -250,8 +284,8 @@ export class PuzzleEngine {
           id, row: r, col: c,
           isEdge: r === 0 || r === this.rows - 1 || c === 0 || c === this.cols - 1,
           targetX, targetY,
-          x: sp ? (isLocked ? targetX : sp.x) : pos.x,
-          y: sp ? (isLocked ? targetY : sp.y) : pos.y,
+          x: sp ? (isLocked ? targetX : sp.x * coordScaleX) : pos.x,
+          y: sp ? (isLocked ? targetY : sp.y * coordScaleY) : pos.y,
           rotation: sp ? ((sp.rotation % 4) + 4) % 4 : allowRotation ? Math.floor(rng() * 4) : 0,
           isFlipped: sp ? !!sp.isFlipped : allowFlip ? rng() < PUZZLE_CONFIG.FLIP_INITIAL_PROB : false,
           groupId, isLocked, zOrder, colorInfo: colorInfos[id], path,
@@ -288,13 +322,12 @@ export class PuzzleEngine {
   _computeGeometry() {
     const imgW = this.sourceCanvas.width;
     const imgH = this.sourceCanvas.height;
-    const scale = Math.min(
-      PUZZLE_CONFIG.BOARD_MAX_WIDTH / imgW,
-      PUZZLE_CONFIG.BOARD_MAX_HEIGHT / imgH
-    );
+    const aspect = Math.max(0.2, Math.min(5, imgW / Math.max(1, imgH)));
+    const target = PUZZLE_CONFIG.TARGET_PIECE_SIZE || 76;
+    const targetArea = this.cols * this.rows * target * target;
 
-    this.boardW = Math.round(imgW * scale);
-    this.boardH = Math.round(imgH * scale);
+    this.boardW = Math.max(180, Math.round(Math.sqrt(targetArea * aspect)));
+    this.boardH = Math.max(120, Math.round(this.boardW / aspect));
     this.pieceW = this.boardW / this.cols;
     this.pieceH = this.boardH / this.rows;
     this.tabSize = Math.min(this.pieceW, this.pieceH) * PUZZLE_CONFIG.TAB_RATIO;
@@ -313,8 +346,11 @@ export class PuzzleEngine {
     const positions = [];
     const marginX = this.boardW / 2 + this.pieceW * 0.95;
     const marginY = this.boardH / 2 + this.pieceH * 0.95;
-    const bandW = Math.max(260, this.pieceW * 3.2);
-    const bandH = Math.max(200, this.pieceH * 2.4);
+    const perimeterSpan = 2 * (this.boardW + this.boardH);
+    const neededArea = count * this.pieceW * this.pieceH * 1.45;
+    const idealBand = Math.ceil(neededArea / Math.max(1, perimeterSpan));
+    const bandW = Math.max(this.pieceW * 3.0, Math.min(this.boardW * 0.48, idealBand));
+    const bandH = Math.max(this.pieceH * 2.4, Math.min(this.boardH * 0.48, idealBand));
 
     for (let i = 0; i < count; i++) {
       const side = i % 4;

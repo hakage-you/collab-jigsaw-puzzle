@@ -94,35 +94,148 @@ export class PieceSpriteAtlas {
     }
     this.pool.length = 0;
   }
-
-  static releaseCanvases(canvases) {
-    if (!Array.isArray(canvases)) return;
-    for (const c of canvases) {
-      if (c) {
-        c.width = 0;
-        c.height = 0;
-      }
-    }
-  }
 }
 
 function computeSpriteMetrics(sourceCanvas, boardW, pieceW, pieceH, spritePad, totalPieces) {
   const logicalW = Math.ceil(pieceW + spritePad * 2);
   const logicalH = Math.ceil(pieceH + spritePad * 2);
-  const rawScale = (sourceCanvas ? sourceCanvas.width / Math.max(1, boardW) : 1.5) * 1.25;
+  const logicalArea = Math.max(1, logicalW * logicalH);
+  // Target ~2-3 2048x2048 pages max across front + initial flipped backs
+  const targetAtlasBudgetPx2 = 2048 * 2048 * 1.65;
+  const budgetScale = Math.sqrt(targetAtlasBudgetPx2 / Math.max(1, totalPieces * logicalArea));
+  const rawSrcScale = (sourceCanvas ? sourceCanvas.width / Math.max(1, boardW) : 1.5) * 1.25;
   const spriteScale =
-    totalPieces >= 1500
-      ? Math.min(2, Math.max(1.5, rawScale))
-      : totalPieces >= 800
-      ? 2
-      : Math.min(3, Math.max(2, Math.ceil(rawScale)));
+    totalPieces <= 48
+      ? Math.min(2, Math.max(1.5, Math.min(2, budgetScale), Math.min(2, Math.ceil(rawSrcScale))))
+      : Math.max(0.28, Math.min(2, budgetScale));
   return {
     logicalW,
     logicalH,
     spriteScale,
-    physW: Math.ceil(logicalW * spriteScale),
-    physH: Math.ceil(logicalH * spriteScale),
+    physW: Math.max(8, Math.ceil(logicalW * spriteScale)),
+    physH: Math.max(8, Math.ceil(logicalH * spriteScale)),
   };
+}
+
+/**
+ * Shared front-sprite rasterizer used by both base PieceSpriteAtlas and zoom PieceLodCache.
+ */
+export function drawFrontPieceToSlot(
+  ctx,
+  slot,
+  { piece, sourceCanvas, boardW, boardH, pieceW, pieceH, logicalW, logicalH, renderScale, isLod = false }
+) {
+  const physW = slot.sw;
+  const physH = slot.sh;
+  const cx = piece.spriteHalfW;
+  const cy = piece.spriteHalfH;
+  const minDim = Math.min(pieceW, pieceH);
+
+  const outerWidth = isLod
+    ? Math.max(0.16, Math.min(1.2, 1.2 / renderScale))
+    : Math.max(0.85 / Math.max(0.28, renderScale), Math.min(1.2, Math.max(0.32, minDim * 0.04)));
+  const innerWidth = isLod
+    ? Math.max(0.22, Math.min(2.0, 1.8 / renderScale))
+    : Math.max(1.1 / Math.max(0.28, renderScale), Math.min(2.0, Math.max(0.45, minDim * 0.06)));
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(slot.sx, slot.sy, physW, physH);
+  ctx.clip();
+  ctx.translate(slot.sx, slot.sy);
+  ctx.scale(renderScale, renderScale);
+
+  const boardLeft = piece.targetX - cx + boardW / 2;
+  const boardTop = piece.targetY - cy + boardH / 2;
+  const visLeft = Math.max(0, boardLeft);
+  const visTop = Math.max(0, boardTop);
+  const visRight = Math.min(boardW, boardLeft + logicalW);
+  const visBottom = Math.min(boardH, boardTop + logicalH);
+  const visW = visRight - visLeft;
+  const visH = visBottom - visTop;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.clip(piece.path);
+  if (visW > 0 && visH > 0) {
+    const srcScaleX = sourceCanvas.width / Math.max(1, boardW);
+    const srcScaleY = sourceCanvas.height / Math.max(1, boardH);
+    const srcX = Math.max(0, Math.min(sourceCanvas.width - 1, visLeft * srcScaleX));
+    const srcY = Math.max(0, Math.min(sourceCanvas.height - 1, visTop * srcScaleY));
+    const srcW = Math.min(sourceCanvas.width - srcX, Math.max(0.01, visW * srcScaleX));
+    const srcH = Math.min(sourceCanvas.height - srcY, Math.max(0.01, visH * srcScaleY));
+    const destX = visLeft - boardW / 2 - piece.targetX;
+    const destY = visTop - boardH / 2 - piece.targetY;
+    ctx.drawImage(sourceCanvas, srcX, srcY, srcW, srcH, destX, destY, visW, visH);
+  }
+  ctx.lineWidth = innerWidth;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+  ctx.stroke(piece.path);
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.lineWidth = outerWidth;
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.55)';
+  ctx.stroke(piece.path);
+  ctx.restore();
+
+  ctx.restore();
+}
+
+/**
+ * Shared back-sprite rasterizer used by both base PieceSpriteAtlas and zoom PieceLodCache.
+ */
+export function drawBackPieceToSlot(
+  ctx,
+  slot,
+  { piece, pieceW, pieceH, logicalW, logicalH, renderScale, pattern, isLod = false }
+) {
+  const physW = slot.sw;
+  const physH = slot.sh;
+  const cx = piece.spriteHalfW;
+  const cy = piece.spriteHalfH;
+  const minDim = Math.min(pieceW, pieceH);
+  const backOuterWidth = isLod
+    ? Math.max(0.18, Math.min(1.6, 1.35 / renderScale))
+    : Math.max(0.95 / Math.max(0.28, renderScale), Math.min(1.6, Math.max(0.4, minDim * 0.05)));
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(slot.sx, slot.sy, physW, physH);
+  ctx.clip();
+  ctx.translate(slot.sx, slot.sy);
+  ctx.scale(renderScale, renderScale);
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.clip(piece.path);
+  ctx.fillStyle = pattern || '#334155';
+  ctx.fillRect(-cx, -cy, logicalW, logicalH);
+
+  // Render pre-mirrored BACK mark when piece appears at least ~24px on screen
+  const screenDim = isLod ? minDim * renderScale : minDim;
+  if (screenDim >= 24) {
+    const fontPx = Math.max(10, Math.round(minDim * 0.28 * renderScale));
+    ctx.save();
+    ctx.scale(-1 / renderScale, 1 / renderScale);
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.34)';
+    ctx.font = `bold ${fontPx}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('BACK', 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.lineWidth = backOuterWidth;
+  ctx.strokeStyle = 'rgba(203, 213, 225, 0.55)';
+  ctx.stroke(piece.path);
+  ctx.restore();
+
+  ctx.restore();
 }
 
 /**
@@ -153,54 +266,20 @@ export function renderPieceSprites(
   piece.spriteLogicalH = logicalH;
   piece.spriteScale = spriteScale;
 
-  const cx = piece.spriteHalfW;
-  const cy = piece.spriteHalfH;
-
   const fSlot = targetAtlas.allocate(physW, physH);
-  const fCtx = fSlot.ctx;
-  fCtx.save();
-  fCtx.beginPath();
-  fCtx.rect(fSlot.sx, fSlot.sy, physW, physH);
-  fCtx.clip();
-  fCtx.translate(fSlot.sx, fSlot.sy);
-  fCtx.scale(spriteScale, spriteScale);
+  drawFrontPieceToSlot(fSlot.ctx, fSlot, {
+    piece,
+    sourceCanvas,
+    boardW,
+    boardH,
+    pieceW,
+    pieceH,
+    logicalW,
+    logicalH,
+    renderScale: spriteScale,
+    isLod: false,
+  });
 
-  const boardLeft = piece.targetX - cx + boardW / 2;
-  const boardTop = piece.targetY - cy + boardH / 2;
-  const visLeft = Math.max(0, boardLeft);
-  const visTop = Math.max(0, boardTop);
-  const visRight = Math.min(boardW, boardLeft + logicalW);
-  const visBottom = Math.min(boardH, boardTop + logicalH);
-  const visW = visRight - visLeft;
-  const visH = visBottom - visTop;
-
-  fCtx.save();
-  fCtx.translate(cx, cy);
-  fCtx.clip(piece.path);
-  if (visW > 0 && visH > 0) {
-    const srcScaleX = sourceCanvas.width / Math.max(1, boardW);
-    const srcScaleY = sourceCanvas.height / Math.max(1, boardH);
-    const srcX = Math.max(0, Math.min(sourceCanvas.width - 1, visLeft * srcScaleX));
-    const srcY = Math.max(0, Math.min(sourceCanvas.height - 1, visTop * srcScaleY));
-    const srcW = Math.min(sourceCanvas.width - srcX, Math.max(0.01, visW * srcScaleX));
-    const srcH = Math.min(sourceCanvas.height - srcY, Math.max(0.01, visH * srcScaleY));
-    const destX = visLeft - boardW / 2 - piece.targetX;
-    const destY = visTop - boardH / 2 - piece.targetY;
-    fCtx.drawImage(sourceCanvas, srcX, srcY, srcW, srcH, destX, destY, visW, visH);
-  }
-  fCtx.lineWidth = 2;
-  fCtx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-  fCtx.stroke(piece.path);
-  fCtx.restore();
-
-  fCtx.save();
-  fCtx.translate(cx, cy);
-  fCtx.lineWidth = 1.2;
-  fCtx.strokeStyle = 'rgba(15, 23, 42, 0.55)';
-  fCtx.stroke(piece.path);
-  fCtx.restore();
-
-  fCtx.restore();
   piece.frontSprite = {
     canvas: fSlot.canvas,
     sx: fSlot.sx,
@@ -228,47 +307,22 @@ export function renderPieceBackSprite(
   const logicalW = piece.spriteLogicalW || Math.ceil(pieceW + spritePad * 2);
   const logicalH = piece.spriteLogicalH || Math.ceil(pieceH + spritePad * 2);
   const spriteScale = piece.spriteScale || 2;
-  const physW = Math.ceil(logicalW * spriteScale);
-  const physH = Math.ceil(logicalH * spriteScale);
-  const cx = piece.spriteHalfW;
-  const cy = piece.spriteHalfH;
+  const physW = Math.max(8, Math.ceil(logicalW * spriteScale));
+  const physH = Math.max(8, Math.ceil(logicalH * spriteScale));
 
   const bSlot = atlas.allocate(physW, physH);
-  const bCtx = bSlot.ctx;
-  bCtx.save();
-  bCtx.beginPath();
-  bCtx.rect(bSlot.sx, bSlot.sy, physW, physH);
-  bCtx.clip();
-  bCtx.translate(bSlot.sx, bSlot.sy);
-  bCtx.scale(spriteScale, spriteScale);
+  const pat = atlas.getBackPattern(bSlot.ctx, backPatternCanvas);
+  drawBackPieceToSlot(bSlot.ctx, bSlot, {
+    piece,
+    pieceW,
+    pieceH,
+    logicalW,
+    logicalH,
+    renderScale: spriteScale,
+    pattern: pat,
+    isLod: false,
+  });
 
-  bCtx.save();
-  bCtx.translate(cx, cy);
-  bCtx.clip(piece.path);
-  const pat = atlas.getBackPattern(bCtx, backPatternCanvas);
-  bCtx.fillStyle = pat || '#334155';
-  bCtx.fillRect(-cx, -cy, logicalW, logicalH);
-
-  if (Math.min(pieceW, pieceH) >= 24) {
-    bCtx.save();
-    bCtx.scale(-1, 1);
-    bCtx.fillStyle = 'rgba(148, 163, 184, 0.28)';
-    bCtx.font = `bold ${Math.max(12, Math.round(Math.min(pieceW, pieceH) * 0.28))}px sans-serif`;
-    bCtx.textAlign = 'center';
-    bCtx.textBaseline = 'middle';
-    bCtx.fillText('BACK', 0, 0);
-    bCtx.restore();
-  }
-  bCtx.restore();
-
-  bCtx.save();
-  bCtx.translate(cx, cy);
-  bCtx.lineWidth = 1.6;
-  bCtx.strokeStyle = 'rgba(203, 213, 225, 0.55)';
-  bCtx.stroke(piece.path);
-  bCtx.restore();
-
-  bCtx.restore();
   piece.backSprite = {
     canvas: bSlot.canvas,
     sx: bSlot.sx,

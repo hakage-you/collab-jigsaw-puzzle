@@ -212,6 +212,20 @@ export class CanvasInteraction {
     });
     document.getElementById('btnResetView').addEventListener('click', () => this.fitViewAndSync());
 
+    const zoomReadout = document.getElementById('zoomReadout');
+    const resetTo100Pct = () => {
+      this.renderer.view.scale = 1.0;
+      this.updateZoomReadout();
+      this.renderer.requestRender();
+    };
+    zoomReadout?.addEventListener('click', resetTo100Pct);
+    zoomReadout?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        resetTo100Pct();
+      }
+    });
+
     this.canvasStage.addEventListener('dragenter', (e) => {
       if (this.app.room.isGuest()) return;
       if (e.dataTransfer?.types?.includes('Files')) {

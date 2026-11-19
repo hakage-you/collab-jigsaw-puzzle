@@ -126,6 +126,8 @@ export function exportSaveDataOp(engine, settings) {
       seed: engine.seed,
       cols: engine.cols,
       rows: engine.rows,
+      boardW: engine.boardW,
+      boardH: engine.boardH,
       cutComplexity: engine.cutComplexity,
       imageWidth: engine.sourceCanvas.width,
       imageHeight: engine.sourceCanvas.height,

@@ -8,7 +8,10 @@ export function drawDeskBackground(ctx, { rect, view, pal }) {
   ctx.save();
   const cx = rect.width / 2;
   const cy = rect.height / 2;
-  const gridStep = VIEWPORT_CONFIG.DESK_GRID_STEP * view.scale;
+  let gridStep = VIEWPORT_CONFIG.DESK_GRID_STEP * view.scale;
+  while (gridStep > 0 && gridStep < 22) {
+    gridStep *= 2;
+  }
 
   if (gridStep >= 16) {
     const offsetX = (((cx - view.x * view.scale) % gridStep) + gridStep) % gridStep;
@@ -32,6 +35,51 @@ export function drawDeskBackground(ctx, { rect, view, pal }) {
 export function resolvePlayerColor(rawColor, pal) {
   if (!rawColor || rawColor === 'var(--accent)') return pal.accent;
   return rawColor;
+}
+
+export function drawBoardFrame(ctx, { engine, scale, settings, isDark, pal }) {
+  const bx = -engine.boardW / 2;
+  const by = -engine.boardH / 2;
+  const shadowOffset = 6 / scale;
+
+  ctx.save();
+  ctx.fillStyle = isDark ? 'rgba(0, 0, 0, 0.38)' : 'rgba(15, 23, 42, 0.08)';
+  ctx.fillRect(bx + shadowOffset, by + shadowOffset, engine.boardW, engine.boardH);
+
+  ctx.fillStyle = pal.boardBg;
+  ctx.strokeStyle = pal.accent;
+  ctx.lineWidth = 2.2 / scale;
+  ctx.beginPath();
+  ctx.rect(bx, by, engine.boardW, engine.boardH);
+  ctx.fill();
+  ctx.stroke();
+
+  if (
+    (settings.referenceMode || 'underlay') === 'underlay' &&
+    settings.guideOpacity > 0 &&
+    engine.sourceCanvas?.width > 0 &&
+    engine.sourceCanvas?.height > 0
+  ) {
+    ctx.globalAlpha = settings.guideOpacity / 100;
+    ctx.drawImage(engine.sourceCanvas, bx, by, engine.boardW, engine.boardH);
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.strokeStyle = pal.cellGrid;
+  ctx.lineWidth = 1 / scale;
+  ctx.beginPath();
+  for (let c = 1; c < engine.cols; c++) {
+    const gx = bx + c * engine.pieceW;
+    ctx.moveTo(gx, by);
+    ctx.lineTo(gx, by + engine.boardH);
+  }
+  for (let r = 1; r < engine.rows; r++) {
+    const gy = by + r * engine.pieceH;
+    ctx.moveTo(bx, gy);
+    ctx.lineTo(bx + engine.boardW, gy);
+  }
+  ctx.stroke();
+  ctx.restore();
 }
 
 export function drawReferenceSheet(ctx, { settings, sourceCanvas, refSheet, pal }) {
@@ -80,21 +128,27 @@ export function drawReferenceSheet(ctx, { settings, sourceCanvas, refSheet, pal 
   ctx.restore();
 }
 
-export function drawZoneLabels(ctx, zoneLabels, pal) {
+export function drawZoneLabels(ctx, zoneLabels, pal, scale = 1) {
   if (!zoneLabels || zoneLabels.length === 0) return;
+  const fontSize = Math.min(84, Math.max(13, Math.round(13 / Math.max(0.06, scale))));
+  const padX = Math.round(fontSize * 1.4);
+  const pillH = Math.round(fontSize * 1.85);
+  const radius = Math.round(pillH / 2);
+  const borderW = Math.max(1.5, Math.min(8, 1.5 / Math.max(0.06, scale)));
+
   ctx.save();
-  ctx.font = 'bold 13px sans-serif';
+  ctx.font = `bold ${fontSize}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
   for (const lbl of zoneLabels) {
-    const w = ctx.measureText(lbl.text).width + 20;
+    const w = ctx.measureText(lbl.text).width + padX;
     ctx.fillStyle = pal.surface;
     ctx.beginPath();
-    ctx.roundRect(lbl.x - w / 2, lbl.y - 12, w, 24, 12);
+    ctx.roundRect(lbl.x - w / 2, lbl.y - pillH / 2, w, pillH, radius);
     ctx.fill();
     ctx.strokeStyle = lbl.color || pal.borderStrong;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = borderW;
     ctx.stroke();
 
     ctx.fillStyle = pal.text;

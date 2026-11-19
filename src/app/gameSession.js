@@ -149,14 +149,26 @@ export class GameSession {
     this.sourceImage = { canvas, name, isSample };
   }
 
+  _syncGridToSourceAspect(canvas) {
+    if (!canvas) return;
+    const currentTotal = this.settings.cols * this.settings.rows;
+    const { cols, rows } = computeGridForPieceCount(currentTotal, canvas.width, canvas.height);
+    if (cols !== this.settings.cols || rows !== this.settings.rows) {
+      this.patchSettings({ cols, rows });
+    }
+  }
+
   setCustomImage(imgCanvas, name) {
     this._replaceSourceImage(imgCanvas, name, false);
+    this._syncGridToSourceAspect(imgCanvas);
     this.startNewPuzzle();
     this.emit('toast', { message: `「${name}」でパズルを開始しました`, kind: 'success' });
   }
 
   useSampleImage() {
-    this._replaceSourceImage(generateSampleImageCanvas(), 'サンプルテスト画像', true);
+    const sample = generateSampleImageCanvas();
+    this._replaceSourceImage(sample, 'サンプルテスト画像', true);
+    this._syncGridToSourceAspect(sample);
     this.startNewPuzzle();
     this.emit('toast', { message: 'サンプルテスト画像を生成しました', kind: 'success' });
   }

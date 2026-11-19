@@ -1,6 +1,7 @@
 import { VIEWPORT_CONFIG } from '../config/constants.js';
 import {
   drawAllCursors,
+  drawBoardFrame,
   drawDeskBackground,
   drawReferenceSheet,
   drawRemoteLockBadges,
@@ -75,18 +76,29 @@ export class CanvasRenderer {
   fitView() {
     const rect = this.canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
-    const totalSpanW = this.engine.boardW + this.engine.pieceW * 7.5;
-    const totalSpanH = this.engine.boardH + this.engine.pieceH * 6.5;
-    const s = Math.min(rect.width / totalSpanW, rect.height / totalSpanH);
-    this.view.scale = Math.max(0.28, Math.min(1.4, s));
-    this.view.x = 0;
-    this.view.y = 0;
+    const pad = Math.max(this.engine.pieceW, this.engine.pieceH) * 1.4 + this.engine.spritePad;
+    let minX = -this.engine.boardW / 2 - pad;
+    let maxX = this.engine.boardW / 2 + pad;
+    let minY = -this.engine.boardH / 2 - pad;
+    let maxY = this.engine.boardH / 2 + pad;
+    for (const p of this.engine.pieces) {
+      if (p.x - pad < minX) minX = p.x - pad;
+      if (p.x + pad > maxX) maxX = p.x + pad;
+      if (p.y - pad < minY) minY = p.y - pad;
+      if (p.y + pad > maxY) maxY = p.y + pad;
+    }
+    const spanW = Math.max(1, maxX - minX);
+    const spanH = Math.max(1, maxY - minY);
+    const s = Math.min(rect.width / spanW, rect.height / spanH);
+    this.view.scale = Math.max(VIEWPORT_CONFIG.MIN_ZOOM, Math.min(1.2, s));
+    this.view.x = (minX + maxX) / 2;
+    this.view.y = (minY + maxY) / 2;
     this.needsRender = true;
   }
 
   resetRefSheetGeometry(sourceCanvas) {
     const aspect = sourceCanvas.height / Math.max(1, sourceCanvas.width);
-    this.refSheet.w = Math.round(this.engine.boardW * 0.44);
+    this.refSheet.w = Math.max(180, Math.min(480, Math.round(this.engine.boardW * 0.44)));
     this.refSheet.h = Math.round(this.refSheet.w * aspect);
     this.refSheet.x =
       -this.engine.boardW / 2 -
@@ -187,54 +199,17 @@ export class CanvasRenderer {
   }
 
   _drawBoardFrame(settings, isDark, pal) {
-    const ctx = this.ctx;
-    const bx = -this.engine.boardW / 2;
-    const by = -this.engine.boardH / 2;
-    const shadowOffset = 6 / this.view.scale;
-
-    ctx.save();
-    ctx.fillStyle = isDark ? 'rgba(0, 0, 0, 0.38)' : 'rgba(15, 23, 42, 0.08)';
-    ctx.fillRect(bx + shadowOffset, by + shadowOffset, this.engine.boardW, this.engine.boardH);
-
-    ctx.fillStyle = pal.boardBg;
-    ctx.strokeStyle = pal.accent;
-    ctx.lineWidth = 2.2 / this.view.scale;
-    ctx.beginPath();
-    ctx.rect(bx, by, this.engine.boardW, this.engine.boardH);
-    ctx.fill();
-    ctx.stroke();
-
-    if (
-      (settings.referenceMode || 'underlay') === 'underlay' &&
-      settings.guideOpacity > 0 &&
-      this.engine.sourceCanvas &&
-      this.engine.sourceCanvas.width > 0 &&
-      this.engine.sourceCanvas.height > 0
-    ) {
-      ctx.globalAlpha = settings.guideOpacity / 100;
-      ctx.drawImage(this.engine.sourceCanvas, bx, by, this.engine.boardW, this.engine.boardH);
-      ctx.globalAlpha = 1;
-    }
-
-    ctx.strokeStyle = pal.cellGrid;
-    ctx.lineWidth = 1 / this.view.scale;
-    ctx.beginPath();
-    for (let c = 1; c < this.engine.cols; c++) {
-      const gx = bx + c * this.engine.pieceW;
-      ctx.moveTo(gx, by);
-      ctx.lineTo(gx, by + this.engine.boardH);
-    }
-    for (let r = 1; r < this.engine.rows; r++) {
-      const gy = by + r * this.engine.pieceH;
-      ctx.moveTo(bx, gy);
-      ctx.lineTo(bx + this.engine.boardW, gy);
-    }
-    ctx.stroke();
-    ctx.restore();
+    drawBoardFrame(this.ctx, {
+      engine: this.engine,
+      scale: this.view.scale,
+      settings,
+      isDark,
+      pal,
+    });
   }
 
   _drawZoneLabels(pal) {
-    drawZoneLabels(this.ctx, this.engine.zoneLabels, pal);
+    drawZoneLabels(this.ctx, this.engine.zoneLabels, pal, this.view.scale);
   }
 
   _drawReferenceSheet(settings, pal) {
@@ -275,16 +250,18 @@ export class CanvasRenderer {
       return;
     }
 
+    const MAX_LOCKED_CACHE_DIM = 2048;
     const pad = this.engine.spritePad + 8;
     const logicalW = Math.ceil(this.engine.boardW + pad * 2);
     const logicalH = Math.ceil(this.engine.boardH + pad * 2);
-    const maxScale = this.engine.pieces.length >= 800 ? 2 : 3;
-    const rawScale = (this.engine.sourceCanvas?.width || this.engine.boardW) / Math.max(1, this.engine.boardW);
-    const scale = Math.min(maxScale, Math.max(2, Math.ceil(rawScale)));
+    const baseScale = this.engine.pieces[0]?.spriteScale || 1;
+    const desiredScale = Math.min(2, Math.max(0.4, baseScale));
+    const maxScaleByDim = MAX_LOCKED_CACHE_DIM / Math.max(1, logicalW, logicalH);
+    const scale = Math.min(desiredScale, maxScaleByDim);
 
     const cCanvas = this._lockedCache.canvas;
-    const targetW = Math.ceil(logicalW * scale);
-    const targetH = Math.ceil(logicalH * scale);
+    const targetW = Math.min(MAX_LOCKED_CACHE_DIM, Math.max(1, Math.ceil(logicalW * scale)));
+    const targetH = Math.min(MAX_LOCKED_CACHE_DIM, Math.max(1, Math.ceil(logicalH * scale)));
     if (cCanvas.width !== targetW || cCanvas.height !== targetH) {
       cCanvas.width = targetW;
       cCanvas.height = targetH;
@@ -337,8 +314,20 @@ export class CanvasRenderer {
     }
   }
 
-  _drawPiece(piece, isActiveGroup, isHoverGroup, remoteLockMeta, pal) {
-    const sprite = piece.isFlipped ? this.engine.ensureBackSprite(piece) : piece.frontSprite;
+  _resolvePieceSprite(piece, lodConfig) {
+    if (lodConfig && this.engine.lodCache) {
+      const lodSprite = this.engine.lodCache.getOrRender(piece, {
+        isFlipped: piece.isFlipped,
+        lodScale: lodConfig.lodScale,
+        engine: this.engine,
+      });
+      if (lodSprite) return lodSprite;
+    }
+    return piece.isFlipped ? this.engine.ensureBackSprite(piece) : piece.frontSprite;
+  }
+
+  _drawPiece(piece, isActiveGroup, isHoverGroup, remoteLockMeta, pal, lodConfig = null) {
+    const sprite = this._resolvePieceSprite(piece, lodConfig);
     if (!sprite) return;
     const ctx = this.ctx;
 
@@ -452,8 +441,6 @@ export class CanvasRenderer {
       this._drawReferenceSheet(settings, pal);
       this._drawZoneLabels(pal);
 
-      this._drawLockedBoardCache();
-
       const halfVisW = rect.width / (2 * this.view.scale);
       const halfVisH = rect.height / (2 * this.view.scale);
       const cullPad = Math.max(this.engine.pieceW, this.engine.pieceH) + this.engine.spritePad + 16;
@@ -462,11 +449,39 @@ export class CanvasRenderer {
       const minY = this.view.y - halfVisH - cullPad;
       const maxY = this.view.y + halfVisH + cullPad;
 
-      const loose = this.engine.getSortedLoosePieces();
+      const visibleLocked = [];
+      for (const p of this.engine.pieces) {
+        if (p.isLocked && p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY) {
+          visibleLocked.push(p);
+        }
+      }
+      const visibleLoose = [];
+      for (const p of this.engine.getSortedLoosePieces()) {
+        if (p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY) {
+          visibleLoose.push(p);
+        }
+      }
+
+      const visibleCount = visibleLocked.length + visibleLoose.length;
+      const lodConfig = this.engine.lodCache
+        ? this.engine.lodCache.resolveLodConfig(this.view.scale * dpr, this.engine, visibleCount)
+        : null;
+      if (lodConfig) {
+        this.engine.lodCache.beginFrame(
+          this.engine.puzzleGeneration,
+          lodConfig.bucket,
+          lodConfig.slotStep
+        );
+        for (const p of visibleLocked) {
+          this._drawPiece(p, false, false, null, pal, lodConfig);
+        }
+      } else {
+        this._drawLockedBoardCache();
+      }
+
       const hoverGroupId = this.hoveredPiece ? this.hoveredPiece.groupId : null;
       const isMulti = Boolean(this.room?.isMultiplayer());
-      for (const p of loose) {
-        if (p.x < minX || p.x > maxX || p.y < minY || p.y > maxY) continue;
+      for (const p of visibleLoose) {
         const lockOwner = isMulti ? this.room.groupLocks.get(p.groupId) : null;
         const remoteMeta =
           lockOwner && lockOwner !== this.room.myPlayerId
@@ -474,7 +489,7 @@ export class CanvasRenderer {
             : null;
         const isActive = this.draggingGroupId !== null && p.groupId === this.draggingGroupId;
         const isHover = !isActive && !remoteMeta && hoverGroupId !== null && p.groupId === hoverGroupId;
-        this._drawPiece(p, isActive, isHover, remoteMeta, pal);
+        this._drawPiece(p, isActive, isHover, remoteMeta, pal, lodConfig);
       }
 
       this._drawRemoteLockBadges(pal);
@@ -511,7 +526,8 @@ export class CanvasRenderer {
         }
       }
 
-      this.needsRender = false;
+      const lod = this.engine.lodCache;
+      this.needsRender = Boolean(lodConfig && lod?.budgetExhausted && !lod?.evictedInFrame);
       if (this.postRenderCallbacks.length > 0) {
         const callbacks = this.postRenderCallbacks.splice(0);
         for (const cb of callbacks) cb();

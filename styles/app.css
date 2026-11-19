@@ -1479,3 +1479,7 @@
   font-weight: 600;
   color: var(--text);
 }
+
+#zoomReadout {
+  cursor: pointer;
+}

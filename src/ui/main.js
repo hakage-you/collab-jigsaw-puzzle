@@ -95,6 +95,8 @@ function boot() {
     view: renderer.view,
     refSheet: renderer.refSheet,
     getSettings: () => app.getSettings(),
+    setCustomImage: (canvas, name) => app.setCustomImage(canvas, name),
+    useSampleImage: () => app.useSampleImage(),
     fitView: () => setupDrawerUI.fitViewAndSync(),
     screenToWorld: (sx, sy) => renderer.screenToWorld(sx, sy),
   };
