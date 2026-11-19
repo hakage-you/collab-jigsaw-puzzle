@@ -1,0 +1,30 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "rules": {
+    "color-no-hex": true,
+    "color-named": "never",
+    "function-disallowed-list": ["rgb", "rgba", "hsl", "hsla"],
+    "selector-disallowed-list": ["/\\.panel-card/", "/\\.toggle-chip/"],
+    "declaration-property-value-allowed-list": {
+      "font-size": "/^(var\\(--font-size(-[a-z]+)?\\)|inherit)$/",
+      "/^(margin|padding|gap|row-gap|column-gap)(-(top|right|bottom|left))?$/": "/^((0|auto|var\\(--space-[1-6]\\)|calc\\([^)]+\\))(\\s+|$))+$/"
+    },
+    "selector-id-pattern": null,
+    "media-feature-range-notation": null,
+    "custom-property-empty-line-before": null,
+    "comment-empty-line-before": null,
+    "rule-empty-line-before": null,
+    "no-descending-specificity": null
+  },
+  "overrides": [
+    {
+      "files": ["styles/tokens.css"],
+      "rules": {
+        "color-no-hex": null,
+        "color-named": null,
+        "function-disallowed-list": null,
+        "declaration-property-value-allowed-list": null
+      }
+    }
+  ]
+}

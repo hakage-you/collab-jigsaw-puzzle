@@ -1,0 +1,373 @@
+/* ==========================================================================
+   Base Reset, Typography, Buttons, Outlined TextField, Switch & Chips
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--font-size);
+  line-height: 1.5;
+  user-select: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ==========================================================================
+   Buttons (6px Rounded Rect, No Wrap, Clear Static Affordance)
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--touch);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font);
+  font-size: var(--font-size);
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  color: var(--text);
+  background: var(--surface);
+  transition: background var(--duration-fast), border-color var(--duration-fast), transform 0.08s ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--text);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* 1. Primary (Contained) */
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+/* 2. Outline Accent */
+.btn-outline-accent {
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-outline-accent:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* 3. Neutral / Secondary */
+.btn-secondary {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+/* 4. Segmented / Filter Choice */
+.btn-seg {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+  border-radius: var(--radius-btn);
+  font-weight: 500;
+}
+
+.btn-seg.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 5. Ghost / Danger / Sabotage Action */
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: transparent;
+  color: var(--text);
+}
+
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--danger-text);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-hover);
+  border-color: var(--danger-hover);
+}
+
+.btn-ghost-light {
+  background: var(--sabotage-ghost-bg);
+  border-color: var(--sabotage-ghost-border);
+  color: var(--sabotage-text);
+}
+
+.btn-ghost-light:hover:not(:disabled) {
+  background: var(--sabotage-pill-bg);
+  border-color: var(--sabotage-text);
+}
+
+.btn-ojama {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-left: 4px solid var(--warning);
+  color: var(--text);
+  text-align: left;
+  white-space: normal;
+}
+
+.btn-ojama:hover:not(:disabled) {
+  background: var(--warning-soft);
+  border-color: var(--warning);
+}
+
+.btn-ojama small {
+  font-weight: 400;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.btn-sm {
+  min-height: var(--touch);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size);
+}
+
+.btn-xs {
+  min-height: var(--touch-compact);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-xs);
+}
+
+.btn-square {
+  width: var(--touch-compact);
+  padding: 0;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* ==========================================================================
+   Material Outlined TextField & Select (Never Gray Disabled-Look)
+   ========================================================================== */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.field input[type='number'],
+.field input[type='text'],
+.field select,
+.input-with-btn input,
+.host-rename-row input {
+  width: 100%;
+  min-height: var(--touch);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  color: var(--text);
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font);
+  font-size: var(--font-size);
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.field input[type='number']:hover,
+.field input[type='text']:hover,
+.field select:hover,
+.input-with-btn input:hover,
+.host-rename-row input:hover {
+  border-color: var(--text);
+}
+
+.field input[type='number']:focus,
+.field input[type='text']:focus,
+.field select:focus,
+.input-with-btn input:focus,
+.host-rename-row input:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 1px var(--focus);
+}
+
+.field input[type='file'] {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  padding: var(--space-1) 0;
+}
+
+.input-with-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.input-with-btn input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+/* ==========================================================================
+   Material Design Slide Switch
+   ========================================================================== */
+.md-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-compact);
+  cursor: pointer;
+  font-size: var(--font-size);
+  color: var(--text);
+}
+
+.md-switch-row {
+  width: 100%;
+  justify-content: space-between;
+  min-height: var(--touch);
+  padding: var(--space-1) 0;
+}
+
+.md-switch-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.md-switch-track {
+  position: relative;
+  width: 40px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--switch-track-off);
+  flex-shrink: 0;
+  transition: background var(--duration-fast);
+}
+
+.md-switch-thumb {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--switch-thumb);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--duration-fast);
+}
+
+.md-switch-input:checked + .md-switch-track {
+  background: var(--accent);
+}
+
+.md-switch-input:checked + .md-switch-track .md-switch-thumb {
+  transform: translateX(16px);
+}
+
+.md-switch-input:focus-visible + .md-switch-track {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.md-switch-label {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.md-switch-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Read-Only Status Chips (Flat Capsule, No Border)
+   ========================================================================== */
+.badge-phase,
+.progress-pill,
+.stat-chip,
+.role-badge,
+.comment-counter-badge {
+  border-radius: var(--radius-pill);
+  border: none;
+}
+
+.badge-phase {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: var(--space-1) var(--space-2);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.mt-2 {
+  margin-top: var(--space-2);
+}
+
+.mt-3 {
+  margin-top: var(--space-3);
+}

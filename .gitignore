@@ -1,0 +1,8 @@
+node_modules/
+dist/
+_plan/
+_walkthrough/
+docs/
+.env
+.env.*
+.DS_Store

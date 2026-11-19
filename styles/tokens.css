@@ -1,0 +1,186 @@
+/* ==========================================================================
+   Collab Jigsaw Design Tokens (Master Palette + Derived Semantic Tokens)
+   ========================================================================== */
+
+:root,
+html[data-theme='light'] {
+  color-scheme: light;
+
+  /* ------------------------------------------------------------------------
+     1. Master Palette (Edit here to restyle the entire app & canvas)
+     ------------------------------------------------------------------------ */
+  --palette-primary: #1565c0;
+  --palette-primary-text: #fff;
+  --palette-secondary: #6d28d9;
+  --palette-secondary-text: #fff;
+  --palette-success: #166534;
+  --palette-warning: #92400e;
+  --palette-error: #c62828;
+  --palette-error-text: #fff;
+
+  /* Surfaces & Desk */
+  --bg: #f8fafc;
+  --desk-bg: #eef2f6;
+  --surface: #fff;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
+  --surface-glass: rgb(255 255 255 / 94%);
+
+  /* Borders & Text */
+  --border: #cbd5e1;
+  --border-strong: #64748b;
+  --text: #0f172a;
+  --text-muted: #475569;
+
+  /* ------------------------------------------------------------------------
+     2. Auto-Derived Semantic Tokens (via color-mix)
+     ------------------------------------------------------------------------ */
+  --accent: var(--palette-primary);
+  --accent-text: var(--palette-primary-text);
+  --accent-hover: color-mix(in srgb, var(--palette-primary) 84%, var(--text));
+  --accent-soft: color-mix(in srgb, var(--palette-primary) 10%, var(--surface));
+
+  --secondary: var(--palette-secondary);
+  --secondary-text: var(--palette-secondary-text);
+  --secondary-soft: color-mix(in srgb, var(--palette-secondary) 12%, var(--surface));
+
+  --success: var(--palette-success);
+  --success-soft: color-mix(in srgb, var(--palette-success) 10%, var(--surface));
+
+  --warning: var(--palette-warning);
+  --warning-soft: color-mix(in srgb, var(--palette-warning) 14%, var(--surface));
+
+  --danger: var(--palette-error);
+  --danger-text: var(--palette-error-text);
+  --danger-hover: color-mix(in srgb, var(--palette-error) 84%, var(--text));
+  --danger-soft: color-mix(in srgb, var(--palette-error) 10%, var(--surface));
+
+  --focus: var(--palette-primary);
+  --overlay: rgb(15 23 42 / 48%);
+
+  /* Switch & Canvas Tokens */
+  --switch-track-off: #64748b;
+  --switch-thumb: #fff;
+  --canvas-board-bg: rgb(255 255 255 / 92%);
+  --canvas-grid: rgb(15 23 42 / 6%);
+  --canvas-cell-grid: rgb(15 23 42 / 12%);
+  --canvas-sheet-bg: #f8fafc;
+  --canvas-sheet-text: #1e293b;
+
+  /* Status & Sabotage Tokens */
+  --online-dot: var(--palette-success);
+  --dot-outline: rgb(15 23 42 / 25%);
+  --sabotage-bg: var(--palette-error);
+  --sabotage-text: var(--palette-error-text);
+  --sabotage-pill-bg: rgb(0 0 0 / 28%);
+  --sabotage-ghost-bg: rgb(255 255 255 / 16%);
+  --sabotage-ghost-border: rgb(255 255 255 / 42%);
+
+  /* SuperChat Sabotage Tokens */
+  --sc-header-bg: #991b1b;
+  --sc-body-bg: #dc2626;
+  --sc-footer-bg: #7f1d1d;
+  --sc-ring: rgb(254 202 202 / 60%);
+  --sc-text: #fff;
+  --sc-avatar-bg: #fee2e2;
+  --sc-avatar-text: #7f1d1d;
+  --sc-hp-fill: #fde047;
+  --sc-hp-track: rgb(0 0 0 / 35%);
+
+  /* Spotlight Tokens */
+  --spot-clear: rgb(0 0 0 / 0%);
+  --spot-mid: rgb(0 0 0 / 38%);
+  --spot-edge: rgb(2 6 23 / 96%);
+
+  /* Typography Scale (Min 12px) */
+  --font: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size: 14px;
+  --font-size-heading: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
+
+  /* 4px / 8px Spacing Grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Sizing & Radii */
+  --touch: 36px;
+  --touch-compact: 28px;
+  --header-height: 56px;
+  --drawer-width: 352px;
+  --radius-btn: 6px;
+  --radius-card: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* Elevation & Transitions */
+  --shadow-sm: 0 2px 6px rgb(15 23 42 / 8%);
+  --shadow-md: 0 6px 18px rgb(15 23 42 / 14%);
+  --shadow-lg: 0 18px 44px rgb(15 23 42 / 24%);
+  --duration-fast: 0.14s;
+  --duration-base: 0.2s;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* 1. Master Palette (Dark) */
+  --palette-primary: #60a5fa;
+  --palette-primary-text: #0b1120;
+  --palette-secondary: #d8b4fe;
+  --palette-secondary-text: #0b1120;
+  --palette-success: #4ade80;
+  --palette-warning: #fbbf24;
+  --palette-error: #fca5a5;
+  --palette-error-text: #0b1120;
+
+  /* Surfaces & Desk */
+  --bg: #0f172a;
+  --desk-bg: #0b1120;
+  --surface: #1e293b;
+  --surface-2: #273549;
+  --surface-3: #334155;
+  --surface-glass: rgb(30 41 59 / 94%);
+
+  --border: #334155;
+  --border-strong: #64748b;
+
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+
+  /* 2. Auto-Derived Semantic Tokens (Dark) */
+  --accent-hover: color-mix(in srgb, var(--palette-primary) 86%, var(--text));
+  --accent-soft: color-mix(in srgb, var(--palette-primary) 14%, var(--surface));
+  --secondary-soft: color-mix(in srgb, var(--palette-secondary) 14%, var(--surface));
+  --success-soft: color-mix(in srgb, var(--palette-success) 14%, var(--surface));
+  --warning-soft: color-mix(in srgb, var(--palette-warning) 16%, var(--surface));
+  --danger-hover: color-mix(in srgb, var(--palette-error) 86%, var(--text));
+  --danger-soft: color-mix(in srgb, var(--palette-error) 14%, var(--surface));
+
+  --overlay: rgb(2 6 23 / 72%);
+  --switch-track-off: #64748b;
+  --switch-thumb: #f8fafc;
+  --canvas-board-bg: rgb(15 23 42 / 78%);
+  --canvas-grid: rgb(148 163 184 / 7%);
+  --canvas-cell-grid: rgb(148 163 184 / 16%);
+  --dot-outline: rgb(255 255 255 / 25%);
+
+  --shadow-sm: 0 2px 8px rgb(0 0 0 / 35%);
+  --shadow-md: 0 8px 22px rgb(0 0 0 / 48%);
+  --shadow-lg: 0 20px 54px rgb(0 0 0 / 68%);
+}
+
+@media (pointer: coarse), (max-width: 768px) {
+  :root,
+  html[data-theme='light'],
+  html[data-theme='dark'] {
+    --touch: 44px;
+    --touch-compact: 32px;
+  }
+}

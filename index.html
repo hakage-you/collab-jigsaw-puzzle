@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>配信連動 協力ジグソーパズル</title>
+  <link rel="stylesheet" href="styles/tokens.css" />
+  <link rel="stylesheet" href="styles/base.css" />
+  <link rel="stylesheet" href="styles/app.css" />
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <!-- Top Header / HUD -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="brand">
+          <svg class="brand-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 2c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02Z"/>
+          </svg>
+          <div class="brand-text">
+            <h1>Collab Jigsaw <span class="badge-phase" id="roomRoleBadge">ソロ</span></h1>
+          </div>
+        </div>
+
+        <div class="progress-pill" id="hudProgress" title="台紙にはまったピース数">
+          <span class="pill-label">進捗</span>
+          <strong id="progressText">0 / 24</strong>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+          </div>
+          <span class="timer-text" id="timerText">00:00</span>
+        </div>
+      </div>
+
+      <div class="topbar-center" id="statsHudGroup">
+        <div class="stat-chip" title="台紙にピースをはめた回数">
+          <span class="stat-label">貢献度</span>
+          <strong id="contributionCount">0</strong>
+        </div>
+        <div class="stat-chip stat-chip-ojama" title="発動したお邪魔の合計と内訳">
+          <span class="stat-label">お邪魔</span>
+          <strong id="ojamaTotalCount">0</strong>
+          <span class="ojama-mini-breakdown" id="ojamaBreakdownText">(落:0 視:0 ス:0 悪:0)</span>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="participants-anchor">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnToggleParticipants" aria-expanded="false">
+            参加者 <span class="count-badge" id="participantCountBadge">1</span>
+          </button>
+          <div class="participants-popover hidden" id="participantsPopover" role="dialog" aria-label="参加ユーザー一覧">
+            <div class="popover-header">
+              <strong>参加メンバー</strong>
+              <button type="button" class="btn btn-xs btn-ghost" id="btnCloseParticipants">閉じる</button>
+            </div>
+            <div class="host-invite-box hidden" id="hostInviteSection">
+              <div class="invite-masked-row">
+                <span class="invite-label">招待リンク（配信映り込み防止のため伏字）</span>
+                <div class="invite-masked-code">••••••••••••••••••••</div>
+              </div>
+              <div class="btn-row">
+                <button type="button" class="btn btn-outline-accent btn-xs" id="btnCopyInviteUrl">招待URLをコピー</button>
+                <button type="button" class="btn btn-secondary btn-xs" id="btnCopyRoomId">IDをコピー</button>
+              </div>
+            </div>
+            <div class="host-rename-row" id="hostRenameRow">
+              <input type="text" id="inputPlayerName" maxlength="20" placeholder="自分の表示名" />
+            </div>
+            <ul class="participants-list" id="participantsList"></ul>
+            <div class="popover-footer" id="soloDummyControls">
+              <button type="button" class="btn btn-sm btn-secondary btn-block" id="btnAddDummyParticipant">
+                ダミー参加者を追加
+              </button>
+              <label class="md-switch md-switch-row">
+                <span class="md-switch-label">机上にダミーカーソルを表示</span>
+                <input type="checkbox" class="md-switch-input" id="toggleDummyCursors" checked />
+                <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-secondary btn-sm" id="btnToggleDrawer" aria-expanded="true">
+          パネル開閉
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      <!-- Interactive Desk Canvas Area -->
+      <div class="canvas-stage" id="canvasStage">
+        <canvas id="puzzleCanvas"></canvas>
+
+        <!-- Host Knock Approval Banner -->
+        <div id="knockBanner" class="knock-banner hidden" role="alert">
+          <span id="knockBannerText">参加希望が届いています</span>
+          <div class="btn-row">
+            <button type="button" class="btn btn-primary btn-xs" id="btnApproveKnock">許可</button>
+            <button type="button" class="btn btn-secondary btn-xs" id="btnRejectKnock">拒否</button>
+          </div>
+        </div>
+
+        <!-- Unexpected Error Capture Banner -->
+        <div id="errorCaptureBanner" class="error-capture-banner hidden" role="alert">
+          <span id="errorCaptureText">想定外のエラーが発生しました</span>
+          <div class="btn-row">
+            <button type="button" class="btn btn-outline-accent btn-xs" id="btnCopyErrorLog">ログをコピー</button>
+            <button type="button" class="btn btn-xs btn-ghost" id="btnDismissErrorBanner">閉じる</button>
+          </div>
+        </div>
+
+        <!-- Visual Sabotage Filter / Spotlight Overlay -->
+        <div id="visualSabotageBanner" class="sabotage-banner hidden">
+          <span id="visualSabotageLabel">視覚妨害発動中</span>
+          <span id="visualSabotageTimer" class="sabotage-timer">8.0s</span>
+        </div>
+
+        <!-- Spotlight Layer -->
+        <div id="spotlightOverlay" class="spotlight-overlay hidden"></div>
+
+        <!-- Giant SuperChat Sabotage Container -->
+        <div id="superchatLayer" class="superchat-layer hidden" role="dialog" aria-label="お邪魔スパチャ">
+          <div class="superchat-card" id="superchatCard">
+            <div class="superchat-header">
+              <div class="superchat-avatar" aria-hidden="true">SC</div>
+              <div class="superchat-meta">
+                <div class="superchat-author" id="superchatAuthor">リスナー（お邪魔枠）</div>
+                <div class="superchat-amount" id="superchatAmount">¥10,000</div>
+              </div>
+              <div class="superchat-countdown" id="superchatCountdown">10s</div>
+            </div>
+            <div class="superchat-body" id="superchatMessage">
+              完成させるな！中央をブロック中
+            </div>
+            <div class="superchat-footer">
+              <div class="superchat-hp-bar">
+                <div class="superchat-hp-fill" id="superchatHpFill"></div>
+              </div>
+              <button type="button" class="btn btn-danger btn-sm" id="btnHitSuperchat">
+                クリック連打で撃退 (残り <span id="superchatHpText">5</span>回)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dropzone Hint Overlay -->
+        <div id="fileDropOverlay" class="file-drop-overlay hidden">
+          <div class="file-drop-box">
+            <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <p>ここに画像をドロップしてパズル化</p>
+            <span>サーバー送信なし・ブラウザ内のみで処理されます</span>
+          </div>
+        </div>
+
+        <!-- Bottom-Left Viewport & Quick Controls -->
+        <div class="viewport-controls">
+          <button type="button" class="btn btn-xs btn-secondary btn-square" id="btnZoomOut" title="縮小">－</button>
+          <span class="zoom-readout" id="zoomReadout">100%</span>
+          <button type="button" class="btn btn-xs btn-secondary btn-square" id="btnZoomIn" title="拡大">＋</button>
+          <button type="button" class="btn btn-xs btn-secondary" id="btnResetView" title="全体を表示 (ショートカット: 0)">全体表示</button>
+        </div>
+
+        <!-- Bottom-Right Controls Legend -->
+        <div class="controls-legend">
+          <span><b>左ドラッグ</b>: 移動 / 背景パン</span>
+          <span><b>ホイール</b>: ズーム</span>
+          <span><b>右クリック / R</b>: 90度回転</span>
+          <span><b>ダブルクリック / F</b>: 表裏返し</span>
+        </div>
+
+        <!-- Floating Reference Image Window -->
+        <div id="floatingRefWindow" class="floating-ref hidden" aria-label="お手本小窓">
+          <div class="floating-ref-header">
+            <span>お手本</span>
+            <button type="button" class="btn btn-xs btn-ghost" id="btnToggleRefCollapse" title="収納/展開">－</button>
+          </div>
+          <div class="floating-ref-body" id="floatingRefBody">
+            <canvas id="floatingRefCanvas" width="220" height="146"></canvas>
+          </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+      </div>
+
+      <!-- Right Side Control Drawer (Host 3-Tab Controls vs Guest Simple Panel) -->
+      <aside class="side-drawer" id="sideDrawer">
+        <div class="drawer-tabs host-only" role="tablist">
+          <button type="button" class="drawer-tab active" data-tab="play" role="tab" aria-selected="true">プレイ補助</button>
+          <button type="button" class="drawer-tab" data-tab="ojama" role="tab" aria-selected="false">配信・お邪魔</button>
+          <button type="button" class="drawer-tab" data-tab="menu" role="tab" aria-selected="false">メニュー</button>
+        </div>
+
+        <div class="drawer-body">
+          <!-- Guest Simple UI Panel -->
+          <section class="guest-only" id="guestHelpPanel">
+            <div class="drawer-section">
+              <h3>プレイ補助（ゲスト）</h3>
+              <p class="hint-text">ハイライトとお手本の表示方式を自分の画面だけで切り替えられます。</p>
+              <div class="sub-label">ハイライト表示フィルター</div>
+              <div class="filter-pills" id="guestHighlightModeGroup">
+                <button type="button" class="btn btn-xs btn-seg active" data-filter="all">すべて表示</button>
+                <button type="button" class="btn btn-xs btn-seg" data-filter="edges">外枠のみ強調</button>
+              </div>
+              <div class="sub-label">色系統で強調:</div>
+              <div class="color-filter-grid" id="guestColorFilterChips"></div>
+            </div>
+
+            <div class="drawer-section">
+              <h3>お手本画像の表示方式</h3>
+              <label class="field">
+                <span>表示スタイル</span>
+                <select id="guestReferenceMode">
+                  <option value="underlay">台紙に透過表示（下絵）</option>
+                  <option value="sheet">机上にお手本シートを置く（移動可）</option>
+                  <option value="floating">画面隅の収納可能小窓</option>
+                  <option value="none">お手本なし（ハードコア）</option>
+                </select>
+              </label>
+              <label class="range-row mt-2" id="guestUnderlayOpacityRow">
+                <span>台紙下絵の濃さ</span>
+                <input type="range" id="guestGuideOpacityRange" min="0" max="40" value="14" />
+              </label>
+            </div>
+
+            <div class="drawer-section">
+              <h3>現在の部屋ルール</h3>
+              <div class="room-rules-summary" id="guestRoomRulesSummary">
+                6×4 (24ピース)
+              </div>
+            </div>
+
+            <div class="drawer-section">
+              <h3>表示設定</h3>
+              <div class="switch-list">
+                <label class="md-switch md-switch-row">
+                  <span class="md-switch-label">効果音</span>
+                  <input type="checkbox" class="md-switch-input" id="guestToggleSound" checked />
+                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+                </label>
+              </div>
+              <div class="action-stack mt-2">
+                <button type="button" class="btn btn-secondary btn-block" id="btnGuestToggleTheme">
+                  テーマ: ライト
+                </button>
+                <button type="button" class="btn btn-secondary btn-block" id="btnGuestOpenLobby">
+                  ロビーを開く
+                </button>
+              </div>
+              <details class="drawer-details mt-2" id="guestDiagnosticsDetails">
+                <summary class="drawer-details-summary">診断ログ（テスト用）</summary>
+                <div class="drawer-details-body">
+                  <div class="diag-summary-text" id="guestDiagSummaryText">エラー 0件 / 記録 0件</div>
+                  <p class="hint-text">外部送信は行いません。不具合時はコピーまたはJSON保存して共有してください（秘密情報は自動マスクされます）。</p>
+                  <div class="btn-row">
+                    <button type="button" class="btn btn-outline-accent btn-xs" id="btnGuestCopyDiagLog">診断ログをコピー</button>
+                    <button type="button" class="btn btn-secondary btn-xs" id="btnGuestDownloadDiagJson">JSONで保存</button>
+                  </div>
+                  <button type="button" class="btn btn-xs btn-ghost" id="btnGuestClearDiagLog">ログをクリア</button>
+                </div>
+              </details>
+            </div>
+          </section>
+
+          <!-- TAB 1: In-Game Play Assistance (Default Active) -->
+          <section class="tab-panel active host-only" id="tab-play">
+            <div class="drawer-section">
+              <h3>お手本画像の表示方式</h3>
+              <label class="field">
+                <span>表示スタイル</span>
+                <select id="optReferenceMode">
+                  <option value="underlay">台紙に透過表示（下絵）</option>
+                  <option value="sheet">机上にお手本シートを置く（移動可）</option>
+                  <option value="floating">画面隅の収納可能小窓</option>
+                  <option value="none">お手本なし（ハードコア）</option>
+                </select>
+              </label>
+              <label class="range-row mt-2" id="underlayOpacityRow">
+                <span>台紙下絵の濃さ</span>
+                <input type="range" id="guideOpacityRange" min="0" max="40" value="14" />
+              </label>
+            </div>
+
+            <div class="drawer-section">
+              <h3>ハイライト表示フィルター</h3>
+              <p class="hint-text">対象外の未配置ピースを半透明にして探しやすくします。</p>
+              <div class="filter-pills" id="highlightModeGroup">
+                <button type="button" class="btn btn-xs btn-seg active" data-filter="all">すべて表示</button>
+                <button type="button" class="btn btn-xs btn-seg" data-filter="edges">外枠のみ強調</button>
+              </div>
+              <div class="sub-label">色系統で強調:</div>
+              <div class="color-filter-grid" id="colorFilterChips"></div>
+            </div>
+
+            <div class="drawer-section">
+              <h3>机上の整列・向きリセット</h3>
+              <div class="action-stack">
+                <button type="button" class="btn btn-secondary btn-block" id="btnSortEdges">
+                  外枠ピースだけ集めて整列
+                </button>
+                <button type="button" class="btn btn-secondary btn-block" id="btnSortColors">
+                  色グループ（色相）ごとに山分け整列
+                </button>
+                <button type="button" class="btn btn-secondary btn-block" id="btnSortQuadrants">
+                  4分割エリア（左上・右上・左下・右下）へ整列
+                </button>
+                <button type="button" class="btn btn-secondary btn-block" id="btnAlignAllUpright">
+                  すべての未配置ピースを表・0度向きに戻す
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- TAB 2: Stream & Ojama -->
+          <section class="tab-panel host-only" id="tab-ojama">
+            <div class="drawer-section" id="youtubeConnectSection">
+              <h3>YouTube Live コメント連動</h3>
+              <button type="button" class="btn btn-secondary btn-sm btn-block" id="btnOpenYtGuide">
+                API キーの取得・設定ガイド
+              </button>
+
+              <label class="field mt-2">
+                <span>YouTube API キー</span>
+                <div class="input-with-btn">
+                  <input type="password" id="ytApiKeyInput" autocomplete="off" placeholder="AIza..." />
+                  <button type="button" class="btn btn-secondary btn-sm" id="btnYtClearKey">消去</button>
+                </div>
+              </label>
+              <p class="hint-text mt-2">キーはブラウザのメモリ上のみで扱い、リロードやタブを閉じると消去されます。</p>
+
+              <label class="field mt-2">
+                <span>配信 URL または 動画 ID</span>
+                <input type="text" id="ytVideoUrlInput" placeholder="https://www.youtube.com/watch?v=... または動画ID" />
+              </label>
+
+              <label class="field mt-2">
+                <span>取得間隔</span>
+                <select id="ytPollInterval">
+                  <option value="5000">5秒（約2.7時間）</option>
+                  <option value="10000" selected>10秒（標準・約5.5時間）</option>
+                  <option value="15000">15秒（節約・約8.3時間）</option>
+                </select>
+              </label>
+
+              <div class="switch-list">
+                <label class="md-switch md-switch-row">
+                  <span class="md-switch-label">
+                    <span>スパチャ金額ランク連動</span>
+                    <span class="md-switch-sub">高額ほど撃退HPを増加</span>
+                  </span>
+                  <input type="checkbox" class="md-switch-input" id="ytScaleSuperchatTier" checked />
+                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+                </label>
+              </div>
+
+              <div class="btn-row">
+                <button type="button" class="btn btn-outline-accent btn-sm" id="btnYtVerify">配信を確認 (1ユニット)</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnYtTogglePoll" disabled>コメント連動を開始</button>
+              </div>
+
+              <div class="yt-broadcast-preview hidden" id="ytBroadcastPreview">
+                <div class="yt-preview-title" id="ytPreviewTitle"></div>
+                <div class="yt-preview-meta" id="ytPreviewMeta"></div>
+              </div>
+              <div class="guest-status-box hidden mt-2" id="ytStatusText"></div>
+              <div class="yt-quota-readout" id="ytQuotaReadout">セッション消費: 0 ユニット（無料枠 10,000/日）</div>
+            </div>
+
+            <div class="drawer-section">
+              <details class="drawer-details" id="ojamaConfigDetails">
+                <summary class="drawer-details-summary">妨害トリガー・効果設定</summary>
+                <div class="drawer-details-body">
+                  <div class="form-row-2">
+                    <label class="field">
+                      <span>コメント数閾値</span>
+                      <input type="number" id="ojamaCommentThreshold" min="1" max="100" value="5" />
+                    </label>
+                    <label class="field">
+                      <span>クールタイム(秒)</span>
+                      <input type="number" id="ojamaCooldownSec" min="0" max="120" value="3" />
+                    </label>
+                  </div>
+                  <div class="form-row-2">
+                    <label class="field">
+                      <span>落下ピース数</span>
+                      <input type="number" id="ojamaDropCount" min="1" max="20" value="2" />
+                    </label>
+                    <label class="field">
+                      <span>視覚妨害時間(秒)</span>
+                      <input type="number" id="ojamaVisualDuration" min="2" max="30" value="8" />
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span>視覚妨害の種類</span>
+                    <select id="ojamaVisualType">
+                      <option value="random">ランダム（毎回どれか）</option>
+                      <option value="grayscale">モノクロ（白黒）</option>
+                      <option value="sepia">セピア色</option>
+                      <option value="hue">色相シャッフル</option>
+                      <option value="spotlight">暗闇スポットライト</option>
+                    </select>
+                  </label>
+                  <label class="field mt-2">
+                    <span>特定トリガーワード（カンマ区切り）</span>
+                    <input type="text" id="ojamaTriggerWords" value="!drop, !color, !sp, !spin, お邪魔" />
+                  </label>
+                </div>
+              </details>
+            </div>
+
+            <div class="drawer-section">
+              <details class="drawer-details" id="ojamaDebugDetails">
+                <summary class="drawer-details-summary">テスト・デバッグ（お邪魔発動・ダミーコメント）</summary>
+                <div class="drawer-details-body">
+                  <div class="ojama-btn-grid">
+                    <button type="button" class="btn btn-ojama" id="btnTestDrop">
+                      <span>ピース落下</span>
+                      <small>台紙から外れて落ちる</small>
+                    </button>
+                    <button type="button" class="btn btn-ojama" id="btnTestVisual">
+                      <span>視覚妨害</span>
+                      <small>色変更・暗闇スポット</small>
+                    </button>
+                    <button type="button" class="btn btn-ojama" id="btnTestSuperchat">
+                      <span>巨大スパチャ</span>
+                      <small>画面中央を隠す</small>
+                    </button>
+                    <button type="button" class="btn btn-ojama" id="btnTestPrank">
+                      <span>いたずら回転/裏</span>
+                      <small>未配置ピースを攪乱</small>
+                    </button>
+                  </div>
+                  <div class="input-with-btn mt-2">
+                    <input type="text" id="dummyCommentInput" placeholder="例: !drop 落ちろ / 応援してるよ" />
+                    <button type="button" class="btn btn-outline-accent" id="btnSendDummyComment">送信</button>
+                  </div>
+                  <div class="btn-row mt-2">
+                    <button type="button" class="btn btn-secondary" id="btnToggleAutoComments">
+                      自動コメント開始
+                    </button>
+                    <span class="comment-counter-badge">進捗: <b id="commentTriggerCounter">0 / 5</b></span>
+                  </div>
+                  <div class="mini-chat-log" id="miniChatLog">
+                    <div class="chat-empty">コメントを送信するとここで判定されます</div>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </section>
+
+          <!-- TAB 3: Menu, Display Settings & Save/Load -->
+          <section class="tab-panel host-only" id="tab-menu">
+            <div class="drawer-section">
+              <h3>ゲーム操作</h3>
+              <div class="action-stack">
+                <button type="button" class="btn btn-primary btn-block" id="btnOpenSetupFromMenu">
+                  新しいパズルを作成
+                </button>
+                <button type="button" class="btn btn-secondary btn-block" id="btnOpenLobby">
+                  ロビー・マルチプレイを開く
+                </button>
+              </div>
+            </div>
+
+            <div class="drawer-section">
+              <h3>表示・サウンド設定</h3>
+              <div class="switch-list">
+                <label class="md-switch md-switch-row" title="貢献度・お邪魔カウントの表示を切り替え">
+                  <span class="md-switch-label">カウント表示</span>
+                  <input type="checkbox" class="md-switch-input" id="toggleShowStats" checked />
+                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+                </label>
+                <label class="md-switch md-switch-row" title="吸着・操作時の効果音">
+                  <span class="md-switch-label">効果音</span>
+                  <input type="checkbox" class="md-switch-input" id="toggleSound" checked />
+                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+                </label>
+              </div>
+              <button type="button" class="btn btn-secondary btn-block mt-2" id="btnToggleTheme">
+                テーマ: ライト
+              </button>
+            </div>
+
+            <div class="drawer-section">
+              <h3>セーブ / ロード</h3>
+              <button type="button" class="btn btn-outline-accent btn-block" id="btnDownloadSave">
+                現在の状態をJSON保存
+              </button>
+
+              <details class="drawer-details mt-2" id="saveRestoreDetails">
+                <summary class="drawer-details-summary">JSON＋画像から復元ロード</summary>
+                <div class="drawer-details-body">
+                  <p class="hint-text">保存したJSONファイルと元画像（サンプル画像も可）を指定して途中から再開します。</p>
+                  <label class="field">
+                    <span>1. セーブJSONファイルを選択</span>
+                    <input type="file" id="loadJsonInput" accept=".json,application/json" />
+                  </label>
+                  <div id="loadedJsonSummary" class="save-summary hidden"></div>
+
+                  <label class="field mt-2">
+                    <span>2. 元画像を選択（サンプルの場合は省略可）</span>
+                    <input type="file" id="loadImageInput" accept="image/*" />
+                  </label>
+                  <div class="btn-row mt-2">
+                    <button type="button" class="btn btn-outline-accent" id="btnApplyLoad" disabled>
+                      復元して再開
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btnApplyLoadSample" disabled>
+                      サンプル画像で復元
+                    </button>
+                  </div>
+                </div>
+              </details>
+
+              <button type="button" class="btn btn-secondary btn-block mt-2" id="btnResetSettings">
+                設定を初期値にリセット
+              </button>
+
+              <details class="drawer-details mt-2" id="diagnosticsDetails">
+                <summary class="drawer-details-summary">診断ログ（テスト用）</summary>
+                <div class="drawer-details-body">
+                  <div class="diag-summary-text" id="diagSummaryText">エラー 0件 / 記録 0件</div>
+                  <p class="hint-text">外部送信は行いません。不具合時はコピーまたはJSON保存して共有してください（秘密情報は自動マスクされます）。</p>
+                  <div class="btn-row">
+                    <button type="button" class="btn btn-outline-accent btn-xs" id="btnCopyDiagLog">診断ログをコピー</button>
+                    <button type="button" class="btn btn-secondary btn-xs" id="btnDownloadDiagJson">JSONで保存</button>
+                  </div>
+                  <button type="button" class="btn btn-xs btn-ghost" id="btnClearDiagLog">ログをクリア</button>
+                </div>
+              </details>
+            </div>
+          </section>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Title / Lobby Screen Overlay -->
+    <div id="lobbyOverlay" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="lobbyTitle">
+      <div class="lobby-card">
+        <div class="lobby-header">
+          <div class="brand">
+            <svg class="brand-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 2c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02Z"/>
+            </svg>
+            <h2 id="lobbyTitle">パズルをはじめる</h2>
+          </div>
+          <div class="lobby-header-actions">
+            <button type="button" class="btn btn-xs btn-ghost hidden" id="btnCloseLobby">閉じる</button>
+          </div>
+        </div>
+
+        <div class="lobby-tabs" role="tablist">
+          <button type="button" class="lobby-tab active" data-lobby-tab="solo" role="tab" aria-selected="true">1人で遊ぶ</button>
+          <button type="button" class="lobby-tab" data-lobby-tab="host" role="tab" aria-selected="false">部屋を作る（ホスト）</button>
+          <button type="button" class="lobby-tab" data-lobby-tab="guest" role="tab" aria-selected="false">招待IDで参加</button>
+        </div>
+
+        <div class="lobby-body">
+          <!-- Solo Mode -->
+          <div class="lobby-panel active" id="lobby-panel-solo">
+            <p class="lobby-desc">
+              自分のブラウザだけでジグソーパズルと各種お邪魔テストをすぐにプレイできます。通信は一切発生しません。
+            </p>
+            <div class="lobby-puzzle-summary-box">
+              <div class="lobby-puzzle-summary-text" id="lobbySoloPuzzleSummary">現在の設定: サンプルテスト画像 / 6×4 (24ピース)</div>
+              <button type="button" class="btn btn-secondary btn-xs" id="btnOpenSetupFromSolo">画像・ルールを変更</button>
+            </div>
+            <button type="button" class="btn btn-primary btn-block" id="btnStartSolo">
+              ソロプレイを開始
+            </button>
+          </div>
+
+          <!-- Host Mode -->
+          <div class="lobby-panel" id="lobby-panel-host">
+            <div class="form-row-2">
+              <label class="field">
+                <span>ホスト表示名</span>
+                <input type="text" id="lobbyHostName" maxlength="20" value="ホスト（自分）" />
+              </label>
+              <label class="field">
+                <span>合言葉（任意）</span>
+                <input type="password" id="lobbyHostPasscode" maxlength="32" autocomplete="off" placeholder="未設定でもOK" />
+              </label>
+            </div>
+            <div class="form-row-2">
+              <label class="field">
+                <span>定員（2〜8人）</span>
+                <input type="number" id="lobbyCapacity" min="2" max="8" value="8" />
+              </label>
+              <label class="md-switch md-switch-row">
+                <span class="md-switch-label">
+                  <span>入室承認制</span>
+                  <span class="md-switch-sub">参加時に許可バナーを表示</span>
+                </span>
+                <input type="checkbox" class="md-switch-input" id="lobbyRequireApproval" checked />
+                <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+              </label>
+            </div>
+
+            <div class="transparency-box">
+              <strong>プライバシーと通信について</strong>
+              <ul>
+                <li>パズル画像・セーブデータ・API キーはブラウザ内でのみ扱われ、外部サーバーへ保存されません。</li>
+                <li>P2P 通信に API キーやアカウント情報等の機密データは送信されません。</li>
+                <li>P2P 通信の性質上、接続元 IP アドレスやパズル画像が参加者間で共有されます。</li>
+              </ul>
+            </div>
+
+            <div class="backup-resume-box hidden" id="lobbyBackupSection">
+              <div class="backup-header">
+                <strong>自動バックアップから部屋を再開</strong>
+                <button type="button" class="btn btn-xs btn-ghost" id="btnClearAutoBackup">破棄</button>
+              </div>
+              <p class="hint-text" id="lobbyBackupSummary"></p>
+              <label class="field">
+                <span>元画像を選択（サンプル画像の場合は不要）</span>
+                <input type="file" id="lobbyBackupImageInput" accept="image/*" />
+              </label>
+              <div class="btn-row mt-2">
+                <button type="button" class="btn btn-outline-accent btn-sm" id="btnResumeBackupImage" disabled>元画像で再開</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnResumeBackupSample">サンプル画像で再開</button>
+              </div>
+            </div>
+
+            <div class="lobby-puzzle-summary-box">
+              <div class="lobby-puzzle-summary-text" id="lobbyHostPuzzleSummary">現在の設定: サンプルテスト画像 / 6×4 (24ピース)</div>
+              <button type="button" class="btn btn-secondary btn-xs" id="btnOpenSetupFromHost">画像・ルールを変更</button>
+            </div>
+
+            <button type="button" class="btn btn-primary btn-block mt-2" id="btnStartHostRoom">
+              部屋を作成して開始
+            </button>
+          </div>
+
+          <!-- Guest Mode -->
+          <div class="lobby-panel" id="lobby-panel-guest">
+            <label class="field">
+              <span>招待ルームID</span>
+              <input type="text" id="lobbyGuestRoomId" placeholder="例: cj-xxxxxxxxxxxx" />
+            </label>
+            <div class="form-row-2 mt-2">
+              <label class="field">
+                <span>あなたの表示名</span>
+                <input type="text" id="lobbyGuestName" maxlength="20" value="ゲスト" />
+              </label>
+              <label class="field">
+                <span>合言葉（設定時のみ）</span>
+                <input type="password" id="lobbyGuestPasscode" maxlength="32" autocomplete="off" placeholder="合言葉を入力" />
+              </label>
+            </div>
+            <p class="hint-text mt-2">
+              P2P 通信の性質上、接続元 IP アドレスやパズル画像が参加者間で共有されます。信頼できるホストの部屋にのみ参加してください。
+            </p>
+            <div class="guest-status-box hidden" id="lobbyGuestStatus"></div>
+            <div class="transfer-progress-wrap hidden" id="lobbyTransferWrap">
+              <div class="progress-bar-wrap transfer-bar-outer">
+                <div class="progress-bar-fill" id="lobbyTransferBar"></div>
+              </div>
+              <span class="hint-text" id="lobbyTransferText">画像を受信中...</span>
+            </div>
+            <button type="button" class="btn btn-primary btn-block mt-2" id="btnJoinGuestRoom">
+              この部屋に参加
+            </button>
+          </div>
+        </div>
+
+        <div class="lobby-footer">
+          <button type="button" class="btn btn-xs btn-ghost" id="btnOpenTerms">
+            利用規約・免責事項・プライバシー
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Terms & Disclaimer Modal -->
+    <div id="termsModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+      <div class="terms-card">
+        <div class="terms-header">
+          <h2 id="termsTitle">利用規約・免責事項・プライバシー</h2>
+          <button type="button" class="btn btn-xs btn-ghost" id="btnCloseTerms">閉じる</button>
+        </div>
+        <div class="terms-body">
+          <h3>1. 免責事項・無保証の原則</h3>
+          <p>
+            本アプリケーションは現状有姿（AS-IS）で提供されます。動作の完全性、P2P 通信の安定性、外部 API の応答、API クォータ消費等について開発者は一切の保証を行わず、利用者の自己責任においてご利用いただくものとします。
+          </p>
+          <h3>2. データ非収集・サーバー非保存</h3>
+          <p>
+            開発者側のサーバーへパズル画像、セーブデータ、YouTube API キー、配信コメント等を送信・収集・保存することは一切ありません。すべての設定と作業状態は利用者自身のブラウザ内でのみ処理されます。
+          </p>
+          <h3>3. P2P マルチプレイ時の通信リスク</h3>
+          <p>
+            マルチプレイでは WebRTC の仕組み上、接続元 IP アドレスやパズル画像データが参加者間で共有されます。信頼できる相手とのみ招待 URL を共有してください。
+          </p>
+          <h3>4. YouTube Data API v3 の利用</h3>
+          <p>
+            コメント連動にはホスト自身が Google Cloud Console で発行した API キーを使用します。公開・限定公開ライブチャットの読み取り専用アクセスのみを行い、Google API 利用規約および YouTube 利用規約に従ってご利用ください。
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- YouTube API Guide Modal -->
+    <div id="ytGuideModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="ytGuideTitle">
+      <div class="terms-card">
+        <div class="terms-header">
+          <h2 id="ytGuideTitle">YouTube API キーの取得・設定ガイド</h2>
+          <button type="button" class="btn btn-xs btn-ghost" id="btnCloseYtGuide">閉じる</button>
+        </div>
+        <div class="terms-body">
+          <h3>1. ホストご自身の API キーを使用する理由</h3>
+          <p>
+            安全性と最小限の権限（配信チャットの読み取り専用）を保ちつつ安定してコメント連動を行うため、少しお手数をおかけしますがホストご自身の Google API キーをご利用いただく方式を採用しています。
+          </p>
+          <p>
+            入力した API キーはご利用中のブラウザのメモリ上のみに保持され、リロードやタブを閉じると自動で消去されます（セーブ JSON や P2P 通信にも含まれません）。
+          </p>
+          <h3>2. 初回作成手順（Google Cloud Console）</h3>
+          <ol class="guide-steps">
+            <li>Google Cloud Console でプロジェクトを作成し、「YouTube Data API v3」を有効化します。</li>
+            <li>「API とサービス」→「認証情報」から新しい API キーを作成します。</li>
+            <li>作成したキーの編集画面で「API の制限」→「キーを制限」を選び、<b>YouTube Data API v3 のみ</b> を選択して保存してください。</li>
+          </ol>
+          <h3>3. ご利用時の注意</h3>
+          <p>
+            公開・限定公開のライブ配信チャットに対応しています（メンバー限定チャット・配信開始前・アーカイブではチャットを取得できません）。1日の無料枠は 10,000 ユニット（10秒間隔で約5.5時間目安）です。
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pre-Game Puzzle Setup Modal -->
+    <div id="puzzleSetupModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="setupModalTitle">
+      <div class="setup-modal-card">
+        <div class="terms-header">
+          <h2 id="setupModalTitle">新規パズル設定</h2>
+          <button type="button" class="btn btn-xs btn-ghost" id="btnCloseSetupModal">閉じる</button>
+        </div>
+
+        <div class="setup-modal-body">
+          <div class="drawer-section">
+            <h3>1. 画像の選択</h3>
+            <p class="hint-text">ローカル画像はブラウザ内メモリのみで処理され、サーバーに保存されません。</p>
+            <div class="btn-row">
+              <label class="btn btn-outline-accent file-btn">
+                画像を選択
+                <input type="file" id="imageFileInput" accept="image/*" hidden />
+              </label>
+              <button type="button" class="btn btn-secondary" id="btnUseSampleImage">サンプル画像を生成</button>
+            </div>
+            <div class="preview-strip">
+              <canvas id="previewCanvas" width="160" height="106"></canvas>
+              <div class="preview-info">
+                <div id="imageSourceLabel" class="preview-title">サンプルテスト画像</div>
+                <div id="imageDimLabel" class="preview-sub">960 × 640 px</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="drawer-section">
+            <h3>2. ピース数・基本ルール</h3>
+            <div class="preset-grid" id="splitPresets">
+              <button type="button" class="btn btn-xs btn-seg" data-count="9">9ピース</button>
+              <button type="button" class="btn btn-xs btn-seg" data-count="12">12ピース</button>
+              <button type="button" class="btn btn-xs btn-seg active" data-count="24">24ピース</button>
+              <button type="button" class="btn btn-xs btn-seg" data-count="48">48ピース</button>
+              <button type="button" class="btn btn-xs btn-seg" data-count="100">100ピース</button>
+              <button type="button" class="btn btn-xs btn-seg" data-count="200">200ピース</button>
+              <button type="button" class="btn btn-xs btn-seg" data-count="500">500ピース</button>
+              <button type="button" class="btn btn-xs btn-seg" data-count="1000">1000ピース</button>
+              <button type="button" class="btn btn-xs btn-seg" data-count="2000">2000ピース</button>
+              <button type="button" class="btn btn-xs btn-seg" data-count="3000">3000ピース</button>
+            </div>
+
+            <div class="switch-list">
+              <label class="md-switch md-switch-row">
+                <span class="md-switch-label">
+                  <span>90度回転モード</span>
+                  <span class="md-switch-sub">開始時にランダム回転</span>
+                </span>
+                <input type="checkbox" class="md-switch-input" id="optAllowRotation" checked />
+                <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+              </label>
+              <label class="md-switch md-switch-row">
+                <span class="md-switch-label">
+                  <span>裏返しモード</span>
+                  <span class="md-switch-sub">一部ピースが裏面で開始</span>
+                </span>
+                <input type="checkbox" class="md-switch-input" id="optAllowFlip" checked />
+                <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+              </label>
+            </div>
+
+            <details class="drawer-details mt-2" id="setupAdvancedDetails">
+              <summary class="drawer-details-summary">詳細カット設定（列・行・複雑度・シード値）</summary>
+              <div class="drawer-details-body">
+                <div class="form-row-2">
+                  <label class="field">
+                    <span>横 (列)</span>
+                    <input type="number" id="inputCols" min="2" max="80" value="6" />
+                  </label>
+                  <label class="field">
+                    <span>縦 (行)</span>
+                    <input type="number" id="inputRows" min="2" max="80" value="4" />
+                  </label>
+                </div>
+                <label class="field">
+                  <span>カット複雑度</span>
+                  <select id="optCutComplexity">
+                    <option value="uniform">均一（すべて同じ基本形状）</option>
+                    <option value="standard" selected>標準（手カット風の微妙な個性・1辺1凹凸）</option>
+                    <option value="complex">複雑（歪みグリッド・多形状タブ）</option>
+                  </select>
+                </label>
+                <label class="field mt-2">
+                  <span>形状シード値</span>
+                  <div class="input-with-btn">
+                    <input type="number" id="inputSeed" value="20261119" />
+                    <button type="button" class="btn btn-secondary" id="btnRandomSeed">乱数</button>
+                  </div>
+                </label>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <div class="setup-modal-actions">
+          <button type="button" class="btn btn-secondary" id="btnCancelSetupModal">キャンセル</button>
+          <button type="button" class="btn btn-primary" id="btnNewPuzzle">この設定でパズルを開始</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Completion Result Modal -->
+    <div id="resultModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+      <div class="modal-card">
+        <div class="result-badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <h2 id="resultTitle">ジグソーパズル完成</h2>
+        <p class="result-subtitle" id="resultSubtitle">すべてのピースが正しい位置にはまりました。</p>
+
+        <div class="result-stats-grid">
+          <div class="result-stat">
+            <span class="label">クリアタイム</span>
+            <strong id="resultTime">00:00</strong>
+          </div>
+          <div class="result-stat">
+            <span class="label">分割数</span>
+            <strong id="resultSize">6 × 4 (24)</strong>
+          </div>
+          <div class="result-stat result-countable">
+            <span class="label">貢献度（はめた数）</span>
+            <strong id="resultPlaced">24</strong>
+          </div>
+          <div class="result-stat result-countable">
+            <span class="label">お邪魔発動数</span>
+            <strong id="resultOjamaTotal">0</strong>
+          </div>
+        </div>
+
+        <div class="result-breakdown result-countable" id="resultOjamaBreakdown">
+          内訳 — 落下: 0 / 視覚: 0 / スパチャ: 0 / いたずら: 0
+        </div>
+
+        <ul class="result-ranking-list result-countable hidden" id="resultRankingList"></ul>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-primary guest-hide" id="btnResultReplay">同じ画像でもう一度</button>
+          <button type="button" class="btn btn-secondary" id="btnResultClose">盤面を眺める</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/peerjs.min.js"></script>
+  <script type="module" src="src/ui/main.js"></script>
+</body>
+</html>
