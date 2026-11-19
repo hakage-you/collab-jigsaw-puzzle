@@ -163,7 +163,7 @@ export class HostSession {
       return;
     }
     if (msg.type === MSG.ROTATE_REQUEST || msg.type === MSG.FLIP_REQUEST) {
-      this._handleRotateOrFlip(playerId, msg);
+      this._handleRotateOrFlip(connId, playerId, msg);
       return;
     }
     if (msg.type === MSG.SUPERCHAT_HIT) {
@@ -289,12 +289,20 @@ export class HostSession {
     this.scheduleAutoBackup();
   }
 
-  _handleRotateOrFlip(playerId, msg) {
+  _handleRotateOrFlip(connId, playerId, msg) {
     const room = this.room;
     const piece = room.engine.pieces.find((p) => p.id === msg.pieceId);
     if (!piece || piece.isLocked) return;
     const owner = room.groupLocks.get(piece.groupId);
-    if (owner && owner !== playerId) return;
+    if (owner && owner !== playerId) {
+      room.transport.sendTo(connId, {
+        type: MSG.LOCK_DENIED,
+        groupId: piece.groupId,
+        ownerId: owner,
+        pieces: this._serializePieces(room.engine.getGroupPieces(piece.groupId)),
+      });
+      return;
+    }
     const settings = room.getSettings();
     const isRotate = msg.type === MSG.ROTATE_REQUEST;
     const changed = isRotate
@@ -302,7 +310,11 @@ export class HostSession {
       : room.engine.flipPiece(piece, settings.allowFlip);
     if (changed) {
       const affected = room.engine.getGroupPieces(piece.groupId);
-      this._broadcastPiecesPatch(affected, { type: isRotate ? 'rotate' : 'flip' }, playerId);
+      this._broadcastPiecesPatch(
+        affected,
+        { type: isRotate ? 'rotate' : 'flip', opSeq: msg.opSeq },
+        playerId
+      );
       room.cb.onRenderNeeded();
       this.scheduleAutoBackup();
     }

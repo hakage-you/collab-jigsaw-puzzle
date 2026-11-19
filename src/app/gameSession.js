@@ -533,17 +533,12 @@ export class GameSession {
         });
         this.emit('renderNeeded');
       },
-      onGuestPatchApplied: (pieces, res, actorId) => {
+      onGuestPatchApplied: (pieces, res, _actorId) => {
         if (res?.type === 'snap') {
           sound.playSnap();
           this.emit('snapEffect', { pieces });
         } else if (res?.type === 'merge') {
           sound.playMerge();
-        } else if (
-          (res?.type === 'rotate' || res?.type === 'flip') &&
-          actorId === this.room.myPlayerId
-        ) {
-          sound.playTick();
         }
         this.emit('hudUpdate');
         this.emit('renderNeeded');

@@ -233,14 +233,14 @@ export class RoomController {
     if (!piece || !this.canInteractWithGroup(piece.groupId)) return false;
     if (this.role === 'solo') return this.engine.rotateGroup(piece, allowRotationSetting);
     if (this.role === 'host') return this.hostSession.submitRotate(piece, allowRotationSetting);
-    return this.guestSession.submitRotate(piece);
+    return this.guestSession.submitRotate(piece, allowRotationSetting);
   }
 
   submitFlip(piece, allowFlipSetting) {
     if (!piece || !this.canInteractWithGroup(piece.groupId)) return false;
     if (this.role === 'solo') return this.engine.flipPiece(piece, allowFlipSetting);
     if (this.role === 'host') return this.hostSession.submitFlip(piece, allowFlipSetting);
-    return this.guestSession.submitFlip(piece);
+    return this.guestSession.submitFlip(piece, allowFlipSetting);
   }
 
   broadcastVisualOjama(visualType, duration) {

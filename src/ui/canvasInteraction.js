@@ -55,6 +55,16 @@ export class CanvasInteraction {
       const { sx, sy } = this._getCanvasLocalCoords(e);
       this.lastPointerScreen = { x: sx, y: sy };
 
+      if (e.button === 2) {
+        const target =
+          this.renderer.draggingGroupId !== null
+            ? this.app.getGroupPieces(this.renderer.draggingGroupId)[0]
+            : this.app.hitTest(this.renderer.screenToWorld(sx, sy).x, this.renderer.screenToWorld(sx, sy).y);
+        if (target) {
+          this.app.submitRotate(target);
+        }
+        return;
+      }
       if (e.button === 1 || (e.button === 0 && this.spacePressed)) {
         this.isPanning = true;
         this.canvas.classList.add('grabbing');
@@ -136,9 +146,6 @@ export class CanvasInteraction {
 
     this.canvas.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      const { sx, sy } = this._getCanvasLocalCoords(e);
-      const world = this.renderer.screenToWorld(sx, sy);
-      this.app.submitRotate(this.app.hitTest(world.x, world.y));
     });
 
     this.canvas.addEventListener('dblclick', (e) => {

@@ -11,6 +11,8 @@ export class GuestSession {
     this.pendingFullState = null;
     this.guestPasscode = '';
     this.guestDisplayName = '';
+    this.localOpSeq = 0;
+    this.pendingGroupOpSeq = new Map();
   }
 
   reset() {
@@ -19,6 +21,8 @@ export class GuestSession {
     this.pendingFullState = null;
     this.guestPasscode = '';
     this.guestDisplayName = '';
+    this.localOpSeq = 0;
+    this.pendingGroupOpSeq.clear();
   }
 
   configure({ displayName, passcode = '' }) {
@@ -27,6 +31,8 @@ export class GuestSession {
     this.incomingImage = null;
     this.pendingFullState = null;
     this.optimisticRollback = null;
+    this.localOpSeq = 0;
+    this.pendingGroupOpSeq.clear();
   }
 
   async onMessage(msg) {
@@ -277,7 +283,20 @@ export class GuestSession {
 
     if (msg.type === MSG.PIECES_PATCH) {
       if (Array.isArray(msg.locks)) room.groupLocks = new Map(msg.locks);
-      if (Array.isArray(msg.pieces)) room.engine.applyPiecePatches(msg.pieces);
+      const patchOpSeq = msg.actionResult?.opSeq;
+      const targetGroupId = msg.pieces?.[0]?.groupId;
+      let skipStaleLocalPatch = false;
+      if (msg.actorId === room.myPlayerId && typeof patchOpSeq === 'number' && targetGroupId != null) {
+        const latestSeq = this.pendingGroupOpSeq.get(targetGroupId);
+        if (latestSeq && patchOpSeq < latestSeq) {
+          skipStaleLocalPatch = true;
+        } else if (latestSeq && patchOpSeq >= latestSeq) {
+          this.pendingGroupOpSeq.delete(targetGroupId);
+        }
+      }
+      if (!skipStaleLocalPatch && Array.isArray(msg.pieces)) {
+        room.engine.applyPiecePatches(msg.pieces);
+      }
       if (msg.stats) room.engine.stats = msg.stats;
       if (Array.isArray(msg.zoneLabels)) room.engine.zoneLabels = msg.zoneLabels;
       if (msg.isFinalChunk !== false) {
@@ -319,14 +338,32 @@ export class GuestSession {
     return { type: 'pending' };
   }
 
-  submitRotate(piece) {
-    this.room.transport?.sendToHost({ type: MSG.ROTATE_REQUEST, pieceId: piece.id });
-    return false;
+  submitRotate(piece, allowRotationSetting = true) {
+    if (!this.room.engine.rotateGroup(piece, allowRotationSetting)) {
+      return false;
+    }
+    const opSeq = ++this.localOpSeq;
+    this.pendingGroupOpSeq.set(piece.groupId, opSeq);
+    this.room.transport?.sendToHost({
+      type: MSG.ROTATE_REQUEST,
+      pieceId: piece.id,
+      opSeq,
+    });
+    return true;
   }
 
-  submitFlip(piece) {
-    this.room.transport?.sendToHost({ type: MSG.FLIP_REQUEST, pieceId: piece.id });
-    return false;
+  submitFlip(piece, allowFlipSetting = true) {
+    if (!this.room.engine.flipPiece(piece, allowFlipSetting)) {
+      return false;
+    }
+    const opSeq = ++this.localOpSeq;
+    this.pendingGroupOpSeq.set(piece.groupId, opSeq);
+    this.room.transport?.sendToHost({
+      type: MSG.FLIP_REQUEST,
+      pieceId: piece.id,
+      opSeq,
+    });
+    return true;
   }
 
   submitSuperchatHit() {
