@@ -1,7 +1,11 @@
 import { OJAMA_CONFIG } from '../config/constants.js';
 import { getSingleLoosePieces } from './pieceSorter.js';
 
-export function dropLockedPiecesOp(engine, count = OJAMA_CONFIG.DEFAULT_DROP_COUNT) {
+export function dropLockedPiecesOp(
+  engine,
+  count = OJAMA_CONFIG.DEFAULT_DROP_COUNT,
+  allowRotation = false
+) {
   const locked = engine.pieces.filter((p) => p.isLocked);
   if (locked.length === 0) return 0;
 
@@ -13,26 +17,19 @@ export function dropLockedPiecesOp(engine, count = OJAMA_CONFIG.DEFAULT_DROP_COU
     chosen.push(pool.splice(idx, 1)[0]);
   }
 
-  const padX = engine.boardW / 2 + engine.pieceW * 1.1;
-  const padY = engine.boardH / 2 + engine.pieceH * 1.1;
+  const maxX = engine.boardW / 2 + engine.pieceW * 0.25;
+  const maxY = engine.boardH / 2 + engine.pieceH * 0.25;
 
-  chosen.forEach((p, idx) => {
+  chosen.forEach((p) => {
     p.isLocked = false;
     p.groupId = engine.nextGroupId++;
     p.zOrder = engine.maxZ++;
-    const side = idx % 4;
-    if (side === 0) {
-      p.x = (Math.random() - 0.5) * engine.boardW;
-      p.y = -padY - Math.random() * engine.pieceH;
-    } else if (side === 1) {
-      p.x = padX + Math.random() * engine.pieceW;
-      p.y = (Math.random() - 0.5) * engine.boardH;
-    } else if (side === 2) {
-      p.x = (Math.random() - 0.5) * engine.boardW;
-      p.y = padY + Math.random() * engine.pieceH;
-    } else {
-      p.x = -padX - Math.random() * engine.pieceW;
-      p.y = (Math.random() - 0.5) * engine.boardH;
+    const angle = Math.random() * Math.PI * 2;
+    const dist = engine.pieceW * (0.6 + Math.random() * 1.0);
+    p.x = Math.max(-maxX, Math.min(maxX, p.targetX + Math.cos(angle) * dist));
+    p.y = Math.max(-maxY, Math.min(maxY, p.targetY + Math.sin(angle) * dist));
+    if (allowRotation && Math.random() < 0.6) {
+      p.rotation = 1 + Math.floor(Math.random() * 3);
     }
   });
 
@@ -42,6 +39,94 @@ export function dropLockedPiecesOp(engine, count = OJAMA_CONFIG.DEFAULT_DROP_COU
   engine.bumpLockedVersion();
   engine.bumpZVersion();
   return actual;
+}
+
+function buildFakePieceFromSource(src, spec, zOrder) {
+  return {
+    id: spec.fakeId,
+    fakeId: spec.fakeId,
+    sourcePieceId: src.id,
+    row: src.row,
+    col: src.col,
+    isEdge: src.isEdge,
+    targetX: src.targetX,
+    targetY: src.targetY,
+    x: spec.x,
+    y: spec.y,
+    rotation: ((spec.rotation % 4) + 4) % 4,
+    isFlipped: !!spec.isFlipped,
+    groupId: spec.fakeId,
+    isLocked: false,
+    isFake: true,
+    expiresAt: spec.expiresAt,
+    zOrder,
+    colorInfo: src.colorInfo,
+    path: src.path,
+    frontSprite: src.frontSprite,
+    backSprite: src.backSprite,
+    spriteScale: src.spriteScale,
+    spriteHalfW: src.spriteHalfW,
+    spriteHalfH: src.spriteHalfH,
+    spriteLogicalW: src.spriteLogicalW,
+    spriteLogicalH: src.spriteLogicalH,
+  };
+}
+
+export function addFakePiecesOp(
+  engine,
+  count = OJAMA_CONFIG.FAKE_PIECE_ADD_COUNT,
+  durationSec = OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC,
+  allowRotation = true,
+  allowFlip = true
+) {
+  if (engine.pieces.length === 0) return [];
+  const expiresAt = Date.now() + Math.max(1, durationSec) * 1000;
+  const spanW = engine.boardW + engine.pieceW * 2.4;
+  const spanH = engine.boardH + engine.pieceH * 2.4;
+  const added = [];
+
+  for (let i = 0; i < count; i++) {
+    const src = engine.pieces[Math.floor(Math.random() * engine.pieces.length)];
+    const fakeId = -(engine.nextFakePieceSeq++);
+    const fake = buildFakePieceFromSource(
+      src,
+      {
+        fakeId,
+        x: (Math.random() - 0.5) * spanW,
+        y: (Math.random() - 0.5) * spanH,
+        rotation: allowRotation ? Math.floor(Math.random() * 4) : 0,
+        isFlipped: allowFlip ? Math.random() < 0.3 : false,
+        expiresAt,
+      },
+      engine.maxZ++
+    );
+    engine.fakePieces.push(fake);
+    added.push(fake);
+  }
+
+  while (engine.fakePieces.length > OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT) {
+    engine.fakePieces.shift();
+  }
+
+  engine.stats.ojamaTotal += 1;
+  engine.stats.ojamaBreakdown.fake = (engine.stats.ojamaBreakdown.fake || 0) + 1;
+  engine.bumpZVersion();
+  return added;
+}
+
+export function syncFakePiecesFromSpecsOp(engine, specs) {
+  if (!Array.isArray(specs)) return;
+  const byId = new Map(engine.pieces.map((p) => [p.id, p]));
+  const next = [];
+  for (const spec of specs) {
+    const src = byId.get(spec.sourcePieceId);
+    if (!src) continue;
+    const zOrder = typeof spec.zOrder === 'number' ? spec.zOrder : engine.maxZ++;
+    engine.maxZ = Math.max(engine.maxZ, zOrder + 1);
+    next.push(buildFakePieceFromSource(src, spec, zOrder));
+  }
+  engine.fakePieces = next;
+  engine.bumpZVersion();
 }
 
 export function prankLoosePiecesOp(

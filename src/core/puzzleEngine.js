@@ -20,7 +20,12 @@ import {
   sortByQuadrantPieces,
   alignAllUprightPieces,
 } from './pieceSorter.js';
-import { dropLockedPiecesOp, prankLoosePiecesOp } from './pieceOjamaOps.js';
+import {
+  dropLockedPiecesOp,
+  prankLoosePiecesOp,
+  addFakePiecesOp,
+  syncFakePiecesFromSpecsOp,
+} from './pieceOjamaOps.js';
 import { applyPiecePatchesOp, exportSaveDataOp, resolveDropOp } from './puzzleSnapshot.js';
 
 export class PuzzleEngine {
@@ -41,6 +46,8 @@ export class PuzzleEngine {
     this.spritePad = 32;
 
     this.pieces = [];
+    this.fakePieces = [];
+    this.nextFakePieceSeq = 1;
     this.nextGroupId = 1;
     this.maxZ = 1;
     this.zoneLabels = [];
@@ -54,6 +61,7 @@ export class PuzzleEngine {
         visual: 0,
         superchat: 0,
         prank: 0,
+        fake: 0,
       },
     };
 
@@ -124,6 +132,9 @@ export class PuzzleEngine {
       for (const p of this.pieces) {
         if (!p.isLocked) loose.push(p);
       }
+      for (const fp of this.fakePieces) {
+        loose.push(fp);
+      }
       loose.sort((a, b) => a.zOrder - b.zOrder);
       this._sortedLooseCache = { version: this.zVersion, list: loose };
     }
@@ -158,7 +169,7 @@ export class PuzzleEngine {
       elapsedMs: 0,
       placedCount: 0,
       ojamaTotal: 0,
-      ojamaBreakdown: { drop: 0, visual: 0, superchat: 0, prank: 0 },
+      ojamaBreakdown: { drop: 0, visual: 0, superchat: 0, prank: 0, fake: 0 },
     };
 
     this._buildPieces({ allowRotation, allowFlip, savedMap: null });
@@ -228,6 +239,7 @@ export class PuzzleEngine {
         visual: Number(st.ojamaBreakdown?.visual) || 0,
         superchat: Number(st.ojamaBreakdown?.superchat) || 0,
         prank: Number(st.ojamaBreakdown?.prank) || 0,
+        fake: Number(st.ojamaBreakdown?.fake) || 0,
       },
     };
     this.completedFired = this.isCompleted();
@@ -243,6 +255,7 @@ export class PuzzleEngine {
       oldP.backSprite = null;
       oldP.path = null;
     }
+    this.fakePieces = [];
     this._sortedLooseCache = { version: -1, list: [] };
     this.lodCache.clear();
 
@@ -379,7 +392,13 @@ export class PuzzleEngine {
     return positions;
   }
 
+  getPieceById(pieceId) {
+    if (pieceId < 0) return this.fakePieces.find((p) => p.id === pieceId) || null;
+    return this.pieces.find((p) => p.id === pieceId) || null;
+  }
+
   getGroupPieces(groupId) {
+    if (groupId < 0) return this.fakePieces.filter((p) => p.groupId === groupId);
     return this.pieces.filter((p) => p.groupId === groupId);
   }
 
@@ -446,7 +465,8 @@ export class PuzzleEngine {
   bringGroupToFront(groupId) {
     const z = this.maxZ++;
     let changed = false;
-    for (const p of this.pieces) {
+    const list = groupId < 0 ? this.fakePieces : this.pieces;
+    for (const p of list) {
       if (p.groupId === groupId && !p.isLocked) {
         p.zOrder = z;
         changed = true;
@@ -456,7 +476,8 @@ export class PuzzleEngine {
   }
 
   moveGroup(groupId, dx, dy) {
-    for (const p of this.pieces) {
+    const list = groupId < 0 ? this.fakePieces : this.pieces;
+    for (const p of list) {
       if (p.groupId === groupId && !p.isLocked) {
         p.x += dx;
         p.y += dy;
@@ -516,8 +537,47 @@ export class PuzzleEngine {
     return alignAllUprightPieces(this, excludedGroupIds);
   }
 
-  dropLockedPieces(count) {
-    return dropLockedPiecesOp(this, count);
+  dropLockedPieces(count, allowRotation = false) {
+    return dropLockedPiecesOp(this, count, allowRotation);
+  }
+
+  addFakePieces(count, durationSec, allowRotation = true, allowFlip = true) {
+    return addFakePiecesOp(this, count, durationSec, allowRotation, allowFlip);
+  }
+
+  pruneExpiredFakePieces(now = Date.now()) {
+    if (this.fakePieces.length === 0) return false;
+    const before = this.fakePieces.length;
+    this.fakePieces = this.fakePieces.filter((fp) => fp.expiresAt > now);
+    if (this.fakePieces.length !== before) {
+      this.bumpZVersion();
+      return true;
+    }
+    return false;
+  }
+
+  clearFakePieces() {
+    if (this.fakePieces.length === 0) return false;
+    this.fakePieces = [];
+    this.bumpZVersion();
+    return true;
+  }
+
+  serializeFakePieces() {
+    return this.fakePieces.map((fp) => ({
+      fakeId: fp.fakeId ?? fp.id,
+      sourcePieceId: fp.sourcePieceId,
+      x: Math.round(fp.x * 10) / 10,
+      y: Math.round(fp.y * 10) / 10,
+      rotation: fp.rotation,
+      isFlipped: fp.isFlipped,
+      expiresAt: fp.expiresAt,
+      zOrder: fp.zOrder,
+    }));
+  }
+
+  syncFakePiecesFromSpecs(specs) {
+    syncFakePiecesFromSpecsOp(this, specs);
   }
 
   prankLoosePieces(count, excludedGroupIds = null) {

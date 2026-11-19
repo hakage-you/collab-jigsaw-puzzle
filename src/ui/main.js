@@ -59,6 +59,7 @@ function boot() {
     app,
     updateHUD: () => topbarUI.updateHUD(),
     requestRender: () => renderer.requestRender(),
+    setGhostPiecesActive: (active) => renderer.setGhostPiecesActive(active),
     showToast,
   });
 

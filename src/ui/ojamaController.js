@@ -2,7 +2,7 @@ import { OJAMA_CONFIG, YOUTUBE_CONFIG } from '../config/constants.js';
 import { sound } from '../services/sound.js';
 
 export class OjamaController {
-  constructor({ app, updateHUD, requestRender, showToast }) {
+  constructor({ app, updateHUD, requestRender, setGhostPiecesActive = null, showToast }) {
     this.app = app;
     this.engine = app.engine;
     this.room = app.room;
@@ -11,12 +11,14 @@ export class OjamaController {
     this.readSettingsFromUI = () => this._readOjamaInputsToApp();
     this.updateHUD = updateHUD;
     this.requestRender = requestRender;
+    this.setGhostPiecesActive = setGhostPiecesActive || (() => {});
     this.showToast = showToast;
 
     this.visualSabotageTimerId = null;
     this.visualSabotageRemaining = 0;
     this.superchatTimerId = null;
     this.superchatRemaining = 0;
+    this.fakeCleanupTimerId = null;
     this.superchatHp = OJAMA_CONFIG.SUPERCHAT_MAX_HP;
     this.superchatMaxHp = OJAMA_CONFIG.SUPERCHAT_MAX_HP;
     this.lastOjamaTime = 0;
@@ -106,6 +108,7 @@ export class OjamaController {
     document.getElementById('btnTestVisual').addEventListener('click', () => this.triggerVisualOjama());
     document.getElementById('btnTestSuperchat').addEventListener('click', () => this.triggerSuperchatOjama());
     document.getElementById('btnTestPrank').addEventListener('click', () => this.triggerPrankOjama());
+    document.getElementById('btnTestFake')?.addEventListener('click', () => this.triggerFakePiecesOjama());
 
     document.getElementById('btnHitSuperchat').addEventListener('click', () => {
       this.elSuperchatCard.classList.remove('hit-shake');
@@ -151,7 +154,8 @@ export class OjamaController {
         'きれいな色だね〜',
         '!color 見づらくなれ！',
         '!spin 回しちゃえ〜',
-        '!sp 中央いくよ〜！',
+        '!ghost 透明になっちゃえ！',
+        '!fake 偽ピース混ぜちゃうぞ！',
       ];
       this.elBtnAutoComments.textContent = '自動コメント停止';
       this.autoCommentInterval = setInterval(() => {
@@ -189,6 +193,7 @@ export class OjamaController {
       this.visualSabotageTimerId = null;
     }
     this.canvas.classList.remove('sabotage-grayscale', 'sabotage-sepia', 'sabotage-hue');
+    this.setGhostPiecesActive(false);
     this.elSpotlight.classList.add('hidden');
     this.elVisualBanner.classList.add('hidden');
     if (broadcast && this.room.role === 'host') {
@@ -204,10 +209,36 @@ export class OjamaController {
     this.elSuperchatLayer.classList.add('hidden');
   }
 
+  _stopFakeCleanupTimer() {
+    if (this.fakeCleanupTimerId) {
+      clearInterval(this.fakeCleanupTimerId);
+      this.fakeCleanupTimerId = null;
+    }
+  }
+
+  _ensureFakeCleanupTimer() {
+    if (this.fakeCleanupTimerId) return;
+    this.fakeCleanupTimerId = setInterval(() => {
+      if (this.engine.pruneExpiredFakePieces()) {
+        this.requestRender();
+        if (this.room.role === 'host') {
+          this.room.broadcastFakePieces();
+        }
+      }
+      if (this.engine.fakePieces.length === 0) {
+        this._stopFakeCleanupTimer();
+      }
+    }, 1000);
+  }
+
   clearAllOnComplete() {
     this.clearVisualSabotage(false);
     this.dismissSuperchat();
     this.stopAutoComments();
+    this._stopFakeCleanupTimer();
+    if (this.engine.clearFakePieces()) {
+      this.requestRender();
+    }
   }
 
   guardIfCompleted() {
@@ -221,7 +252,7 @@ export class OjamaController {
   triggerDropOjama() {
     if (this.guardIfCompleted()) return false;
     const count = Math.max(1, Number(this.elOjamaDropCount.value) || OJAMA_CONFIG.DEFAULT_DROP_COUNT);
-    const dropped = this.engine.dropLockedPieces(count);
+    const dropped = this.engine.dropLockedPieces(count, this.app.getAllowRotation());
     if (dropped === 0) {
       this.showToast('台紙にはまっているピースがまだありません', 'info');
       return false;
@@ -242,10 +273,13 @@ export class OjamaController {
       sepia: 'セピア視覚妨害',
       hue: '色相シャッフル妨害',
       spotlight: '暗闇スポットライト妨害',
+      ghost: 'ピース透明化妨害',
     };
 
     if (chosen === 'spotlight') {
       this.elSpotlight.classList.remove('hidden');
+    } else if (chosen === 'ghost') {
+      this.setGhostPiecesActive(true);
     } else {
       this.canvas.classList.add(`sabotage-${chosen}`);
     }
@@ -273,7 +307,7 @@ export class OjamaController {
     this.readSettingsFromUI();
 
     const settings = this.getSettings();
-    const types = ['grayscale', 'sepia', 'hue', 'spotlight'];
+    const types = ['grayscale', 'sepia', 'hue', 'spotlight', 'ghost'];
     let chosen = forcedType || settings.ojama.visualType;
     if (chosen === 'random' || !types.includes(chosen)) {
       chosen = types[Math.floor(Math.random() * types.length)];
@@ -384,14 +418,34 @@ export class OjamaController {
     return true;
   }
 
+  triggerFakePiecesOjama() {
+    if (this.guardIfCompleted()) return false;
+    const added = this.engine.addFakePieces(
+      OJAMA_CONFIG.FAKE_PIECE_ADD_COUNT,
+      OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC,
+      this.app.getAllowRotation(),
+      this.app.getAllowFlip()
+    );
+    if (added.length === 0) return false;
+    this._ensureFakeCleanupTimer();
+    sound.playOjama();
+    this.updateHUD();
+    this.requestRender();
+    const msg = `お邪魔発動：偽ピースを${added.length}個追加しました（${OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC}秒で消滅）`;
+    this.showToast(msg, 'ojama');
+    this.room.broadcastFakePieces(msg);
+    return true;
+  }
+
   triggerRandomOjama() {
     const hasLocked = this.engine.getLockedCount() > 0;
-    const options = ['visual', 'superchat', 'prank'];
+    const options = ['visual', 'superchat', 'prank', 'fake'];
     if (hasLocked) options.push('drop');
     const pick = options[Math.floor(Math.random() * options.length)];
     if (pick === 'drop') this.triggerDropOjama();
     else if (pick === 'visual') this.triggerVisualOjama();
     else if (pick === 'superchat') this.triggerSuperchatOjama();
+    else if (pick === 'fake') this.triggerFakePiecesOjama();
     else this.triggerPrankOjama();
   }
 
@@ -405,7 +459,8 @@ export class OjamaController {
     const words = settings.ojama.triggerWords
       .split(',')
       .map((w) => w.trim().toLowerCase())
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length);
 
     const lower = text.toLowerCase();
     const matchedWord = words.find((w) => lower.includes(w));
@@ -424,6 +479,10 @@ export class OjamaController {
         this.lastOjamaTime = now;
         if (matchedWord.includes('drop') || lower.includes('落と')) {
           this.triggerDropOjama();
+        } else if (matchedWord.includes('ghost') || lower.includes('透明')) {
+          this.triggerVisualOjama('ghost');
+        } else if (matchedWord.includes('fake') || lower.includes('偽')) {
+          this.triggerFakePiecesOjama();
         } else if (matchedWord.includes('color') || lower.includes('色')) {
           this.triggerVisualOjama();
         } else if (matchedWord.includes('spin') || lower.includes('回')) {

@@ -338,7 +338,7 @@ export class HostSession {
 
   _handleRotateOrFlip(connId, playerId, msg) {
     const room = this.room;
-    const piece = room.engine.pieces.find((p) => p.id === msg.pieceId);
+    const piece = room.engine.getPieceById(msg.pieceId);
     if (!piece || piece.isLocked) return;
     const owner = room.groupLocks.get(piece.groupId);
     if (owner && owner !== playerId) {

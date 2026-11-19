@@ -36,6 +36,7 @@ export const MSG = {
   ROSTER_UPDATE: 'roster_update',
   OJAMA_VISUAL: 'ojama_visual',
   OJAMA_VISUAL_CLEAR: 'ojama_visual_clear',
+  OJAMA_FAKE_PIECES: 'ojama_fake_pieces',
   OJAMA_SUPERCHAT: 'ojama_superchat',
   SUPERCHAT_HIT: 'superchat_hit',
   SUPERCHAT_STATE: 'superchat_state',

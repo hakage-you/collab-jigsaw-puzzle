@@ -33,14 +33,14 @@
       </div>
 
       <div class="topbar-center" id="statsHudGroup">
-        <div class="stat-chip" title="自分が台紙にはめたピース数">
-          <span class="stat-label">貢献度</span>
+        <div class="stat-chip" title="台紙にハマったピース数">
+          <span class="stat-label">ハマったピース数</span>
           <strong id="contributionCount">0</strong>
         </div>
         <div class="stat-chip stat-chip-ojama" title="発動したお邪魔の合計と内訳">
           <span class="stat-label">お邪魔</span>
           <strong id="ojamaTotalCount">0</strong>
-          <span class="ojama-mini-breakdown" id="ojamaBreakdownText">(落:0 視:0 ス:0 悪:0)</span>
+          <span class="ojama-mini-breakdown" id="ojamaBreakdownText">(落:0 視:0 ス:0 悪:0 偽:0)</span>
         </div>
       </div>
 
@@ -404,11 +404,12 @@
                       <option value="sepia">セピア色</option>
                       <option value="hue">色相シャッフル</option>
                       <option value="spotlight">暗闇スポットライト</option>
+                      <option value="ghost">ピース透明化（90%透過）</option>
                     </select>
                   </label>
                   <label class="field mt-2">
                     <span>特定トリガーワード（カンマ区切り）</span>
-                    <input type="text" id="ojamaTriggerWords" value="!drop, !color, !sp, !spin, お邪魔" />
+                    <input type="text" id="ojamaTriggerWords" value="!drop, !color, !spin, !ghost, !fake, お邪魔" />
                   </label>
                 </div>
               </details>
@@ -434,6 +435,10 @@
                     <button type="button" class="btn btn-ojama" id="btnTestPrank">
                       <span>いたずら回転/裏</span>
                       <small>未配置ピースを攪乱</small>
+                    </button>
+                    <button type="button" class="btn btn-ojama" id="btnTestFake">
+                      <span>偽ピース追加</span>
+                      <small>ダミーを混ぜて攪乱</small>
                     </button>
                   </div>
                   <div class="input-with-btn mt-2">
@@ -859,17 +864,13 @@
             <strong id="resultSize">6 × 4 (24)</strong>
           </div>
           <div class="result-stat result-countable">
-            <span class="label">貢献度（はめた数）</span>
-            <strong id="resultPlaced">24</strong>
-          </div>
-          <div class="result-stat result-countable">
             <span class="label">お邪魔発動数</span>
             <strong id="resultOjamaTotal">0</strong>
           </div>
         </div>
 
         <div class="result-breakdown result-countable" id="resultOjamaBreakdown">
-          内訳 — 落下: 0 / 視覚: 0 / スパチャ: 0 / いたずら: 0
+          内訳 — 落下: 0 / 視覚: 0 / スパチャ: 0 / いたずら: 0 / 偽: 0
         </div>
 
         <ul class="result-ranking-list result-countable hidden" id="resultRankingList"></ul>

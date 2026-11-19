@@ -19,6 +19,7 @@ export class CanvasInteraction {
     this.spacePressed = false;
     this.lastPointerScreen = { x: 0, y: 0 };
     this.prevButtons = 0;
+    this._handledRightPointerDown = false;
     this.dragCounter = 0;
 
     this._bindEvents();
@@ -45,7 +46,10 @@ export class CanvasInteraction {
 
   _finishDrag(e) {
     this.prevButtons = e.buttons ?? 0;
-    if (e.type === 'pointerup' && e.button === 2) return;
+    if (e.type === 'pointerup' && e.button === 2) {
+      this._handledRightPointerDown = false;
+      return;
+    }
     if (this.isPanning || this.isDraggingRefSheet) {
       this.isPanning = false;
       this.isDraggingRefSheet = false;
@@ -73,6 +77,7 @@ export class CanvasInteraction {
       this.prevButtons = e.buttons ?? 0;
 
       if (e.button === 2) {
+        this._handledRightPointerDown = true;
         this._rotatePieceOrGroupAt(sx, sy);
         return;
       }
@@ -115,6 +120,7 @@ export class CanvasInteraction {
       const rightJustPressed = (curButtons & 2) !== 0 && (this.prevButtons & 2) === 0;
       this.prevButtons = curButtons;
       if (rightJustPressed && this.renderer.draggingGroupId !== null) {
+        this._handledRightPointerDown = true;
         this._rotatePieceOrGroupAt(sx, sy);
       }
 
@@ -161,6 +167,24 @@ export class CanvasInteraction {
 
     this.canvas.addEventListener('pointerup', (e) => this._finishDrag(e));
     this.canvas.addEventListener('pointercancel', (e) => this._finishDrag(e));
+
+    this.canvas.addEventListener('mousedown', (e) => {
+      if (e.button !== 2) return;
+      if (this._handledRightPointerDown) {
+        this._handledRightPointerDown = false;
+        return;
+      }
+      const { sx, sy } = this._getCanvasLocalCoords(e);
+      this.prevButtons |= 2;
+      this._rotatePieceOrGroupAt(sx, sy);
+    });
+
+    this.canvas.addEventListener('mouseup', (e) => {
+      if (e.button === 2) {
+        this.prevButtons &= ~2;
+        this._handledRightPointerDown = false;
+      }
+    });
 
     this.canvas.addEventListener('contextmenu', (e) => {
       e.preventDefault();
@@ -292,6 +316,7 @@ export class CanvasInteraction {
   }
 
   _subscribeApp() {
+    this.app.on('renderNeeded', () => this.renderer.requestRender());
     this.app.on('lockDenied', ({ groupId }) => {
       if (this.renderer.draggingGroupId === groupId) {
         this.renderer.draggingGroupId = null;

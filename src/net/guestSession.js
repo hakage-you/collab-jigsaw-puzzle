@@ -145,6 +145,10 @@ export class GuestSession {
     room.engine.restoreFromSave(saveData, sourceCanvas, isSampleImage);
     room.engine.zoneLabels = msg.zoneLabels || [];
     room.cb.onFullStateSynced({ roomRules: msg.roomRules, roster: room.roster });
+    if (Array.isArray(msg.fakePieces) && msg.fakePieces.length > 0) {
+      room.engine.syncFakePiecesFromSpecs(msg.fakePieces);
+      room.cb.onRenderNeeded();
+    }
   }
 
   _handleWelcome(msg) {
@@ -314,7 +318,12 @@ export class GuestSession {
 
     if (msg.type === MSG.OJAMA_VISUAL) room.cb.onRemoteVisualOjama(msg.visualType, msg.duration);
     else if (msg.type === MSG.OJAMA_VISUAL_CLEAR) room.cb.onRemoteVisualClear();
-    else if (msg.type === MSG.OJAMA_SUPERCHAT) room.cb.onRemoteSuperchat(msg);
+    else if (msg.type === MSG.OJAMA_FAKE_PIECES) {
+      room.engine.syncFakePiecesFromSpecs(msg.fakePieces || []);
+      if (msg.stats) room.engine.stats = msg.stats;
+      room.cb.onRosterUpdate(room.roster);
+      room.cb.onRenderNeeded();
+    } else if (msg.type === MSG.OJAMA_SUPERCHAT) room.cb.onRemoteSuperchat(msg);
     else if (msg.type === MSG.SUPERCHAT_STATE) room.cb.onRemoteSuperchatState(msg.hp, msg.maxHp);
     else if (msg.type === MSG.SUPERCHAT_DISMISS) room.cb.onRemoteSuperchatDismiss();
     else if (msg.type === MSG.OJAMA_NOTICE) room.cb.onToast(msg.text, 'ojama');

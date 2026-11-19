@@ -95,7 +95,7 @@ export class TopbarUI {
     this.elOjamaTotalCount.textContent = String(engine.stats.ojamaTotal);
     const bd = engine.stats.ojamaBreakdown;
     this.elOjamaBreakdownText.textContent =
-      `(落:${bd.drop} 視:${bd.visual} ス:${bd.superchat} 悪:${bd.prank})`;
+      `(落:${bd.drop} 視:${bd.visual} ス:${bd.superchat} 悪:${bd.prank} 偽:${bd.fake || 0})`;
   }
 
   renderKnockBanner(knockQueue) {

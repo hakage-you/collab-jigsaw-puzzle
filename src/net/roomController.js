@@ -101,6 +101,13 @@ export class RoomController {
         p.y = upd.y;
       }
     }
+    for (const fp of this.engine.fakePieces) {
+      const upd = map.get(fp.id);
+      if (upd) {
+        fp.x = upd.x;
+        fp.y = upd.y;
+      }
+    }
   }
 
   async startHostRoom({ passcode = '', requireApproval = true, capacity = 8, roomId = null }) {
@@ -260,6 +267,19 @@ export class RoomController {
 
   broadcastVisualClear() {
     if (this.role === 'host') this.transport?.broadcast({ type: MSG.OJAMA_VISUAL_CLEAR });
+  }
+
+  broadcastFakePieces(noticeText = null) {
+    if (this.role === 'host') {
+      this.transport?.broadcast({
+        type: MSG.OJAMA_FAKE_PIECES,
+        fakePieces: this.engine.serializeFakePieces(),
+        stats: structuredClone(this.engine.stats),
+      });
+      if (noticeText) {
+        this.transport?.broadcast({ type: MSG.OJAMA_NOTICE, text: noticeText });
+      }
+    }
   }
 
   computeSuperchatMaxHp() {

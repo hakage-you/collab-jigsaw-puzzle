@@ -35,6 +35,7 @@ export class CanvasRenderer {
     this.hoveredPiece = null;
     this.draggingGroupId = null;
     this.highlightFilter = 'all';
+    this.ghostPiecesActive = false;
     this.snapFlashes = [];
     this.confetti = [];
     this.needsRender = true;
@@ -61,6 +62,14 @@ export class CanvasRenderer {
 
   requestRender() {
     this.needsRender = true;
+  }
+
+  setGhostPiecesActive(active) {
+    const next = Boolean(active);
+    if (this.ghostPiecesActive !== next) {
+      this.ghostPiecesActive = next;
+      this.needsRender = true;
+    }
   }
 
   screenToWorld(sx, sy) {
@@ -222,16 +231,19 @@ export class CanvasRenderer {
   }
 
   _getPieceAlpha(piece) {
-    if (this.highlightFilter === 'all') return 1;
-    if (piece.isLocked) return 0.75;
-    if (this.highlightFilter === 'edges') {
-      return piece.isEdge ? 1 : 0.16;
+    let alpha = 1;
+    if (this.highlightFilter !== 'all') {
+      if (piece.isLocked) alpha = 0.75;
+      else if (this.highlightFilter === 'edges') alpha = piece.isEdge ? 1 : 0.16;
+      else if (this.highlightFilter.startsWith('color:')) {
+        const bucket = this.highlightFilter.slice(6);
+        alpha = piece.colorInfo.bucket === bucket ? 1 : 0.16;
+      }
     }
-    if (this.highlightFilter.startsWith('color:')) {
-      const bucket = this.highlightFilter.slice(6);
-      return piece.colorInfo.bucket === bucket ? 1 : 0.16;
+    if (this.ghostPiecesActive && !piece.isLocked) {
+      alpha *= 0.1;
     }
-    return 1;
+    return alpha;
   }
 
   _ensureLockedBoardCache() {
@@ -405,6 +417,10 @@ export class CanvasRenderer {
     }
 
     this.resizeCanvas();
+
+    if (this.engine.fakePieces.length > 0 && this.engine.pruneExpiredFakePieces()) {
+      this.needsRender = true;
+    }
 
     const interpolated = this.room ? this.room.stepInterpolation() : false;
     const { showDummyCursors, dummyParticipants } = this.getParticipantsState();

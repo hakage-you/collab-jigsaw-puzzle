@@ -1,8 +1,10 @@
 import { PUZZLE_CONFIG } from '../config/constants.js';
 
 export function resolveDropOp(engine, groupId) {
+  if (groupId < 0) return { type: 'none', reason: 'fake' };
   const group = engine.getGroupPieces(groupId);
   if (group.length === 0) return { type: 'none' };
+  if (group[0]?.isFake) return { type: 'none', reason: 'fake' };
 
   const allUpright = group.every((p) => p.rotation === 0 && !p.isFlipped);
   if (!allUpright) {
@@ -92,6 +94,9 @@ export function resolveDropOp(engine, groupId) {
 export function applyPiecePatchesOp(engine, patches, { preservePositions = false } = {}) {
   if (!Array.isArray(patches) || patches.length === 0) return;
   const byId = new Map(engine.pieces.map((p) => [p.id, p]));
+  for (const fp of engine.fakePieces || []) {
+    byId.set(fp.id, fp);
+  }
   let highestGroup = 0;
   let highestZ = engine.maxZ;
   let lockChanged = false;

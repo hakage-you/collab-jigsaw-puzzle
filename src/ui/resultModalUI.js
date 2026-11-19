@@ -16,19 +16,11 @@ export class ResultModalUI {
     document.getElementById('resultTime').textContent = formatDuration(payload.elapsedMs);
     document.getElementById('resultSize').textContent =
       `${payload.cols} × ${payload.rows} (${payload.pieceCount})`;
-    const resultPlacedEl = document.getElementById('resultPlaced');
-    resultPlacedEl.textContent = String(payload.myContrib ?? payload.placedCount);
-    const placedLabelEl = resultPlacedEl.parentElement?.querySelector('.label');
-    if (placedLabelEl) {
-      placedLabelEl.textContent = payload.isMultiplayer
-        ? 'あなたの貢献度（はめた数）'
-        : '貢献度（はめた数）';
-    }
     document.getElementById('resultOjamaTotal').textContent = String(payload.ojamaTotal);
 
     const bd = payload.ojamaBreakdown;
     document.getElementById('resultOjamaBreakdown').textContent =
-      `内訳 — 落下: ${bd.drop} / 視覚: ${bd.visual} / スパチャ: ${bd.superchat} / いたずら: ${bd.prank}`;
+      `内訳 — 落下: ${bd.drop} / 視覚: ${bd.visual} / スパチャ: ${bd.superchat} / いたずら: ${bd.prank} / 偽: ${bd.fake || 0}`;
 
     this.elRankingList.innerHTML = '';
     if (payload.isMultiplayer && payload.roster.length > 0) {
