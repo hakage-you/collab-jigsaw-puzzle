@@ -1,6 +1,10 @@
 /**
  * PeerJS WebRTC P2P Star Transport (Host <-> Guests 1..7).
  */
+import { MULTIPLAYER_CONFIG } from '../config/constants.js';
+
+// STUN only: never relay game data through a TURN server (see MULTIPLAYER_CONFIG.ICE_SERVERS).
+const PEER_OPTIONS = { debug: 0, config: { iceServers: MULTIPLAYER_CONFIG.ICE_SERVERS } };
 
 export class PeerJsTransport {
   constructor() {
@@ -31,7 +35,7 @@ export class PeerJsTransport {
     const PeerCtor = this._getPeerConstructor();
 
     return new Promise((resolve, reject) => {
-      const peer = new PeerCtor(roomId, { debug: 0 });
+      const peer = new PeerCtor(roomId, PEER_OPTIONS);
       this.peer = peer;
       let settled = false;
 
@@ -75,7 +79,7 @@ export class PeerJsTransport {
     const PeerCtor = this._getPeerConstructor();
 
     return new Promise((resolve, reject) => {
-      const peer = new PeerCtor({ debug: 0 });
+      const peer = new PeerCtor(PEER_OPTIONS);
       this.peer = peer;
       let settled = false;
 
@@ -92,7 +96,11 @@ export class PeerJsTransport {
         const conn = peer.connect(roomId, { reliable: true });
         this.hostConn = conn;
         const timer = setTimeout(() => {
-          fail(new Error('ホストへの接続がタイムアウトしました'));
+          fail(
+            new Error(
+              'ホストへの接続がタイムアウトしました（回線の組み合わせによっては直接接続できないことがあります）',
+            ),
+          );
         }, 12000);
 
         conn.on('open', () => {

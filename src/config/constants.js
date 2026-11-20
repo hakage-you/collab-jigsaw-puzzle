@@ -91,6 +91,9 @@ export const OJAMA_CONFIG = {
 };
 
 export const MULTIPLAYER_CONFIG = {
+  // WebRTC ICE servers: STUN only. No TURN relay, so game data never passes through a third-party
+  // server; players whose networks cannot connect directly cannot join (relay opt-in: open issue).
+  ICE_SERVERS: [{ urls: 'stun:stun.l.google.com:19302' }],
   MIN_CAPACITY: 2,
   MAX_CAPACITY: 8,
   DEFAULT_CAPACITY: 8,
