@@ -1,15 +1,9 @@
-import { PARTICIPANTS_CONFIG } from '../config/constants.js';
-
 export class ParticipantsUI {
-  constructor({ app, requestRender, showToast }) {
+  constructor({ app, showToast }) {
     this.app = app;
     this.engine = app.engine;
     this.room = app.room;
-    this.requestRender = requestRender;
     this.showToast = showToast;
-
-    this.dummyParticipants = [];
-    this.showDummyCursors = true;
 
     this.elBtnToggle = document.getElementById('btnToggleParticipants');
     this.elCountBadge = document.getElementById('participantCountBadge');
@@ -17,21 +11,12 @@ export class ParticipantsUI {
     this.elHostRenameRow = document.getElementById('hostRenameRow');
     this.elInputPlayerName = document.getElementById('inputPlayerName');
     this.elList = document.getElementById('participantsList');
-    this.elToggleCursors = document.getElementById('toggleDummyCursors');
-    this.elSoloDummyControls = document.getElementById('soloDummyControls');
     this.elHostInviteSection = document.getElementById('hostInviteSection');
 
     this._bindEvents();
     this._subscribeApp();
     this.syncSettings(this.app.getSettings());
     this.render();
-  }
-
-  getState() {
-    return {
-      dummyParticipants: this.dummyParticipants,
-      showDummyCursors: this.showDummyCursors,
-    };
   }
 
   syncSettings(settings) {
@@ -91,30 +76,6 @@ export class ParticipantsUI {
         this.showToast('ルームIDをコピーできませんでした', 'ojama');
       }
     });
-
-    document.getElementById('btnAddDummyParticipant').addEventListener('click', () => {
-      if (this.dummyParticipants.length >= PARTICIPANTS_CONFIG.MAX_DUMMY_PARTICIPANTS) {
-        this.showToast('最大8人（ホスト＋7名）までシミュレーション可能です', 'info');
-        return;
-      }
-      const idx = this.dummyParticipants.length;
-      this.dummyParticipants.push({
-        id: `dummy-${Date.now()}-${idx}`,
-        name: PARTICIPANTS_CONFIG.DUMMY_NAMES[idx % PARTICIPANTS_CONFIG.DUMMY_NAMES.length],
-        color: PARTICIPANTS_CONFIG.DUMMY_COLORS[idx % PARTICIPANTS_CONFIG.DUMMY_COLORS.length],
-        role: 'guest',
-        contrib: Math.floor(Math.random() * 5),
-        online: true,
-        isDummy: true,
-      });
-      this.render();
-      this.requestRender();
-    });
-
-    this.elToggleCursors.addEventListener('change', () => {
-      this.showDummyCursors = this.elToggleCursors.checked;
-      this.requestRender();
-    });
   }
 
   _subscribeApp() {
@@ -129,7 +90,6 @@ export class ParticipantsUI {
     const isGuestMp = this.room.role === 'guest';
 
     this.elHostInviteSection.classList.toggle('hidden', !isHostMp);
-    this.elSoloDummyControls.classList.toggle('hidden', isMp);
     this.elHostRenameRow.classList.toggle('hidden', isGuestMp);
 
     let allMembers;
@@ -146,9 +106,7 @@ export class ParticipantsUI {
           role: 'host',
           contrib: this.engine.stats.placedCount,
           online: true,
-          isDummy: false,
         },
-        ...this.dummyParticipants,
       ];
     }
 
@@ -196,18 +154,7 @@ export class ParticipantsUI {
       meta.append(nameRow, contrib);
       li.append(avatar, meta);
 
-      if (m.isDummy) {
-        const rmBtn = document.createElement('button');
-        rmBtn.type = 'button';
-        rmBtn.className = 'btn btn-xs btn-ghost';
-        rmBtn.textContent = '削除';
-        rmBtn.addEventListener('click', () => {
-          this.dummyParticipants = this.dummyParticipants.filter((d) => d.id !== m.id);
-          this.render();
-          this.requestRender();
-        });
-        li.appendChild(rmBtn);
-      } else if (isHostMp && m.role === 'guest') {
+      if (isHostMp && m.role === 'guest') {
         const kickBtn = document.createElement('button');
         kickBtn.type = 'button';
         kickBtn.className = 'btn btn-xs btn-ghost';

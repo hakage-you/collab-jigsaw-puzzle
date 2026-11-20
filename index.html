@@ -45,6 +45,10 @@
       </div>
 
       <div class="topbar-right">
+        <button type="button" class="btn btn-secondary btn-sm host-only" id="btnOpenStreamModal">
+          配信・お邪魔 <span class="live-status-dot hidden" id="ytLiveIndicator" aria-hidden="true"></span>
+        </button>
+
         <div class="participants-anchor">
           <button type="button" class="btn btn-secondary btn-sm" id="btnToggleParticipants" aria-expanded="false">
             参加者 <span class="count-badge" id="participantCountBadge">1</span>
@@ -68,21 +72,15 @@
               <input type="text" id="inputPlayerName" maxlength="20" placeholder="自分の表示名" />
             </div>
             <ul class="participants-list" id="participantsList"></ul>
-            <div class="popover-footer" id="soloDummyControls">
-              <button type="button" class="btn btn-sm btn-secondary btn-block" id="btnAddDummyParticipant">
-                ダミー参加者を追加
-              </button>
-              <label class="md-switch md-switch-row">
-                <span class="md-switch-label">机上にダミーカーソルを表示</span>
-                <input type="checkbox" class="md-switch-input" id="toggleDummyCursors" checked />
-                <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
-              </label>
-            </div>
           </div>
         </div>
 
-        <button type="button" class="btn btn-secondary btn-sm" id="btnToggleDrawer" aria-expanded="true">
-          パネル開閉
+        <button type="button" class="btn btn-secondary btn-sm hidden" id="btnOpenDrawer" aria-expanded="true">
+          プレイ補助
+        </button>
+
+        <button type="button" class="btn btn-secondary btn-sm" id="btnOpenMenuModal">
+          メニュー
         </button>
       </div>
     </header>
@@ -189,138 +187,75 @@
         <div id="toastContainer" class="toast-container" aria-live="polite"></div>
       </div>
 
-      <!-- Right Side Control Drawer (Host 3-Tab Controls vs Guest Simple Panel) -->
+      <!-- Right Side Play Assistance Drawer (Single Unified Layout, Host/Solo vs Guest) -->
       <aside class="side-drawer" id="sideDrawer">
-        <div class="drawer-tabs host-only" role="tablist">
-          <button type="button" class="drawer-tab active" data-tab="play" role="tab" aria-selected="true">プレイ補助</button>
-          <button type="button" class="drawer-tab" data-tab="ojama" role="tab" aria-selected="false">配信・お邪魔</button>
-          <button type="button" class="drawer-tab" data-tab="menu" role="tab" aria-selected="false">メニュー</button>
+        <div class="drawer-header">
+          <h2>プレイ補助</h2>
+          <button type="button" class="btn btn-xs btn-ghost" id="btnCloseDrawer">閉じる</button>
         </div>
 
         <div class="drawer-body">
-          <!-- Guest Simple UI Panel -->
-          <section class="guest-only" id="guestHelpPanel">
-            <div class="drawer-section">
-              <h3>プレイ補助（ゲスト）</h3>
-              <p class="hint-text">ハイライトとお手本の表示方式を自分の画面だけで切り替えられます。</p>
-              <div class="sub-label">ハイライト表示フィルター</div>
-              <div class="filter-pills" id="guestHighlightModeGroup">
-                <button type="button" class="btn btn-xs btn-seg active" data-filter="all">すべて表示</button>
-                <button type="button" class="btn btn-xs btn-seg" data-filter="edges">外枠のみ強調</button>
-              </div>
-              <div class="sub-label">色系統で強調:</div>
-              <div class="color-filter-grid" id="guestColorFilterChips"></div>
+          <div class="drawer-section">
+            <h3>お手本</h3>
+            <div class="ref-mode-grid" id="referenceModeGroup">
+              <button type="button" class="btn btn-xs btn-seg active" data-ref-mode="underlay">下絵</button>
+              <button type="button" class="btn btn-xs btn-seg" data-ref-mode="sheet">シート</button>
+              <button type="button" class="btn btn-xs btn-seg" data-ref-mode="floating">小窓</button>
+              <button type="button" class="btn btn-xs btn-seg" data-ref-mode="none">なし</button>
             </div>
+            <label class="range-row mt-2" id="underlayOpacityRow">
+              <span>下絵の濃さ</span>
+              <input type="range" id="guideOpacityRange" min="0" max="40" value="14" />
+            </label>
+          </div>
 
-            <div class="drawer-section">
-              <h3>お手本画像の表示方式</h3>
-              <label class="field">
-                <span>表示スタイル</span>
-                <select id="guestReferenceMode">
-                  <option value="underlay">台紙に透過表示（下絵）</option>
-                  <option value="sheet">机上にお手本シートを置く（移動可）</option>
-                  <option value="floating">画面隅の収納可能小窓</option>
-                  <option value="none">お手本なし（ハードコア）</option>
-                </select>
-              </label>
-              <label class="range-row mt-2" id="guestUnderlayOpacityRow">
-                <span>台紙下絵の濃さ</span>
-                <input type="range" id="guestGuideOpacityRange" min="0" max="40" value="14" />
-              </label>
+          <div class="drawer-section">
+            <h3>ハイライト</h3>
+            <div class="filter-pills" id="highlightModeGroup">
+              <button type="button" class="btn btn-xs btn-seg active" data-filter="all">すべて</button>
+              <button type="button" class="btn btn-xs btn-seg" data-filter="edges">外枠のみ</button>
             </div>
+            <div class="color-filter-grid mt-2" id="colorFilterChips"></div>
+          </div>
 
-            <div class="drawer-section">
-              <h3>現在の部屋ルール</h3>
-              <div class="room-rules-summary" id="guestRoomRulesSummary">
-                6×4 (24ピース)
-              </div>
+          <div class="drawer-section host-only">
+            <h3>机上の整列</h3>
+            <div class="sort-btn-grid">
+              <button type="button" class="btn btn-xs btn-secondary" id="btnSortEdges">外枠集め</button>
+              <button type="button" class="btn btn-xs btn-secondary" id="btnSortColors">色別に分ける</button>
+              <button type="button" class="btn btn-xs btn-secondary" id="btnSortQuadrants">4エリア配置</button>
+              <button type="button" class="btn btn-xs btn-secondary" id="btnAlignAllUpright">向き・表揃え</button>
             </div>
+          </div>
 
-            <div class="drawer-section">
-              <h3>表示設定</h3>
-              <div class="switch-list">
-                <label class="md-switch md-switch-row">
-                  <span class="md-switch-label">効果音</span>
-                  <input type="checkbox" class="md-switch-input" id="guestToggleSound" checked />
-                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
-                </label>
-              </div>
-              <div class="action-stack mt-2">
-                <button type="button" class="btn btn-secondary btn-block" id="btnGuestToggleTheme">
-                  テーマ: ライト
-                </button>
-                <button type="button" class="btn btn-secondary btn-block" id="btnGuestOpenLobby">
-                  ロビーを開く
-                </button>
-              </div>
-              <details class="drawer-details mt-2" id="guestDiagnosticsDetails">
-                <summary class="drawer-details-summary">診断ログ（テスト用）</summary>
-                <div class="drawer-details-body">
-                  <div class="diag-summary-text" id="guestDiagSummaryText">エラー 0件 / 記録 0件</div>
-                  <p class="hint-text">外部送信は行いません。不具合時はコピーまたはJSON保存して共有してください（秘密情報は自動マスクされます）。</p>
-                  <div class="btn-row">
-                    <button type="button" class="btn btn-outline-accent btn-xs" id="btnGuestCopyDiagLog">診断ログをコピー</button>
-                    <button type="button" class="btn btn-secondary btn-xs" id="btnGuestDownloadDiagJson">JSONで保存</button>
-                  </div>
-                  <button type="button" class="btn btn-xs btn-ghost" id="btnGuestClearDiagLog">ログをクリア</button>
-                </div>
-              </details>
+          <div class="drawer-section guest-only">
+            <h3>部屋ルール</h3>
+            <div class="room-rules-summary" id="guestRoomRulesSummary">
+              6×4 (24ピース)
             </div>
-          </section>
+          </div>
+        </div>
+      </aside>
+    </main>
 
-          <!-- TAB 1: In-Game Play Assistance (Default Active) -->
-          <section class="tab-panel active host-only" id="tab-play">
-            <div class="drawer-section">
-              <h3>お手本画像の表示方式</h3>
-              <label class="field">
-                <span>表示スタイル</span>
-                <select id="optReferenceMode">
-                  <option value="underlay">台紙に透過表示（下絵）</option>
-                  <option value="sheet">机上にお手本シートを置く（移動可）</option>
-                  <option value="floating">画面隅の収納可能小窓</option>
-                  <option value="none">お手本なし（ハードコア）</option>
-                </select>
-              </label>
-              <label class="range-row mt-2" id="underlayOpacityRow">
-                <span>台紙下絵の濃さ</span>
-                <input type="range" id="guideOpacityRange" min="0" max="40" value="14" />
-              </label>
-            </div>
+    <!-- Stream & Ojama Modal (Host / Solo) -->
+    <div id="streamOjamaModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="streamModalTitle">
+      <div class="app-modal-card">
+        <div class="terms-header">
+          <h2 id="streamModalTitle">配信・お邪魔設定</h2>
+          <button type="button" class="btn btn-xs btn-ghost" id="btnCloseStreamModal">閉じる</button>
+        </div>
 
-            <div class="drawer-section">
-              <h3>ハイライト表示フィルター</h3>
-              <p class="hint-text">対象外の未配置ピースを半透明にして探しやすくします。</p>
-              <div class="filter-pills" id="highlightModeGroup">
-                <button type="button" class="btn btn-xs btn-seg active" data-filter="all">すべて表示</button>
-                <button type="button" class="btn btn-xs btn-seg" data-filter="edges">外枠のみ強調</button>
-              </div>
-              <div class="sub-label">色系統で強調:</div>
-              <div class="color-filter-grid" id="colorFilterChips"></div>
-            </div>
+        <div class="modal-tabs" role="tablist">
+          <button type="button" class="modal-tab active" data-stream-tab="yt" role="tab" aria-selected="true">YouTube 連動</button>
+          <button type="button" class="modal-tab" data-stream-tab="rules" role="tab" aria-selected="false">お邪魔ルール</button>
+          <button type="button" class="modal-tab" data-stream-tab="debug" role="tab" aria-selected="false">テスト・デバッグ</button>
+        </div>
 
-            <div class="drawer-section">
-              <h3>机上の整列・向きリセット</h3>
-              <div class="action-stack">
-                <button type="button" class="btn btn-secondary btn-block" id="btnSortEdges">
-                  外枠ピースだけ集めて整列
-                </button>
-                <button type="button" class="btn btn-secondary btn-block" id="btnSortColors">
-                  色グループ（色相）ごとに山分け整列
-                </button>
-                <button type="button" class="btn btn-secondary btn-block" id="btnSortQuadrants">
-                  4分割エリア（左上・右上・左下・右下）へ整列
-                </button>
-                <button type="button" class="btn btn-secondary btn-block" id="btnAlignAllUpright">
-                  すべての未配置ピースを表・0度向きに戻す
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <!-- TAB 2: Stream & Ojama -->
-          <section class="tab-panel host-only" id="tab-ojama">
+        <div class="modal-body">
+          <!-- Sub-tab 1: YouTube Connect -->
+          <div class="modal-tab-panel active" id="stream-tab-yt">
             <div class="drawer-section" id="youtubeConnectSection">
-              <h3>YouTube Live コメント連動</h3>
               <button type="button" class="btn btn-secondary btn-sm btn-block" id="btnOpenYtGuide">
                 API キーの取得・設定ガイド
               </button>
@@ -371,189 +306,197 @@
               <div class="guest-status-box hidden mt-2" id="ytStatusText"></div>
               <div class="yt-quota-readout" id="ytQuotaReadout">セッション消費: 0 ユニット（無料枠 10,000/日）</div>
             </div>
+          </div>
 
+          <!-- Sub-tab 2: Ojama Rules -->
+          <div class="modal-tab-panel" id="stream-tab-rules">
             <div class="drawer-section">
-              <details class="drawer-details" id="ojamaConfigDetails">
-                <summary class="drawer-details-summary">妨害トリガー・効果設定</summary>
-                <div class="drawer-details-body">
-                  <div class="form-row-2">
-                    <label class="field">
-                      <span>コメント数閾値</span>
-                      <input type="number" id="ojamaCommentThreshold" min="1" max="100" value="5" />
-                    </label>
-                    <label class="field">
-                      <span>クールタイム(秒)</span>
-                      <input type="number" id="ojamaCooldownSec" min="0" max="120" value="3" />
-                    </label>
-                  </div>
-                  <div class="form-row-2">
-                    <label class="field">
-                      <span>落下ピース数</span>
-                      <input type="number" id="ojamaDropCount" min="1" max="20" value="2" />
-                    </label>
-                    <label class="field">
-                      <span>視覚妨害時間(秒)</span>
-                      <input type="number" id="ojamaVisualDuration" min="2" max="30" value="8" />
-                    </label>
-                  </div>
-                  <div class="form-row-2">
-                    <label class="field">
-                      <span>偽ピース持続(秒/0で永続)</span>
-                      <input type="number" id="ojamaFakeDuration" min="0" max="600" value="60" />
-                    </label>
-                    <label class="field">
-                      <span>偽ピース上限個数</span>
-                      <input type="number" id="ojamaFakeMaxCount" min="1" max="16" value="12" />
-                    </label>
-                  </div>
-                  <label class="field">
-                    <span>視覚妨害の種類</span>
-                    <select id="ojamaVisualType">
-                      <option value="random">ランダム（毎回どれか）</option>
-                      <option value="grayscale">モノクロ（白黒）</option>
-                      <option value="sepia">セピア色</option>
-                      <option value="hue">色相シャッフル</option>
-                      <option value="spotlight">暗闇スポットライト</option>
-                      <option value="ghost">ピース透明化（90%透過）</option>
-                    </select>
-                  </label>
-                  <label class="field mt-2">
-                    <span>特定トリガーワード（カンマ区切り）</span>
-                    <input type="text" id="ojamaTriggerWords" value="!drop, !color, !spin, !ghost, !fake, お邪魔" />
-                  </label>
-                </div>
-              </details>
-            </div>
-
-            <div class="drawer-section">
-              <details class="drawer-details" id="ojamaDebugDetails">
-                <summary class="drawer-details-summary">テスト・デバッグ（お邪魔発動・ダミーコメント）</summary>
-                <div class="drawer-details-body">
-                  <div class="ojama-btn-grid">
-                    <button type="button" class="btn btn-ojama" id="btnTestDrop">
-                      <span>ピース落下</span>
-                      <small>台紙から外れて落ちる</small>
-                    </button>
-                    <button type="button" class="btn btn-ojama" id="btnTestVisual">
-                      <span>視覚妨害</span>
-                      <small>色変更・暗闇スポット</small>
-                    </button>
-                    <button type="button" class="btn btn-ojama" id="btnTestSuperchat">
-                      <span>巨大スパチャ</span>
-                      <small>画面中央を隠す</small>
-                    </button>
-                    <button type="button" class="btn btn-ojama" id="btnTestPrank">
-                      <span>いたずら回転/裏</span>
-                      <small>未配置ピースを攪乱</small>
-                    </button>
-                    <button type="button" class="btn btn-ojama" id="btnTestFake">
-                      <span>偽ピース追加</span>
-                      <small>ダミーを混ぜて攪乱</small>
-                    </button>
-                  </div>
-                  <div class="input-with-btn mt-2">
-                    <input type="text" id="dummyCommentInput" placeholder="例: !drop 落ちろ / 応援してるよ" />
-                    <button type="button" class="btn btn-outline-accent" id="btnSendDummyComment">送信</button>
-                  </div>
-                  <div class="btn-row mt-2">
-                    <button type="button" class="btn btn-secondary" id="btnToggleAutoComments">
-                      自動コメント開始
-                    </button>
-                    <span class="comment-counter-badge">進捗: <b id="commentTriggerCounter">0 / 5</b></span>
-                  </div>
-                  <div class="mini-chat-log" id="miniChatLog">
-                    <div class="chat-empty">コメントを送信するとここで判定されます</div>
-                  </div>
-                </div>
-              </details>
-            </div>
-          </section>
-
-          <!-- TAB 3: Menu, Display Settings & Save/Load -->
-          <section class="tab-panel host-only" id="tab-menu">
-            <div class="drawer-section">
-              <h3>ゲーム操作</h3>
-              <div class="action-stack">
-                <button type="button" class="btn btn-primary btn-block" id="btnOpenSetupFromMenu">
-                  新しいパズルを作成
-                </button>
-                <button type="button" class="btn btn-secondary btn-block" id="btnOpenLobby">
-                  ロビー・マルチプレイを開く
-                </button>
-              </div>
-            </div>
-
-            <div class="drawer-section">
-              <h3>表示・サウンド設定</h3>
-              <div class="switch-list">
-                <label class="md-switch md-switch-row" title="貢献度・お邪魔カウントの表示を切り替え">
-                  <span class="md-switch-label">カウント表示</span>
-                  <input type="checkbox" class="md-switch-input" id="toggleShowStats" checked />
-                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+              <div class="form-row-2">
+                <label class="field">
+                  <span>コメント数閾値</span>
+                  <input type="number" id="ojamaCommentThreshold" min="1" max="100" value="5" />
                 </label>
-                <label class="md-switch md-switch-row" title="吸着・操作時の効果音">
-                  <span class="md-switch-label">効果音</span>
-                  <input type="checkbox" class="md-switch-input" id="toggleSound" checked />
-                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+                <label class="field">
+                  <span>クールタイム(秒)</span>
+                  <input type="number" id="ojamaCooldownSec" min="0" max="120" value="3" />
                 </label>
               </div>
-              <button type="button" class="btn btn-secondary btn-block mt-2" id="btnToggleTheme">
-                テーマ: ライト
-              </button>
+              <div class="form-row-2">
+                <label class="field">
+                  <span>落下ピース数</span>
+                  <input type="number" id="ojamaDropCount" min="1" max="20" value="2" />
+                </label>
+                <label class="field">
+                  <span>視覚妨害時間(秒)</span>
+                  <input type="number" id="ojamaVisualDuration" min="2" max="30" value="8" />
+                </label>
+              </div>
+              <div class="form-row-2">
+                <label class="field">
+                  <span>偽ピース持続(秒/0で永続)</span>
+                  <input type="number" id="ojamaFakeDuration" min="0" max="600" value="60" />
+                </label>
+                <label class="field">
+                  <span>偽ピース上限個数</span>
+                  <input type="number" id="ojamaFakeMaxCount" min="1" max="16" value="12" />
+                </label>
+              </div>
+              <label class="field">
+                <span>視覚妨害の種類</span>
+                <select id="ojamaVisualType">
+                  <option value="random">ランダム（毎回どれか）</option>
+                  <option value="grayscale">モノクロ（白黒）</option>
+                  <option value="sepia">セピア色</option>
+                  <option value="hue">色相シャッフル</option>
+                  <option value="spotlight">暗闇スポットライト</option>
+                  <option value="ghost">ピース透明化（90%透過）</option>
+                </select>
+              </label>
+              <label class="field mt-2">
+                <span>特定トリガーワード（カンマ区切り）</span>
+                <input type="text" id="ojamaTriggerWords" value="!drop, !color, !spin, !ghost, !fake, お邪魔" />
+              </label>
             </div>
+          </div>
 
+          <!-- Sub-tab 3: Test & Debug -->
+          <div class="modal-tab-panel" id="stream-tab-debug">
             <div class="drawer-section">
-              <h3>セーブ / ロード</h3>
-              <button type="button" class="btn btn-outline-accent btn-block" id="btnDownloadSave">
-                現在の状態をJSON保存
-              </button>
-
-              <details class="drawer-details mt-2" id="saveRestoreDetails">
-                <summary class="drawer-details-summary">JSON＋画像から復元ロード</summary>
-                <div class="drawer-details-body">
-                  <p class="hint-text">保存したJSONファイルと元画像（サンプル画像も可）を指定して途中から再開します。</p>
-                  <label class="field">
-                    <span>1. セーブJSONファイルを選択</span>
-                    <input type="file" id="loadJsonInput" accept=".json,application/json" />
-                  </label>
-                  <div id="loadedJsonSummary" class="save-summary hidden"></div>
-
-                  <label class="field mt-2">
-                    <span>2. 元画像を選択（サンプルの場合は省略可）</span>
-                    <input type="file" id="loadImageInput" accept="image/*" />
-                  </label>
-                  <div class="btn-row mt-2">
-                    <button type="button" class="btn btn-outline-accent" id="btnApplyLoad" disabled>
-                      復元して再開
-                    </button>
-                    <button type="button" class="btn btn-secondary" id="btnApplyLoadSample" disabled>
-                      サンプル画像で復元
-                    </button>
-                  </div>
-                </div>
-              </details>
-
-              <button type="button" class="btn btn-secondary btn-block mt-2" id="btnResetSettings">
-                設定を初期値にリセット
-              </button>
-
-              <details class="drawer-details mt-2" id="diagnosticsDetails">
-                <summary class="drawer-details-summary">診断ログ（テスト用）</summary>
-                <div class="drawer-details-body">
-                  <div class="diag-summary-text" id="diagSummaryText">エラー 0件 / 記録 0件</div>
-                  <p class="hint-text">外部送信は行いません。不具合時はコピーまたはJSON保存して共有してください（秘密情報は自動マスクされます）。</p>
-                  <div class="btn-row">
-                    <button type="button" class="btn btn-outline-accent btn-xs" id="btnCopyDiagLog">診断ログをコピー</button>
-                    <button type="button" class="btn btn-secondary btn-xs" id="btnDownloadDiagJson">JSONで保存</button>
-                  </div>
-                  <button type="button" class="btn btn-xs btn-ghost" id="btnClearDiagLog">ログをクリア</button>
-                </div>
-              </details>
+              <div class="ojama-btn-grid">
+                <button type="button" class="btn btn-ojama" id="btnTestDrop">
+                  <span>ピース落下</span>
+                  <small>台紙から外れて落ちる</small>
+                </button>
+                <button type="button" class="btn btn-ojama" id="btnTestVisual">
+                  <span>視覚妨害</span>
+                  <small>色変更・暗闇スポット</small>
+                </button>
+                <button type="button" class="btn btn-ojama" id="btnTestSuperchat">
+                  <span>巨大スパチャ</span>
+                  <small>画面中央を隠す</small>
+                </button>
+                <button type="button" class="btn btn-ojama" id="btnTestPrank">
+                  <span>いたずら回転/裏</span>
+                  <small>未配置ピースを攪乱</small>
+                </button>
+                <button type="button" class="btn btn-ojama" id="btnTestFake">
+                  <span>偽ピース追加</span>
+                  <small>ダミーを混ぜて攪乱</small>
+                </button>
+              </div>
+              <div class="input-with-btn mt-2">
+                <input type="text" id="dummyCommentInput" placeholder="例: !drop 落ちろ / 応援してるよ" />
+                <button type="button" class="btn btn-outline-accent" id="btnSendDummyComment">送信</button>
+              </div>
+              <div class="btn-row mt-2">
+                <button type="button" class="btn btn-secondary" id="btnToggleAutoComments">
+                  自動コメント開始
+                </button>
+                <span class="comment-counter-badge">進捗: <b id="commentTriggerCounter">0 / 5</b></span>
+              </div>
+              <div class="mini-chat-log" id="miniChatLog">
+                <div class="chat-empty">コメントを送信するとここで判定されます</div>
+              </div>
             </div>
-          </section>
+          </div>
         </div>
-      </aside>
-    </main>
+      </div>
+    </div>
+
+    <!-- Menu & Settings Modal (Unified Single Structure with Role Degradation) -->
+    <div id="menuModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="menuModalTitle">
+      <div class="app-modal-card app-modal-card-sm">
+        <div class="terms-header">
+          <h2 id="menuModalTitle">メニュー・設定</h2>
+          <button type="button" class="btn btn-xs btn-ghost" id="btnCloseMenuModal">閉じる</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="drawer-section">
+            <h3>ゲーム操作</h3>
+            <div class="action-stack">
+              <button type="button" class="btn btn-primary btn-block host-only" id="btnOpenSetupFromMenu">
+                新しいパズルを作成
+              </button>
+              <button type="button" class="btn btn-secondary btn-block" id="btnOpenLobby">
+                ロビーを開く
+              </button>
+            </div>
+          </div>
+
+          <div class="drawer-section">
+            <h3>表示・サウンド</h3>
+            <div class="switch-list">
+              <label class="md-switch md-switch-row host-only" title="ハマったピース数・お邪魔カウントの表示を切り替え">
+                <span class="md-switch-label">カウント表示</span>
+                <input type="checkbox" class="md-switch-input" id="toggleShowStats" checked />
+                <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+              </label>
+              <label class="md-switch md-switch-row" title="吸着・操作時の効果音">
+                <span class="md-switch-label">効果音</span>
+                <input type="checkbox" class="md-switch-input" id="toggleSound" checked />
+                <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+              </label>
+            </div>
+            <button type="button" class="btn btn-secondary btn-block mt-2" id="btnToggleTheme">
+              テーマ: ライト
+            </button>
+          </div>
+
+          <div class="drawer-section host-only">
+            <h3>セーブ / ロード</h3>
+            <button type="button" class="btn btn-outline-accent btn-block" id="btnDownloadSave">
+              現在の状態をJSON保存
+            </button>
+
+            <details class="drawer-details mt-2" id="saveRestoreDetails">
+              <summary class="drawer-details-summary">JSON＋画像から復元ロード</summary>
+              <div class="drawer-details-body">
+                <p class="hint-text">保存したJSONファイルと元画像（サンプル画像も可）を指定して途中から再開します。</p>
+                <label class="field">
+                  <span>1. セーブJSONファイルを選択</span>
+                  <input type="file" id="loadJsonInput" accept=".json,application/json" />
+                </label>
+                <div id="loadedJsonSummary" class="save-summary hidden"></div>
+
+                <label class="field mt-2">
+                  <span>2. 元画像を選択（サンプルの場合は省略可）</span>
+                  <input type="file" id="loadImageInput" accept="image/*" />
+                </label>
+                <div class="btn-row mt-2">
+                  <button type="button" class="btn btn-outline-accent" id="btnApplyLoad" disabled>
+                    復元して再開
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="btnApplyLoadSample" disabled>
+                    サンプル画像で復元
+                  </button>
+                </div>
+              </div>
+            </details>
+
+            <button type="button" class="btn btn-secondary btn-block mt-2" id="btnResetSettings">
+              設定を初期値にリセット
+            </button>
+          </div>
+
+          <div class="drawer-section">
+            <h3>診断ログ（テスト用）</h3>
+            <details class="drawer-details" id="diagnosticsDetails">
+              <summary class="drawer-details-summary">診断ログを開く</summary>
+              <div class="drawer-details-body">
+                <div class="diag-summary-text" id="diagSummaryText">エラー 0件 / 記録 0件</div>
+                <p class="hint-text">外部送信は行いません。不具合時はコピーまたはJSON保存して共有してください（秘密情報は自動マスクされます）。</p>
+                <div class="btn-row">
+                  <button type="button" class="btn btn-outline-accent btn-xs" id="btnCopyDiagLog">診断ログをコピー</button>
+                  <button type="button" class="btn btn-secondary btn-xs" id="btnDownloadDiagJson">JSONで保存</button>
+                </div>
+                <button type="button" class="btn btn-xs btn-ghost" id="btnClearDiagLog">ログをクリア</button>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Title / Lobby Screen Overlay -->
     <div id="lobbyOverlay" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="lobbyTitle">

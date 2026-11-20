@@ -6,10 +6,6 @@ export class SortFilterUI {
     this.showToast = showToast;
 
     this.elColorChips = document.getElementById('colorFilterChips');
-    this.elGuestColorChips = document.getElementById('guestColorFilterChips');
-    this.elGuestReferenceMode = document.getElementById('guestReferenceMode');
-    this.elGuestUnderlayRow = document.getElementById('guestUnderlayOpacityRow');
-    this.elGuestGuideOpacityRange = document.getElementById('guestGuideOpacityRange');
     this.elGuestRoomRulesSummary = document.getElementById('guestRoomRulesSummary');
 
     this._bindEvents();
@@ -41,33 +37,21 @@ export class SortFilterUI {
   rebuildColorFilterChips() {
     const buckets = this.app.getPresentColorBuckets();
     this._populateColorChips(this.elColorChips, buckets);
-    this._populateColorChips(this.elGuestColorChips, buckets);
   }
 
   applyFilterMode(mode) {
     this.renderer.highlightFilter = mode;
-    document
-      .querySelectorAll('#highlightModeGroup .btn-seg, #guestHighlightModeGroup .btn-seg')
-      .forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.filter === mode);
-      });
-    document
-      .querySelectorAll('#colorFilterChips .color-chip-btn, #guestColorFilterChips .color-chip-btn')
-      .forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.filter === mode);
-      });
+    document.querySelectorAll('#highlightModeGroup .btn-seg').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.filter === mode);
+    });
+    document.querySelectorAll('#colorFilterChips .color-chip-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.filter === mode);
+    });
     this.renderer.requestRender();
   }
 
-  syncGuestSettings(settings) {
-    const mode = settings.referenceMode || 'underlay';
-    this.elGuestReferenceMode.value = mode;
-    this.elGuestGuideOpacityRange.value = String(settings.guideOpacity ?? 14);
-    this.elGuestUnderlayRow.classList.toggle('hidden', mode !== 'underlay');
-  }
-
   updateGuestRules({ isGuest, roomRules }) {
-    if (!isGuest || !roomRules) return;
+    if (!isGuest || !roomRules || !this.elGuestRoomRulesSummary) return;
     const total = roomRules.cols * roomRules.rows;
     this.elGuestRoomRulesSummary.textContent =
       `${roomRules.cols}×${roomRules.rows} (${total}ピース) / 回転: ${
@@ -96,18 +80,8 @@ export class SortFilterUI {
       this.renderer.afterNextRender(() => this.showToast(res.toastMessage));
     });
 
-    document
-      .querySelectorAll('#highlightModeGroup .btn-seg, #guestHighlightModeGroup .btn-seg')
-      .forEach((btn) => {
-        btn.addEventListener('click', () => this.app.setHighlightFilter(btn.dataset.filter));
-      });
-
-    this.elGuestReferenceMode.addEventListener('change', () => {
-      this.app.patchSettings({ referenceMode: this.elGuestReferenceMode.value || 'underlay' });
-    });
-
-    this.elGuestGuideOpacityRange.addEventListener('input', () => {
-      this.app.patchSettings({ guideOpacity: Number(this.elGuestGuideOpacityRange.value) || 0 });
+    document.querySelectorAll('#highlightModeGroup .btn-seg').forEach((btn) => {
+      btn.addEventListener('click', () => this.app.setHighlightFilter(btn.dataset.filter));
     });
   }
 
@@ -117,7 +91,6 @@ export class SortFilterUI {
       this.applyFilterMode(this.app.highlightFilter);
     });
     this.app.on('filterChange', (mode) => this.applyFilterMode(mode));
-    this.app.on('settingsChange', (s) => this.syncGuestSettings(s));
     this.app.on('roleChange', (info) => this.updateGuestRules(info));
   }
 }

@@ -21,7 +21,6 @@ export class SetupDrawerUI {
     this.elOptCutComplexity = document.getElementById('optCutComplexity');
     this.elOptAllowRotation = document.getElementById('optAllowRotation');
     this.elOptAllowFlip = document.getElementById('optAllowFlip');
-    this.elOptReferenceMode = document.getElementById('optReferenceMode');
     this.elUnderlayOpacityRow = document.getElementById('underlayOpacityRow');
     this.elGuideOpacityRange = document.getElementById('guideOpacityRange');
 
@@ -61,7 +60,9 @@ export class SetupDrawerUI {
     const settings = this.app.getSettings();
     const { canvas: srcCanvas } = this.app.getSourceImage();
     const mode = settings.referenceMode || 'underlay';
-    this.elOptReferenceMode.value = mode;
+    document.querySelectorAll('#referenceModeGroup .btn-seg').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.refMode === mode);
+    });
     this.elGuideOpacityRange.value = String(settings.guideOpacity ?? 14);
     this.elUnderlayOpacityRow.classList.toggle('hidden', mode !== 'underlay');
     this.elFloatingRefWindow.classList.toggle('hidden', mode !== 'floating');
@@ -120,7 +121,6 @@ export class SetupDrawerUI {
       cutComplexity: this.elOptCutComplexity.value,
       allowRotation: this.elOptAllowRotation.checked,
       allowFlip: this.elOptAllowFlip.checked,
-      referenceMode: this.elOptReferenceMode.value || 'underlay',
       guideOpacity: Number(this.elGuideOpacityRange.value) || 0,
     });
   }
@@ -141,16 +141,9 @@ export class SetupDrawerUI {
       }
     });
 
-    document.querySelectorAll('.drawer-tab').forEach((tab) => {
-      tab.addEventListener('click', () => {
-        const name = tab.dataset.tab;
-        document.querySelectorAll('.drawer-tab').forEach((t) => {
-          t.classList.toggle('active', t === tab);
-          t.setAttribute('aria-selected', String(t === tab));
-        });
-        document.querySelectorAll('.tab-panel').forEach((p) => {
-          p.classList.toggle('active', p.id === `tab-${name}`);
-        });
+    document.querySelectorAll('#referenceModeGroup .btn-seg').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.app.patchSettings({ referenceMode: btn.dataset.refMode || 'underlay' });
       });
     });
 
@@ -195,7 +188,6 @@ export class SetupDrawerUI {
       this.elOptCutComplexity,
       this.elOptAllowRotation,
       this.elOptAllowFlip,
-      this.elOptReferenceMode,
     ].forEach((el) => {
       el.addEventListener('change', () => this._readAndPatch());
     });

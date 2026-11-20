@@ -16,15 +16,12 @@ import { YouTubeUI } from './youtubeUI.js';
 function boot() {
   const app = new GameSession();
 
-  let participantsUI = null;
   let topbarUI = null;
 
   const renderer = new CanvasRenderer({
     engine: app.engine,
     room: app.room,
     getSettings: () => app.getSettings(),
-    getParticipantsState: () =>
-      participantsUI ? participantsUI.getState() : { dummyParticipants: [], showDummyCursors: true },
   });
 
   const showToast = (msg, kind) => topbarUI.showToast(msg, kind);
@@ -36,9 +33,8 @@ function boot() {
     onOpenLobby: () => lobbyUI.show(),
   });
 
-  participantsUI = new ParticipantsUI({
+  new ParticipantsUI({
     app,
-    requestRender: () => renderer.requestRender(),
     showToast,
   });
 
@@ -84,6 +80,7 @@ function boot() {
     renderer,
     room: app.room,
     lobbyUI,
+    topbarUI,
     youtubeUI,
     youtubeClient: youtubeUI.client,
     diagnostics: {

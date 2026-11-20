@@ -10,14 +10,13 @@ import {
 } from './canvasOverlayRenderer.js';
 
 export class CanvasRenderer {
-  constructor({ canvasStage = null, canvas = null, engine, room, getSettings, getParticipantsState }) {
+  constructor({ canvasStage = null, canvas = null, engine, room, getSettings }) {
     this.canvasStage = canvasStage || document.getElementById('canvasStage');
     this.canvas = canvas || document.getElementById('puzzleCanvas');
     this.ctx = this.canvas.getContext('2d');
     this.engine = engine;
     this.room = room;
     this.getSettings = getSettings;
-    this.getParticipantsState = getParticipantsState;
 
     this.view = {
       x: 0,
@@ -396,13 +395,10 @@ export class CanvasRenderer {
     });
   }
 
-  _drawAllCursors(now, pal) {
+  _drawAllCursors(pal) {
     drawAllCursors(this.ctx, {
-      now,
       room: this.room,
-      engine: this.engine,
       scale: this.view.scale,
-      getParticipantsState: this.getParticipantsState,
       pal,
     });
   }
@@ -423,16 +419,12 @@ export class CanvasRenderer {
     }
 
     const interpolated = this.room ? this.room.stepInterpolation() : false;
-    const { showDummyCursors, dummyParticipants } = this.getParticipantsState();
-    const hasAnimatedCursors =
-      !this.room?.isMultiplayer() && showDummyCursors && dummyParticipants.length > 0;
 
     if (
       this.needsRender ||
       interpolated ||
       this.snapFlashes.length > 0 ||
-      this.confetti.length > 0 ||
-      hasAnimatedCursors
+      this.confetti.length > 0
     ) {
       const settings = this.getSettings();
       const isDark = settings.theme === 'dark';
@@ -522,7 +514,7 @@ export class CanvasRenderer {
         if (fl.alpha <= 0) this.snapFlashes.splice(i, 1);
       }
 
-      this._drawAllCursors(now, pal);
+      this._drawAllCursors(pal);
       ctx.restore();
 
       if (this.confetti.length > 0) {

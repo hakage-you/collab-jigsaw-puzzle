@@ -20,6 +20,7 @@ export class YouTubeUI {
     this.elPreviewMeta = document.getElementById('ytPreviewMeta');
     this.elStatusText = document.getElementById('ytStatusText');
     this.elQuotaReadout = document.getElementById('ytQuotaReadout');
+    this.elLiveIndicator = document.getElementById('ytLiveIndicator');
 
     this.elGuideModal = document.getElementById('ytGuideModal');
     this.elBtnOpenGuide = document.getElementById('btnOpenYtGuide');
@@ -97,6 +98,7 @@ export class YouTubeUI {
     this.elBtnTogglePoll.textContent = isPolling ? '連動を停止' : 'コメント連動を開始';
     this.elBtnTogglePoll.classList.toggle('btn-danger', isPolling);
     this.elBtnTogglePoll.classList.toggle('btn-primary', !isPolling);
+    this.elLiveIndicator?.classList.toggle('hidden', !isPolling);
   }
 
   _updateQuotaUI(units) {

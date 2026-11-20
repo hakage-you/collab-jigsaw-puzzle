@@ -21,13 +21,23 @@ export class TopbarUI {
 
     this.elToggleShowStats = document.getElementById('toggleShowStats');
     this.elToggleSound = document.getElementById('toggleSound');
-    this.elGuestToggleSound = document.getElementById('guestToggleSound');
     this.elBtnToggleTheme = document.getElementById('btnToggleTheme');
-    this.elBtnGuestToggleTheme = document.getElementById('btnGuestToggleTheme');
     this.elBtnOpenLobby = document.getElementById('btnOpenLobby');
-    this.elBtnGuestOpenLobby = document.getElementById('btnGuestOpenLobby');
+    this.elBtnOpenSetupFromMenu = document.getElementById('btnOpenSetupFromMenu');
+
     this.elSideDrawer = document.getElementById('sideDrawer');
-    this.elBtnToggleDrawer = document.getElementById('btnToggleDrawer');
+    this.elBtnOpenDrawer = document.getElementById('btnOpenDrawer');
+    this.elBtnCloseDrawer = document.getElementById('btnCloseDrawer');
+
+    this.elBtnOpenStreamModal = document.getElementById('btnOpenStreamModal');
+    this.elBtnCloseStreamModal = document.getElementById('btnCloseStreamModal');
+    this.elStreamModal = document.getElementById('streamOjamaModal');
+
+    this.elBtnOpenMenuModal = document.getElementById('btnOpenMenuModal');
+    this.elBtnCloseMenuModal = document.getElementById('btnCloseMenuModal');
+    this.elMenuModal = document.getElementById('menuModal');
+
+    this._lastRole = null;
 
     this.elKnockBanner = document.getElementById('knockBanner');
     this.elKnockBannerText = document.getElementById('knockBannerText');
@@ -39,6 +49,47 @@ export class TopbarUI {
     this._subscribeApp();
     this.syncSettings(this.app.getSettings());
     this.updateHUD();
+  }
+
+  setDrawerOpen(open, { immediate = false } = {}) {
+    if (!this.elSideDrawer) return;
+    this.elSideDrawer.classList.toggle('collapsed', !open);
+    this.elBtnOpenDrawer?.classList.toggle('hidden', open);
+    this.elBtnOpenDrawer?.setAttribute('aria-expanded', String(open));
+    const syncCanvas = () => {
+      this.renderer.resizeCanvas();
+      this.renderer.requestRender();
+    };
+    if (immediate) syncCanvas();
+    else setTimeout(syncCanvas, 220);
+  }
+
+  openStreamModal(tabName = null) {
+    if (tabName) this.selectStreamTab(tabName);
+    this.elStreamModal?.classList.remove('hidden');
+  }
+
+  closeStreamModal() {
+    this.elStreamModal?.classList.add('hidden');
+  }
+
+  selectStreamTab(tabName) {
+    document.querySelectorAll('#streamOjamaModal .modal-tab').forEach((tab) => {
+      const active = tab.dataset.streamTab === tabName;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+    document.querySelectorAll('#streamOjamaModal .modal-tab-panel').forEach((panel) => {
+      panel.classList.toggle('active', panel.id === `stream-tab-${tabName}`);
+    });
+  }
+
+  openMenuModal() {
+    this.elMenuModal?.classList.remove('hidden');
+  }
+
+  closeMenuModal() {
+    this.elMenuModal?.classList.add('hidden');
   }
 
   showToast(message, kind = 'info') {
@@ -58,7 +109,6 @@ export class TopbarUI {
     document.documentElement.setAttribute('data-theme', mode);
     const label = mode === 'dark' ? 'テーマ: ダーク' : 'テーマ: ライト';
     if (this.elBtnToggleTheme) this.elBtnToggleTheme.textContent = label;
-    if (this.elBtnGuestToggleTheme) this.elBtnGuestToggleTheme.textContent = label;
     this.renderer.requestRender();
   }
 
@@ -66,7 +116,6 @@ export class TopbarUI {
     this.applyTheme(settings.theme);
     if (this.elToggleShowStats) this.elToggleShowStats.checked = settings.showStats;
     if (this.elToggleSound) this.elToggleSound.checked = settings.soundEnabled;
-    if (this.elGuestToggleSound) this.elGuestToggleSound.checked = settings.soundEnabled;
     if (!this.app.room.isGuest()) {
       document.body.classList.toggle('stats-hidden', !settings.showStats);
     }
@@ -79,6 +128,10 @@ export class TopbarUI {
       document.body.classList.toggle('stats-hidden', !roomRules.showStats);
     } else {
       document.body.classList.toggle('stats-hidden', !this.app.getSettings().showStats);
+    }
+    if (this._lastRole !== role) {
+      this._lastRole = role;
+      this.setDrawerOpen(!isGuest, { immediate: true });
     }
   }
 
@@ -111,25 +164,51 @@ export class TopbarUI {
 
   _bindEvents() {
     this.elBtnToggleTheme?.addEventListener('click', () => this.app.toggleTheme());
-    this.elBtnGuestToggleTheme?.addEventListener('click', () => this.app.toggleTheme());
     this.elToggleShowStats?.addEventListener('change', () => {
       this.app.patchSettings({ showStats: this.elToggleShowStats.checked });
     });
     this.elToggleSound?.addEventListener('change', () => {
       this.app.patchSettings({ soundEnabled: this.elToggleSound.checked });
     });
-    this.elGuestToggleSound?.addEventListener('change', () => {
-      this.app.patchSettings({ soundEnabled: this.elGuestToggleSound.checked });
+
+    this.elBtnOpenLobby?.addEventListener('click', () => {
+      this.closeMenuModal();
+      this.onOpenLobby();
     });
-    this.elBtnOpenLobby?.addEventListener('click', () => this.onOpenLobby());
-    this.elBtnGuestOpenLobby?.addEventListener('click', () => this.onOpenLobby());
-    this.elBtnToggleDrawer.addEventListener('click', () => {
-      const collapsed = this.elSideDrawer.classList.toggle('collapsed');
-      this.elBtnToggleDrawer.setAttribute('aria-expanded', String(!collapsed));
-      setTimeout(() => {
-        this.renderer.resizeCanvas();
-        this.renderer.requestRender();
-      }, 220);
+    this.elBtnOpenSetupFromMenu?.addEventListener('click', () => this.closeMenuModal());
+
+    this.elBtnOpenDrawer?.addEventListener('click', () => this.setDrawerOpen(true));
+    this.elBtnCloseDrawer?.addEventListener('click', () => this.setDrawerOpen(false));
+
+    this.elBtnOpenStreamModal?.addEventListener('click', () => this.openStreamModal());
+    this.elBtnCloseStreamModal?.addEventListener('click', () => this.closeStreamModal());
+    this.elStreamModal?.addEventListener('click', (e) => {
+      if (e.target === this.elStreamModal) this.closeStreamModal();
+    });
+    document.querySelectorAll('#streamOjamaModal .modal-tab').forEach((tab) => {
+      tab.addEventListener('click', () => this.selectStreamTab(tab.dataset.streamTab));
+    });
+
+    this.elBtnOpenMenuModal?.addEventListener('click', () => this.openMenuModal());
+    this.elBtnCloseMenuModal?.addEventListener('click', () => this.closeMenuModal());
+    this.elMenuModal?.addEventListener('click', (e) => {
+      if (e.target === this.elMenuModal) this.closeMenuModal();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (
+        document.querySelector(
+          '#ytGuideModal:not(.hidden), #puzzleSetupModal:not(.hidden), #termsModal:not(.hidden), #lobbyOverlay:not(.hidden)'
+        )
+      ) {
+        return;
+      }
+      if (this.elMenuModal && !this.elMenuModal.classList.contains('hidden')) {
+        this.closeMenuModal();
+      } else if (this.elStreamModal && !this.elStreamModal.classList.contains('hidden')) {
+        this.closeStreamModal();
+      }
     });
 
     this.elBtnApproveKnock.addEventListener('click', () => this.app.approveNextKnock());

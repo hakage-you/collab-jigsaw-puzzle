@@ -216,22 +216,9 @@ function drawCursor(ctx, cx, cy, name, color, scale) {
   ctx.restore();
 }
 
-export function drawAllCursors(ctx, { now, room, engine, scale, getParticipantsState, pal }) {
-  if (room?.isMultiplayer()) {
-    for (const cur of room.remoteCursors.values()) {
-      drawCursor(ctx, cur.x, cur.y, cur.name, resolvePlayerColor(cur.color, pal), scale);
-    }
-    return;
+export function drawAllCursors(ctx, { room, scale, pal }) {
+  if (!room?.isMultiplayer()) return;
+  for (const cur of room.remoteCursors.values()) {
+    drawCursor(ctx, cur.x, cur.y, cur.name, resolvePlayerColor(cur.color, pal), scale);
   }
-
-  const { showDummyCursors, dummyParticipants } = getParticipantsState();
-  if (!showDummyCursors || dummyParticipants.length === 0) return;
-
-  const t = now * 0.0012;
-  dummyParticipants.forEach((m, idx) => {
-    const phase = t + idx * 1.9;
-    const cx = Math.cos(phase * 0.8) * (engine.boardW * 0.42);
-    const cy = Math.sin(phase * 1.1) * (engine.boardH * 0.42);
-    drawCursor(ctx, cx, cy, m.name, m.color, scale);
-  });
 }

@@ -22,10 +22,7 @@ export class DiagnosticsUI {
     this.elBtnCopyBanner = document.getElementById('btnCopyErrorLog');
     this.elBtnDismissBanner = document.getElementById('btnDismissErrorBanner');
 
-    this.summaryEls = [
-      document.getElementById('diagSummaryText'),
-      document.getElementById('guestDiagSummaryText'),
-    ].filter(Boolean);
+    this.summaryEls = [document.getElementById('diagSummaryText')].filter(Boolean);
 
     this._bindEvents();
     this._subscribe();
@@ -91,15 +88,9 @@ export class DiagnosticsUI {
       this.elBanner?.classList.add('hidden');
     });
 
-    ['btnCopyDiagLog', 'btnGuestCopyDiagLog'].forEach((id) => {
-      document.getElementById(id)?.addEventListener('click', () => this.copyReport());
-    });
-    ['btnDownloadDiagJson', 'btnGuestDownloadDiagJson'].forEach((id) => {
-      document.getElementById(id)?.addEventListener('click', () => this.downloadJson());
-    });
-    ['btnClearDiagLog', 'btnGuestClearDiagLog'].forEach((id) => {
-      document.getElementById(id)?.addEventListener('click', () => this.clearLogs());
-    });
+    document.getElementById('btnCopyDiagLog')?.addEventListener('click', () => this.copyReport());
+    document.getElementById('btnDownloadDiagJson')?.addEventListener('click', () => this.downloadJson());
+    document.getElementById('btnClearDiagLog')?.addEventListener('click', () => this.clearLogs());
   }
 
   _subscribe() {

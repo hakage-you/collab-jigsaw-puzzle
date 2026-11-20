@@ -90,27 +90,19 @@ export const OJAMA_CONFIG = {
   DEFAULT_VISUAL_DURATION_SEC: 8,
 };
 
-export const PARTICIPANTS_CONFIG = {
-  MAX_DUMMY_PARTICIPANTS: 7,
-  DUMMY_COLORS: ['#e11d48', '#16a34a', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d'],
-  DUMMY_NAMES: [
-    'コラボ相手A',
-    'コラボ相手B',
-    'ゲストC',
-    '助っ人D',
-    'フレンドE',
-    '配信仲間F',
-    '視聴者枠G',
-  ],
-};
-
 export const MULTIPLAYER_CONFIG = {
   MIN_CAPACITY: 2,
   MAX_CAPACITY: 8,
   DEFAULT_CAPACITY: 8,
   PLAYER_COLORS: [
     '#1d4ed8',
-    ...PARTICIPANTS_CONFIG.DUMMY_COLORS,
+    '#e11d48',
+    '#16a34a',
+    '#d97706',
+    '#7c3aed',
+    '#0891b2',
+    '#db2777',
+    '#65a30d',
   ],
   CURSOR_THROTTLE_MS: 50, // 20Hz
   CURSOR_MIN_MOVE_PX: 2,
