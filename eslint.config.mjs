@@ -85,6 +85,23 @@ export default [
     },
   },
   {
+    // Vitest tests run in headless Chromium (vitest.config.mjs).
+    files: ['tests/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: { ...globals.browser },
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      ...QUALITY_RULES,
+      ...SIZE_RULES,
+      // describe/it callbacks are long and nested by nature.
+      'max-lines-per-function': 'off',
+      'max-nested-callbacks': ['error', 5],
+    },
+  },
+  {
     files: ['.dependency-cruiser.cjs'],
     languageOptions: { sourceType: 'commonjs' },
   },
@@ -124,9 +141,6 @@ export default [
       'src/net/guestSession.js',
       'src/net/hostSession.js',
       'src/app/gameSession.js',
-      'src/ui/ojamaController.js',
-      'src/services/youtubeLiveClient.js',
-      'src/ui/canvasRenderer.js',
     ],
     rules: {
       'max-lines': 'off',
