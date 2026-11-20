@@ -1,7 +1,13 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
-  "entry": ["tests/**/*.mjs", "tests/**/*.test.js", "scripts/**/*.mjs"],
-  "project": ["src/**/*.js", "tests/**/*.{js,mjs}", "scripts/**/*.mjs"],
+  "entry": [
+    "tests/**/*.mjs",
+    "tests/**/*.test.js",
+    "scripts/**/*.mjs",
+    "measure/**/*.mjs",
+    "measure/**/*.measure.js",
+  ],
+  "project": ["src/**/*.js", "tests/**/*.{js,mjs}", "measure/**/*.{js,mjs}", "scripts/**/*.mjs"],
   // peerjs is the upstream source of vendor/peerjs.min.js (used to update the vendored copy).
   "ignoreDependencies": ["peerjs"],
 }

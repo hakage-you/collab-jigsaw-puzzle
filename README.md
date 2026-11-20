@@ -29,6 +29,10 @@ python -m http.server 8080
 ```bash
 npm run lint
 npm run format   # Prettier で自動整形
+npm test         # Vitest（ヘッドレス Chromium）でテスト
+npm run measure  # 通信量・API 消費・配信サイズ・端末負荷を計測して measure/history.jsonl に記録
 ```
 
-`npm install` 時にコミット前フック（`simple-git-hooks`）が有効になり、コミットのたびに `npm run lint` が実行されます。規約の詳細は [docs/architecture-guidelines.md](docs/architecture-guidelines.md) を参照してください。
+初回のみ `npx playwright install chromium` でテスト用ブラウザを取得してください。
+
+`npm install` 時にコミット前フック（`simple-git-hooks`）が有効になり、コミットのたびに `npm run lint` と `npm test` が実行されます。規約の詳細は [docs/architecture-guidelines.md](docs/architecture-guidelines.md) を参照してください。
