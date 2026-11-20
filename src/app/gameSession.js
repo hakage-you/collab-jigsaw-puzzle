@@ -24,6 +24,7 @@ import {
 } from '../services/storage.js';
 import { sound } from '../services/sound.js';
 import { RoomController } from '../net/roomController.js';
+import { createRoomCallbacks } from './roomCallbacks.js';
 
 export class GameSession {
   constructor() {
@@ -48,7 +49,7 @@ export class GameSession {
         sourceCanvas: this.sourceImage.canvas,
         isSampleImage: this.sourceImage.isSample,
       }),
-      callbacks: this._createRoomCallbacks(),
+      callbacks: createRoomCallbacks(this),
     });
   }
 
@@ -473,96 +474,6 @@ export class GameSession {
     const req = this.knockQueue.shift();
     this.emit('knockChange', [...this.knockQueue]);
     if (req) this.room.rejectKnock(req.connId);
-  }
-
-  // ---------- Internal Callbacks ----------
-
-  _createRoomCallbacks() {
-    return {
-      onError: (msg) => this.emit('toast', { message: msg, kind: 'ojama' }),
-      onToast: (msg, kind) => this.emit('toast', { message: msg, kind }),
-      onRenderNeeded: () => this.emit('renderNeeded'),
-      onRosterUpdate: () => this.emit('hudUpdate'),
-      onKnockRequest: (req) => {
-        if (!this.knockQueue.some((item) => item.connId === req.connId)) {
-          this.knockQueue.push(req);
-        }
-        this.emit('knockChange', [...this.knockQueue]);
-      },
-      onKnockResolved: (connId) => {
-        const idx = this.knockQueue.findIndex((item) => item.connId === connId);
-        if (idx !== -1) this.knockQueue.splice(idx, 1);
-        this.emit('knockChange', [...this.knockQueue]);
-      },
-      onHostPatchApplied: (pieces, res) => {
-        if (res?.type === 'snap') {
-          sound.playSnap();
-          this.emit('snapEffect', { pieces });
-          if (res.completed) {
-            this.completePuzzle();
-            this.room.broadcastCompletion();
-          }
-        } else if (res?.type === 'merge') {
-          sound.playMerge();
-        }
-        this.emit('hudUpdate');
-        this.emit('renderNeeded');
-      },
-      onGuestStatus: (text) => this.emit('guestStatus', { text, isError: false }),
-      onAuthRejected: (reason) => {
-        this._emitRoleChange();
-        this.emit('authRejected', { reason });
-      },
-      onDisconnected: (reason) => {
-        this._emitRoleChange();
-        this.emit('disconnected', { reason });
-      },
-      onGuestAdmitted: () => {
-        this._emitRoleChange();
-        this.emit('hudUpdate');
-      },
-      onImageProgress: (received, total) => this.emit('imageProgress', { received, total }),
-      onReceiveImage: (srcCanvas, imgName, isSample) => {
-        this._replaceSourceImage(srcCanvas, imgName, isSample);
-        this.emit('puzzleReset', { ...this.sourceImage, resetEffects: false });
-      },
-      onFullStateSynced: () => {
-        this.highlightFilter = 'all';
-        this.emit('puzzleReset', { ...this.sourceImage, resetEffects: true, fitView: true });
-        this._emitRoleChange();
-        this.emit('fullStateSynced');
-        this.emit('hudUpdate');
-        this.emit('toast', { message: 'ホストの盤面と同期しました', kind: 'success' });
-      },
-      onLockDenied: (groupId) => {
-        sound.playOjama();
-        this.emit('lockDenied', { groupId });
-        this.emit('toast', {
-          message: '他のメンバーが操作中のためロックできませんでした',
-          kind: 'ojama',
-        });
-        this.emit('renderNeeded');
-      },
-      onGuestPatchApplied: (pieces, res, _actorId) => {
-        if (res?.type === 'snap') {
-          sound.playSnap();
-          this.emit('snapEffect', { pieces });
-        } else if (res?.type === 'merge') {
-          sound.playMerge();
-        }
-        this.emit('hudUpdate');
-        this.emit('renderNeeded');
-      },
-      onRemoteVisualOjama: (visualType, duration) => {
-        this.emit('remoteVisualOjama', { visualType, duration });
-      },
-      onRemoteVisualClear: () => this.emit('remoteVisualClear'),
-      onRemoteSuperchat: (msg) => this.emit('remoteSuperchat', msg),
-      onRemoteSuperchatState: (hp, maxHp) => this.emit('remoteSuperchatHp', { hp, maxHp }),
-      onLocalSuperchatHp: (hp, maxHp) => this.emit('remoteSuperchatHp', { hp, maxHp }),
-      onRemoteSuperchatDismiss: () => this.emit('remoteSuperchatDismiss'),
-      onRemoteCompleted: () => this.completePuzzle(),
-    };
   }
 
   _emitRoleChange() {
