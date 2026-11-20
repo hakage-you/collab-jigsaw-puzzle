@@ -14,7 +14,7 @@ export class SortFilterUI {
 
   _populateColorChips(container, buckets) {
     if (!container) return;
-    container.innerHTML = '';
+    container.replaceChildren();
     for (const b of buckets) {
       const btn = document.createElement('button');
       btn.type = 'button';

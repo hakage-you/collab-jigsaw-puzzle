@@ -112,7 +112,7 @@ export class ParticipantsUI {
 
     const onlineCount = allMembers.filter((m) => m.online !== false).length;
     this.elCountBadge.textContent = String(onlineCount);
-    this.elList.innerHTML = '';
+    this.elList.replaceChildren();
 
     for (const m of allMembers) {
       const li = document.createElement('li');

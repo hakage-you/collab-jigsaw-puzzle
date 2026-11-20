@@ -22,7 +22,7 @@ export class ResultModalUI {
     document.getElementById('resultOjamaBreakdown').textContent =
       `内訳 — 落下: ${bd.drop} / 視覚: ${bd.visual} / スパチャ: ${bd.superchat} / いたずら: ${bd.prank} / 偽: ${bd.fake || 0}`;
 
-    this.elRankingList.innerHTML = '';
+    this.elRankingList.replaceChildren();
     if (payload.isMultiplayer && payload.roster.length > 0) {
       const sorted = [...payload.roster].sort((a, b) => b.contrib - a.contrib);
       for (const member of sorted) {

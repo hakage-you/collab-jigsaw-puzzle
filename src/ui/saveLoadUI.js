@@ -1,4 +1,4 @@
-import { downloadJsonFile } from '../services/storage.js';
+import { downloadJsonFile, MAX_SAVE_TEXT_LENGTH, parseSaveText } from '../services/storage.js';
 import { loadImageFromFile } from '../services/imageLoader.js';
 
 export class SaveLoadUI {
@@ -28,20 +28,19 @@ export class SaveLoadUI {
     this.elLoadJsonInput.addEventListener('change', (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      if (file.size > MAX_SAVE_TEXT_LENGTH) {
+        this._rejectSaveFile('セーブファイルが大きすぎます');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
-        try {
-          const parsed = JSON.parse(String(reader.result));
-          if (!parsed.puzzle || !Array.isArray(parsed.pieces)) {
-            throw new Error('Invalid save schema');
-          }
-          this.pendingSaveData = parsed;
-          this.updateLoadedSaveSummary();
-        } catch {
-          this.pendingSaveData = null;
-          this.updateLoadedSaveSummary();
-          this.showToast('JSONファイルの形式が正しくありません', 'ojama');
+        const result = parseSaveText(String(reader.result));
+        if (!result.ok) {
+          this._rejectSaveFile(result.error);
+          return;
         }
+        this.pendingSaveData = result.data;
+        this.updateLoadedSaveSummary();
       };
       reader.readAsText(file);
     });
@@ -72,6 +71,13 @@ export class SaveLoadUI {
     });
   }
 
+  /** Drops the pending save and tells the user why the file was refused. */
+  _rejectSaveFile(message) {
+    this.pendingSaveData = null;
+    this.updateLoadedSaveSummary();
+    this.showToast(message, 'ojama');
+  }
+
   refreshLoadButtons() {
     if (!this.pendingSaveData) {
       this.elBtnApplyLoad.disabled = true;
@@ -94,23 +100,39 @@ export class SaveLoadUI {
     const puz = this.pendingSaveData.puzzle;
     this.elLoadedJsonSummary.classList.remove('hidden', 'warn');
 
-    let html =
-      `<b>読込待機中:</b> ${puz.cols}×${puz.rows} (${this.pendingSaveData.pieces.length}ピース) / ` +
-      `進捗 ${locked}/${this.pendingSaveData.pieces.length} / seed: ${puz.seed}<br>` +
-      `元画像種別: ${
-        puz.isSampleImage ? 'サンプル画像' : `ローカル画像 (${puz.imageWidth}×${puz.imageHeight})`
-      }`;
+    // Save files are untrusted input: build nodes and set text only, never markup.
+    const total = this.pendingSaveData.pieces.length;
+    const label = document.createElement('b');
+    label.textContent = '読込待機中:';
+    const lines = [
+      [
+        label,
+        ` ${puz.cols}×${puz.rows} (${total}ピース) / 進捗 ${locked}/${total} / seed: ${puz.seed}`,
+      ],
+      [
+        `元画像種別: ${
+          puz.isSampleImage ? 'サンプル画像' : `ローカル画像 (${puz.imageWidth}×${puz.imageHeight})`
+        }`,
+      ],
+    ];
 
     if (this.pendingSaveImageCanvas) {
+      const match = document.createElement('span');
       if (this.app.verifySaveImageMatch(this.pendingSaveImageCanvas, this.pendingSaveData)) {
-        html += `<br><span class="match-ok">一致: セーブ時と同一の画像です</span>`;
+        match.className = 'match-ok';
+        match.textContent = '一致: セーブ時と同一の画像です';
       } else {
         this.elLoadedJsonSummary.classList.add('warn');
-        html += `<br><span class="match-warn">注意: セーブ時と異なる画像ですが復元可能です</span>`;
+        match.className = 'match-warn';
+        match.textContent = '注意: セーブ時と異なる画像ですが復元可能です';
       }
+      lines.push([match]);
     }
 
-    this.elLoadedJsonSummary.innerHTML = html;
+    const nodes = lines.flatMap((parts, i) =>
+      i === 0 ? parts : [document.createElement('br'), ...parts],
+    );
+    this.elLoadedJsonSummary.replaceChildren(...nodes);
     this.refreshLoadButtons();
   }
 

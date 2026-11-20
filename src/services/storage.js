@@ -1,5 +1,9 @@
 import { PUZZLE_CONFIG, OJAMA_CONFIG, STORAGE_KEYS } from '../config/constants.js';
 import { normalizeCutComplexity } from '../core/jigsawPath.js';
+import { parseSaveText } from '../core/saveValidation.js';
+
+export { MAX_SAVE_TEXT_LENGTH } from '../core/saveValidation.js';
+export { parseSaveText };
 
 const DEFAULT_SETTINGS = {
   theme: 'light', // 'light' | 'dark'
@@ -92,9 +96,8 @@ export function loadAutoBackup() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.AUTO_BACKUP);
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed?.puzzle || !Array.isArray(parsed?.pieces)) return null;
-    return parsed;
+    const result = parseSaveText(raw);
+    return result.ok ? result.data : null;
   } catch {
     return null;
   }
