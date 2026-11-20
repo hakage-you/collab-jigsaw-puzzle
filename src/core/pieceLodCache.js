@@ -114,7 +114,7 @@ export class PieceLodCache {
     const slotStep = Math.min(
       MAX_LOD_CELL_PX,
       maxSlotStepByCount,
-      Math.max(16, Math.ceil(logicalMax * desiredClamped) + LOD_SLOT_PAD)
+      Math.max(16, Math.ceil(logicalMax * desiredClamped) + LOD_SLOT_PAD),
     );
     const lodScale = Math.min(desiredClamped, (slotStep - LOD_SLOT_PAD) / logicalMax);
     if (lodScale <= baseScale * 1.15) return null;

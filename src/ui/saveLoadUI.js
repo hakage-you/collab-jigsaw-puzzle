@@ -60,7 +60,7 @@ export class SaveLoadUI {
           this.pendingSaveImageCanvas._fileName = name;
           this.updateLoadedSaveSummary();
         },
-        (msg) => this.showToast(msg, 'ojama')
+        (msg) => this.showToast(msg, 'ojama'),
       );
     });
 
@@ -118,12 +118,7 @@ export class SaveLoadUI {
     if (!this.pendingSaveData) return;
     if (!useSample && !this.pendingSaveImageCanvas) return;
     const imgCanvas = this.pendingSaveImageCanvas;
-    this.app.restoreFromSaveData(
-      this.pendingSaveData,
-      imgCanvas,
-      useSample,
-      imgCanvas?._fileName
-    );
+    this.app.restoreFromSaveData(this.pendingSaveData, imgCanvas, useSample, imgCanvas?._fileName);
     if (useSample && imgCanvas) {
       imgCanvas.width = 0;
       imgCanvas.height = 0;

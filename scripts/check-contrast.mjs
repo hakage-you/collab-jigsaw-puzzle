@@ -176,23 +176,48 @@ const CHECK_PAIRS = [
   { fg: '--text-muted', bg: '--surface', min: 4.5, label: 'Muted text on --surface' },
   { fg: '--text-muted', bg: '--surface-2', min: 4.5, label: 'Muted text on --surface-2' },
   { fg: '--accent-text', bg: '--accent', min: 4.5, label: 'Primary button text on --accent' },
-  { fg: '--accent-text', bg: '--accent-hover', min: 4.5, label: 'Primary button text on --accent-hover' },
+  {
+    fg: '--accent-text',
+    bg: '--accent-hover',
+    min: 4.5,
+    label: 'Primary button text on --accent-hover',
+  },
   { fg: '--accent', bg: '--surface', min: 4.5, label: 'Accent text/link on --surface' },
   { fg: '--accent', bg: '--accent-soft', min: 4.5, label: 'Accent text on --accent-soft' },
-  { fg: '--secondary-text', bg: '--secondary', min: 4.5, label: 'Secondary button text on --secondary' },
+  {
+    fg: '--secondary-text',
+    bg: '--secondary',
+    min: 4.5,
+    label: 'Secondary button text on --secondary',
+  },
   { fg: '--secondary', bg: '--surface', min: 4.5, label: 'Secondary text on --surface' },
-  { fg: '--secondary', bg: '--secondary-soft', min: 4.5, label: 'Secondary text on --secondary-soft' },
+  {
+    fg: '--secondary',
+    bg: '--secondary-soft',
+    min: 4.5,
+    label: 'Secondary text on --secondary-soft',
+  },
   { fg: '--success', bg: '--surface', min: 4.5, label: 'Success text on --surface' },
   { fg: '--success', bg: '--success-soft', min: 4.5, label: 'Success text on --success-soft' },
   { fg: '--warning', bg: '--surface', min: 4.5, label: 'Warning text on --surface' },
   { fg: '--warning', bg: '--warning-soft', min: 4.5, label: 'Warning text on --warning-soft' },
   { fg: '--danger-text', bg: '--danger', min: 4.5, label: 'Danger button text on --danger' },
-  { fg: '--danger-text', bg: '--danger-hover', min: 4.5, label: 'Danger button text on --danger-hover' },
+  {
+    fg: '--danger-text',
+    bg: '--danger-hover',
+    min: 4.5,
+    label: 'Danger button text on --danger-hover',
+  },
   { fg: '--danger', bg: '--surface', min: 4.5, label: 'Danger text on --surface' },
   { fg: '--danger', bg: '--danger-soft', min: 4.5, label: 'Danger text on --danger-soft' },
 
   // UI components / boundaries >= 3.0:1
-  { fg: '--border-strong', bg: '--surface', min: 3.0, label: 'Outlined input/button border on --surface' },
+  {
+    fg: '--border-strong',
+    bg: '--surface',
+    min: 3.0,
+    label: 'Outlined input/button border on --surface',
+  },
   { fg: '--switch-track-off', bg: '--surface', min: 3.0, label: 'Off switch track on --surface' },
   { fg: '--focus', bg: '--surface', min: 3.0, label: 'Focus ring on --surface' },
 ];
@@ -230,12 +255,12 @@ if (failures.length > 0) {
   for (const f of failures) {
     console.error(
       `  [${f.theme}] ${f.pair} (${f.label}): measured ${f.ratio}:1 < required ${f.min}:1` +
-        ` -> Adjust master palette or soft mix % in styles/tokens.css`
+        ` -> Adjust master palette or soft mix % in styles/tokens.css`,
     );
   }
   process.exit(1);
 }
 
 console.log(
-  `WCAG Contrast Check PASSED (${totalChecked} color pairs across light & dark themes meet WCAG 2.1 AA).`
+  `WCAG Contrast Check PASSED (${totalChecked} color pairs across light & dark themes meet WCAG 2.1 AA).`,
 );

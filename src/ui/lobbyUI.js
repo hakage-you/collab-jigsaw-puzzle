@@ -93,10 +93,9 @@ export class LobbyUI {
 
     const puz = this.pendingBackup.puzzle;
     const locked = this.pendingBackup.pieces.filter((p) => p.isLocked).length;
-    this.elBackupSummary.textContent =
-      `前回の未完了データあり: ${puz.cols}×${puz.rows} (${locked}/${this.pendingBackup.pieces.length}ピース配置済み / ${
-        puz.isSampleImage ? 'サンプル画像' : 'ローカル画像'
-      })`;
+    this.elBackupSummary.textContent = `前回の未完了データあり: ${puz.cols}×${puz.rows} (${locked}/${this.pendingBackup.pieces.length}ピース配置済み / ${
+      puz.isSampleImage ? 'サンプル画像' : 'ローカル画像'
+    })`;
     this.elBackupSection.classList.remove('hidden');
   }
 
@@ -148,7 +147,7 @@ export class LobbyUI {
           requireApproval: this.elRequireApproval.checked,
           capacity: Math.max(
             MULTIPLAYER_CONFIG.MIN_CAPACITY,
-            Math.min(MULTIPLAYER_CONFIG.MAX_CAPACITY, Number(this.elCapacity.value) || 8)
+            Math.min(MULTIPLAYER_CONFIG.MAX_CAPACITY, Number(this.elCapacity.value) || 8),
           ),
         });
         this.hasStartedSession = true;
@@ -173,7 +172,7 @@ export class LobbyUI {
           this.pendingBackupImageCanvas._fileName = name;
           this.elBtnResumeBackupImage.disabled = false;
         },
-        (msg) => this.showToast(msg, 'ojama')
+        (msg) => this.showToast(msg, 'ojama'),
       );
     });
 
@@ -181,17 +180,12 @@ export class LobbyUI {
       if (!this.pendingBackup || !this.pendingBackupImageCanvas) return;
       const imgCanvas = this.pendingBackupImageCanvas;
       this.pendingBackupImageCanvas = null;
-      await this.app.resumeHostFromBackup(
-        this.pendingBackup,
-        imgCanvas,
-        false,
-        {
-          displayName: this.elHostName.value.trim() || 'ホスト（自分）',
-          passcode: this.elHostPasscode.value,
-          requireApproval: this.elRequireApproval.checked,
-          capacity: Number(this.elCapacity.value) || 8,
-        }
-      );
+      await this.app.resumeHostFromBackup(this.pendingBackup, imgCanvas, false, {
+        displayName: this.elHostName.value.trim() || 'ホスト（自分）',
+        passcode: this.elHostPasscode.value,
+        requireApproval: this.elRequireApproval.checked,
+        capacity: Number(this.elCapacity.value) || 8,
+      });
       this.hasStartedSession = true;
       this.hide();
     });
@@ -240,7 +234,7 @@ export class LobbyUI {
   _subscribeApp() {
     this.app.on('guestStatus', ({ text, isError }) => this.setGuestStatus(text, isError));
     this.app.on('imageProgress', ({ received, total }) =>
-      this.setTransferProgress(received, total)
+      this.setTransferProgress(received, total),
     );
     this.app.on('fullStateSynced', () => {
       this.hasStartedSession = true;

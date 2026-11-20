@@ -3,7 +3,7 @@
  */
 
 export function mulberry32(seed) {
-  let a = (Number(seed) >>> 0) || 1;
+  let a = Number(seed) >>> 0 || 1;
   return function next() {
     a |= 0;
     a = (a + 0x6d2b79f5) | 0;

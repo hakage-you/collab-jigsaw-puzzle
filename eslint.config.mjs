@@ -128,10 +128,7 @@ export default [
   {
     files: ['src/app/**/*.js'],
     rules: {
-      'no-restricted-imports': [
-        'error',
-        { patterns: ['../ui/*', '**/ui/*'] },
-      ],
+      'no-restricted-imports': ['error', { patterns: ['../ui/*', '**/ui/*'] }],
       'no-restricted-globals': [
         'error',
         { name: 'window', message: 'src/app must not reference window directly.' },

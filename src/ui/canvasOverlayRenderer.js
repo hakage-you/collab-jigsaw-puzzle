@@ -98,13 +98,7 @@ export function drawReferenceSheet(ctx, { settings, sourceCanvas, refSheet, pal 
   ctx.save();
   ctx.fillStyle = 'rgba(15, 23, 42, 0.16)';
   ctx.beginPath();
-  ctx.roundRect(
-    x - pad + 5,
-    y - pad - 18 + 6,
-    refSheet.w + pad * 2,
-    refSheet.h + pad * 2 + 18,
-    8
-  );
+  ctx.roundRect(x - pad + 5, y - pad - 18 + 6, refSheet.w + pad * 2, refSheet.h + pad * 2 + 18, 8);
   ctx.fill();
 
   ctx.fillStyle = pal.sheetBg;

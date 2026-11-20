@@ -6,7 +6,7 @@ export function getSingleLoosePieces(engine, excludedGroupIds = null) {
     (p) =>
       !p.isLocked &&
       counts.get(p.groupId) === 1 &&
-      (!excludedGroupIds || !excludedGroupIds.has(p.groupId))
+      (!excludedGroupIds || !excludedGroupIds.has(p.groupId)),
   );
 }
 
@@ -19,7 +19,7 @@ function layoutGrid(
   stepX,
   stepY,
   alignRight = false,
-  alignBottom = false
+  alignBottom = false,
 ) {
   if (pieces.length === 0) return;
   const colsUsed = Math.min(maxPerRow, pieces.length);
@@ -126,14 +126,14 @@ export function sortByColorPieces(engine, excludedGroupIds = null) {
       stepX,
       stepY,
       anchor.alignR && !anchor.center,
-      anchor.alignB
+      anchor.alignB,
     );
 
     const labelX = anchor.center
       ? 0
       : anchor.alignR
-      ? anchor.x - ((colsUsed - 1) * stepX) / 2
-      : anchor.x + ((colsUsed - 1) * stepX) / 2;
+        ? anchor.x - ((colsUsed - 1) * stepX) / 2
+        : anchor.x + ((colsUsed - 1) * stepX) / 2;
     const topMostY = anchor.alignB ? anchor.y - (rowsUsed - 1) * stepY : anchor.y;
     engine.zoneLabels.push({
       text: `${b.label} (${list.length})`,

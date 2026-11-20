@@ -290,7 +290,11 @@ export class GuestSession {
       const patchOpSeq = msg.actionResult?.opSeq;
       const targetGroupId = msg.pieces?.[0]?.groupId;
       let skipStaleLocalPatch = false;
-      if (msg.actorId === room.myPlayerId && typeof patchOpSeq === 'number' && targetGroupId != null) {
+      if (
+        msg.actorId === room.myPlayerId &&
+        typeof patchOpSeq === 'number' &&
+        targetGroupId != null
+      ) {
         const latestSeq = this.pendingGroupOpSeq.get(targetGroupId);
         if (latestSeq && patchOpSeq < latestSeq) {
           skipStaleLocalPatch = true;

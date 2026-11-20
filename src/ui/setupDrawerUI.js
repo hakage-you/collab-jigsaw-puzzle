@@ -153,7 +153,7 @@ export class SetupDrawerUI {
         loadImageFromFile(
           file,
           (imgCanvas, name) => this.app.setCustomImage(imgCanvas, name),
-          (msg) => this.showToast(msg, 'ojama')
+          (msg) => this.showToast(msg, 'ojama'),
         );
       }
       e.target.value = '';

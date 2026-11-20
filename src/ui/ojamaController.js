@@ -64,7 +64,7 @@ export class OjamaController {
       : OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC;
     const fakeMaxCount = Math.max(
       1,
-      Math.min(16, Number(this.elOjamaFakeMaxCount?.value) || OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT)
+      Math.min(16, Number(this.elOjamaFakeMaxCount?.value) || OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT),
     );
     this.app.patchSettings({
       ojama: {
@@ -102,7 +102,7 @@ export class OjamaController {
     this.app.on('puzzleComplete', () => this.clearAllOnComplete());
     this.app.on('puzzleReset', () => this.clearAllOnComplete());
     this.app.on('remoteVisualOjama', ({ visualType, duration }) =>
-      this.applyVisualEffect(visualType, duration)
+      this.applyVisualEffect(visualType, duration),
     );
     this.app.on('remoteVisualClear', () => this.clearVisualSabotage(false));
     this.app.on('remoteSuperchat', (msg) => this.showSuperchatOverlay(msg));
@@ -125,10 +125,18 @@ export class OjamaController {
     });
 
     document.getElementById('btnTestDrop').addEventListener('click', () => this.triggerDropOjama());
-    document.getElementById('btnTestVisual').addEventListener('click', () => this.triggerVisualOjama());
-    document.getElementById('btnTestSuperchat').addEventListener('click', () => this.triggerSuperchatOjama());
-    document.getElementById('btnTestPrank').addEventListener('click', () => this.triggerPrankOjama());
-    document.getElementById('btnTestFake')?.addEventListener('click', () => this.triggerFakePiecesOjama());
+    document
+      .getElementById('btnTestVisual')
+      .addEventListener('click', () => this.triggerVisualOjama());
+    document
+      .getElementById('btnTestSuperchat')
+      .addEventListener('click', () => this.triggerSuperchatOjama());
+    document
+      .getElementById('btnTestPrank')
+      .addEventListener('click', () => this.triggerPrankOjama());
+    document
+      .getElementById('btnTestFake')
+      ?.addEventListener('click', () => this.triggerFakePiecesOjama());
 
     document.getElementById('btnHitSuperchat').addEventListener('click', () => {
       this.elSuperchatCard.classList.remove('hit-shake');
@@ -195,7 +203,10 @@ export class OjamaController {
 
   updateCommentProgressUI() {
     const settings = this.getSettings();
-    const threshold = Math.max(1, settings.ojama.commentThreshold || OJAMA_CONFIG.DEFAULT_COMMENT_THRESHOLD);
+    const threshold = Math.max(
+      1,
+      settings.ojama.commentThreshold || OJAMA_CONFIG.DEFAULT_COMMENT_THRESHOLD,
+    );
     this.elCommentTriggerCounter.textContent = `${this.commentCounter} / ${threshold}`;
   }
 
@@ -271,7 +282,10 @@ export class OjamaController {
 
   triggerDropOjama() {
     if (this.guardIfCompleted()) return false;
-    const count = Math.max(1, Number(this.elOjamaDropCount.value) || OJAMA_CONFIG.DEFAULT_DROP_COUNT);
+    const count = Math.max(
+      1,
+      Number(this.elOjamaDropCount.value) || OJAMA_CONFIG.DEFAULT_DROP_COUNT,
+    );
     const dropped = this.engine.dropLockedPieces(count, this.app.getAllowRotation());
     if (dropped === 0) {
       this.showToast('台紙にはまっているピースがまだありません', 'info');
@@ -414,11 +428,11 @@ export class OjamaController {
     }
     this.elMiniChatLog.scrollTop = this.elMiniChatLog.scrollHeight;
 
-    this.triggerSuperchatOjama(
-      message || `${amountDisplay} スパチャでブロック中！`,
-      author,
-      { amountDisplay, tier, scaleHpWithTier }
-    );
+    this.triggerSuperchatOjama(message || `${amountDisplay} スパチャでブロック中！`, author, {
+      amountDisplay,
+      tier,
+      scaleHpWithTier,
+    });
   }
 
   triggerPrankOjama() {
@@ -448,7 +462,7 @@ export class OjamaController {
       durationSec,
       this.app.getAllowRotation(),
       this.app.getAllowFlip(),
-      maxCount
+      maxCount,
     );
     if (added.length === 0) return false;
     if (durationSec > 0) {
@@ -457,8 +471,7 @@ export class OjamaController {
     sound.playOjama();
     this.updateHUD();
     this.requestRender();
-    const detail =
-      durationSec > 0 ? `${durationSec}秒で消滅` : `消失なし・上限${maxCount}個`;
+    const detail = durationSec > 0 ? `${durationSec}秒で消滅` : `消失なし・上限${maxCount}個`;
     const msg = `お邪魔発動：偽ピースを${added.length}個追加しました（${detail}）`;
     this.showToast(msg, 'ojama');
     this.room.broadcastFakePieces(msg);

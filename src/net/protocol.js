@@ -95,7 +95,7 @@ function sha256FallbackHex(ascii) {
   words[words.length] = (asciiBitLength / maxWord) | 0;
   words[words.length] = asciiBitLength;
 
-  for (let j = 0; j < words.length; ) {
+  for (let j = 0; j < words.length;) {
     const w = words.slice(j, (j += 16));
     const oldHash = hash.slice(0);
     for (let i = 0; i < 64; i++) {

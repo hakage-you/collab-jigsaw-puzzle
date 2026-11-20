@@ -102,8 +102,7 @@ export class YouTubeUI {
   }
 
   _updateQuotaUI(units) {
-    this.elQuotaReadout.textContent =
-      `セッション消費: ${units} ユニット（無料枠 ${YOUTUBE_CONFIG.QUOTA_DAILY_LIMIT.toLocaleString()}/日）`;
+    this.elQuotaReadout.textContent = `セッション消費: ${units} ユニット（無料枠 ${YOUTUBE_CONFIG.QUOTA_DAILY_LIMIT.toLocaleString()}/日）`;
   }
 
   openGuideModal() {
@@ -141,7 +140,11 @@ export class YouTubeUI {
       }
     });
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.elGuideModal && !this.elGuideModal.classList.contains('hidden')) {
+      if (
+        e.key === 'Escape' &&
+        this.elGuideModal &&
+        !this.elGuideModal.classList.contains('hidden')
+      ) {
         this.closeGuideModal();
       }
     });
@@ -168,10 +171,7 @@ export class YouTubeUI {
       this.setStatus('配信情報を確認しています...', false);
 
       try {
-        const res = await this.client.verifyBroadcast(
-          this.elApiKey.value,
-          this.elVideoUrl.value
-        );
+        const res = await this.client.verifyBroadcast(this.elApiKey.value, this.elVideoUrl.value);
         this.elPreviewTitle.textContent = res.title;
         const chatState = res.hasActiveChat ? 'チャット有効' : 'チャット無効 / 取得不可';
         this.elPreviewMeta.textContent = `${res.channelTitle || 'チャンネル不明'} — ${chatState}`;
@@ -179,7 +179,10 @@ export class YouTubeUI {
 
         if (res.hasActiveChat) {
           this.elBtnTogglePoll.disabled = false;
-          this.setStatus('確認完了。「コメント連動を開始」を押すと新着コメントの取得が始まります', false);
+          this.setStatus(
+            '確認完了。「コメント連動を開始」を押すと新着コメントの取得が始まります',
+            false,
+          );
           this.showToast('ライブ配信を確認しました（1ユニット消費）', 'success');
         } else {
           this.elBtnTogglePoll.disabled = true;
@@ -207,7 +210,8 @@ export class YouTubeUI {
         return;
       }
       try {
-        const intervalMs = Number(this.elPollInterval.value) || YOUTUBE_CONFIG.DEFAULT_POLL_INTERVAL_MS;
+        const intervalMs =
+          Number(this.elPollInterval.value) || YOUTUBE_CONFIG.DEFAULT_POLL_INTERVAL_MS;
         this.client.startPolling(intervalMs);
       } catch (err) {
         this.setStatus(err?.message || '連動を開始できませんでした', true);

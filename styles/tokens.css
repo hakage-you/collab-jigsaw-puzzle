@@ -93,7 +93,9 @@ html[data-theme='light'] {
   --spot-edge: rgb(2 6 23 / 96%);
 
   /* Typography Scale (Min 12px) */
-  --font: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
+  --font:
+    system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI',
+    sans-serif;
   --font-size-xs: 12px;
   --font-size-sm: 13px;
   --font-size: 14px;

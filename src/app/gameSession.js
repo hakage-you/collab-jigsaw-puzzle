@@ -89,7 +89,7 @@ export class GameSession {
       : this.settings.ojama;
     const clampedGrid = clampGridDimensions(
       partial.cols ?? this.settings.cols,
-      partial.rows ?? this.settings.rows
+      partial.rows ?? this.settings.rows,
     );
     this.settings = {
       ...this.settings,
@@ -224,15 +224,13 @@ export class GameSession {
   restoreFromSaveData(saveData, customCanvas, useSample, imgName) {
     const srcCanvas = useSample ? generateSampleImageCanvas() : customCanvas;
     if (!srcCanvas) return;
-    const resolvedName = useSample
-      ? 'サンプルテスト画像 (復元)'
-      : imgName || 'ローカル画像 (復元)';
+    const resolvedName = useSample ? 'サンプルテスト画像 (復元)' : imgName || 'ローカル画像 (復元)';
 
     if (saveData.settings) {
       this.patchSettings({
         ...saveData.settings,
         cutComplexity: normalizeCutComplexity(
-          saveData.puzzle?.cutComplexity || saveData.settings.cutComplexity
+          saveData.puzzle?.cutComplexity || saveData.settings.cutComplexity,
         ),
         ojama: {
           ...this.settings.ojama,
@@ -435,7 +433,7 @@ export class GameSession {
     backup,
     imgCanvas,
     isSample,
-    { displayName, passcode, requireApproval, capacity }
+    { displayName, passcode, requireApproval, capacity },
   ) {
     this.emit('stopYoutubePolling', { reason: null });
     const resolvedCanvas = isSample ? generateSampleImageCanvas() : imgCanvas;
@@ -585,10 +583,22 @@ export class GameSession {
     };
   }
 
-  getDiagnosticsState() { return getDiagnosticsState(); }
-  buildDiagnosticReport() { return buildDiagnosticReport(this._diagnosticSnapshot()); }
-  formatDiagnosticText() { return formatDiagnosticText(this._diagnosticSnapshot()); }
-  clearDiagnostics() { clearDiagnostics(); }
-  subscribeDiagnostics(listener) { return subscribeDiagnostics(listener); }
-  recordDiagnostic(cat, msg, meta, lvl) { return recordDiagnostic(cat, msg, meta, lvl); }
+  getDiagnosticsState() {
+    return getDiagnosticsState();
+  }
+  buildDiagnosticReport() {
+    return buildDiagnosticReport(this._diagnosticSnapshot());
+  }
+  formatDiagnosticText() {
+    return formatDiagnosticText(this._diagnosticSnapshot());
+  }
+  clearDiagnostics() {
+    clearDiagnostics();
+  }
+  subscribeDiagnostics(listener) {
+    return subscribeDiagnostics(listener);
+  }
+  recordDiagnostic(cat, msg, meta, lvl) {
+    return recordDiagnostic(cat, msg, meta, lvl);
+  }
 }

@@ -6,7 +6,7 @@ import { PUZZLE_CONFIG } from '../config/constants.js';
  */
 export function generateSampleImageCanvas(
   width = PUZZLE_CONFIG.SAMPLE_IMAGE_WIDTH,
-  height = PUZZLE_CONFIG.SAMPLE_IMAGE_HEIGHT
+  height = PUZZLE_CONFIG.SAMPLE_IMAGE_HEIGHT,
 ) {
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -48,7 +48,15 @@ export function generateSampleImageCanvas(
   ctx.fill();
 
   // 3. Rainbow Arc across the center sky
-  const rainbowColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#6366f1', '#ec4899'];
+  const rainbowColors = [
+    '#ef4444',
+    '#f97316',
+    '#eab308',
+    '#22c55e',
+    '#06b6d4',
+    '#6366f1',
+    '#ec4899',
+  ];
   rainbowColors.forEach((col, i) => {
     ctx.strokeStyle = col;
     ctx.lineWidth = 10;
@@ -69,12 +77,49 @@ export function generateSampleImageCanvas(
     ctx.fill();
   };
 
-  drawMountain([[0, height * 0.58], [width * 0.22, height * 0.34], [width * 0.44, height * 0.58]], '#4338ca');
-  drawMountain([[width * 0.3, height * 0.58], [width * 0.54, height * 0.27], [width * 0.78, height * 0.58]], '#6d28d9');
-  drawMountain([[width * 0.62, height * 0.58], [width * 0.84, height * 0.32], [width, height * 0.58]], '#312e81');
+  drawMountain(
+    [
+      [0, height * 0.58],
+      [width * 0.22, height * 0.34],
+      [width * 0.44, height * 0.58],
+    ],
+    '#4338ca',
+  );
+  drawMountain(
+    [
+      [width * 0.3, height * 0.58],
+      [width * 0.54, height * 0.27],
+      [width * 0.78, height * 0.58],
+    ],
+    '#6d28d9',
+  );
+  drawMountain(
+    [
+      [width * 0.62, height * 0.58],
+      [width * 0.84, height * 0.32],
+      [width, height * 0.58],
+    ],
+    '#312e81',
+  );
 
-  drawMountain([[width * 0.48, height * 0.34], [width * 0.54, height * 0.27], [width * 0.6, height * 0.34], [width * 0.54, height * 0.32]], '#f8fafc');
-  drawMountain([[width * 0.79, height * 0.38], [width * 0.84, height * 0.32], [width * 0.89, height * 0.38], [width * 0.84, height * 0.36]], '#e0f2fe');
+  drawMountain(
+    [
+      [width * 0.48, height * 0.34],
+      [width * 0.54, height * 0.27],
+      [width * 0.6, height * 0.34],
+      [width * 0.54, height * 0.32],
+    ],
+    '#f8fafc',
+  );
+  drawMountain(
+    [
+      [width * 0.79, height * 0.38],
+      [width * 0.84, height * 0.32],
+      [width * 0.89, height * 0.38],
+      [width * 0.84, height * 0.36],
+    ],
+    '#e0f2fe',
+  );
 
   // 5. Rolling Green Hills (Bottom-Left) + Cute Houses
   ctx.fillStyle = '#22c55e';

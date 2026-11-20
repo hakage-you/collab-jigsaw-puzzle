@@ -109,9 +109,7 @@ export class CanvasRenderer {
     this.refSheet.w = Math.max(180, Math.min(480, Math.round(this.engine.boardW * 0.44)));
     this.refSheet.h = Math.round(this.refSheet.w * aspect);
     this.refSheet.x =
-      -this.engine.boardW / 2 -
-      this.refSheet.w / 2 -
-      Math.max(60, this.engine.pieceW * 1.1);
+      -this.engine.boardW / 2 - this.refSheet.w / 2 - Math.max(60, this.engine.pieceW * 1.1);
     this.refSheet.y = 0;
   }
 
@@ -298,7 +296,7 @@ export class CanvasRenderer {
         p.targetX - p.spriteHalfW,
         p.targetY - p.spriteHalfH,
         drawW,
-        drawH
+        drawH,
       );
     }
 
@@ -363,7 +361,7 @@ export class CanvasRenderer {
         -piece.spriteHalfW,
         -piece.spriteHalfH,
         drawW,
-        drawH
+        drawH,
       );
     } else {
       ctx.drawImage(sprite, -piece.spriteHalfW, -piece.spriteHalfH, drawW, drawH);
@@ -373,8 +371,8 @@ export class CanvasRenderer {
       const strokeCol = remoteLockMeta
         ? resolvePlayerColor(remoteLockMeta.color, pal)
         : isActiveGroup
-        ? pal.accent
-        : pal.secondary;
+          ? pal.accent
+          : pal.secondary;
       ctx.lineWidth = (remoteLockMeta || isActiveGroup ? 4.4 : 3.6) / this.view.scale;
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
       ctx.stroke(piece.path);
@@ -478,7 +476,7 @@ export class CanvasRenderer {
         this.engine.lodCache.beginFrame(
           this.engine.puzzleGeneration,
           lodConfig.bucket,
-          lodConfig.slotStep
+          lodConfig.slotStep,
         );
         for (const p of visibleLocked) {
           this._drawPiece(p, false, false, null, pal, lodConfig);
@@ -496,7 +494,8 @@ export class CanvasRenderer {
             ? this.room.getPlayerMeta(lockOwner)
             : null;
         const isActive = this.draggingGroupId !== null && p.groupId === this.draggingGroupId;
-        const isHover = !isActive && !remoteMeta && hoverGroupId !== null && p.groupId === hoverGroupId;
+        const isHover =
+          !isActive && !remoteMeta && hoverGroupId !== null && p.groupId === hoverGroupId;
         this._drawPiece(p, isActive, isHover, remoteMeta, pal, lodConfig);
       }
 

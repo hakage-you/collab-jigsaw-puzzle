@@ -8,7 +8,7 @@ export class PieceSpriteAtlas {
   constructor(
     atlasSize = PUZZLE_CONFIG.SPRITE_ATLAS_SIZE,
     pad = PUZZLE_CONFIG.SPRITE_ATLAS_PAD,
-    reusePages = null
+    reusePages = null,
   ) {
     this.atlasSize = atlasSize;
     this.pad = pad;
@@ -21,7 +21,7 @@ export class PieceSpriteAtlas {
   _acquirePage(minW, minH) {
     const size = Math.max(this.atlasSize, minW, minH);
     const poolIdx = this.pool.findIndex(
-      (p) => p?.canvas && p.canvas.width === size && p.canvas.height === size
+      (p) => p?.canvas && p.canvas.width === size && p.canvas.height === size,
     );
     let canvas;
     let ctx;
@@ -123,7 +123,18 @@ function computeSpriteMetrics(sourceCanvas, boardW, pieceW, pieceH, spritePad, t
 export function drawFrontPieceToSlot(
   ctx,
   slot,
-  { piece, sourceCanvas, boardW, boardH, pieceW, pieceH, logicalW, logicalH, renderScale, isLod = false }
+  {
+    piece,
+    sourceCanvas,
+    boardW,
+    boardH,
+    pieceW,
+    pieceH,
+    logicalW,
+    logicalH,
+    renderScale,
+    isLod = false,
+  },
 ) {
   const physW = slot.sw;
   const physH = slot.sh;
@@ -189,7 +200,7 @@ export function drawFrontPieceToSlot(
 export function drawBackPieceToSlot(
   ctx,
   slot,
-  { piece, pieceW, pieceH, logicalW, logicalH, renderScale, pattern, isLod = false }
+  { piece, pieceW, pieceH, logicalW, logicalH, renderScale, pattern, isLod = false },
 ) {
   const physW = slot.sw;
   const physH = slot.sh;
@@ -250,7 +261,7 @@ export function renderPieceSprites(
   pieceH,
   spritePad,
   atlas = null,
-  totalPieces = 24
+  totalPieces = 24,
 ) {
   const targetAtlas = atlas || new PieceSpriteAtlas();
   const { logicalW, logicalH, spriteScale, physW, physH } = computeSpriteMetrics(
@@ -259,7 +270,7 @@ export function renderPieceSprites(
     pieceW,
     pieceH,
     spritePad,
-    totalPieces
+    totalPieces,
   );
 
   piece.spriteLogicalW = logicalW;
@@ -293,14 +304,7 @@ export function renderPieceSprites(
 /**
  * On-demand CPU rasterizer for a flipped piece's back sprite.
  */
-export function renderPieceBackSprite(
-  piece,
-  pieceW,
-  pieceH,
-  spritePad,
-  backPatternCanvas,
-  atlas
-) {
+export function renderPieceBackSprite(piece, pieceW, pieceH, spritePad, backPatternCanvas, atlas) {
   if (!piece || !atlas) return null;
   if (piece.backSprite) return piece.backSprite;
 

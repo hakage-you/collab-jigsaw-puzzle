@@ -7,8 +7,10 @@
 const MAX_ENTRIES = 200;
 const SENSITIVE_KEY_RE = /^(?:apiKey|passcode|password|reconnectToken|token|secret)$/i;
 const GOOGLE_KEY_RE = /AIza[0-9A-Za-z_-]{20,}/g;
-const QUERY_SECRET_RE = /([?&](?:key|room|token|passcode|password|reconnectToken|secret)=)[^&#\s"'`]+/gi;
-const KV_SECRET_RE = /(?<![a-zA-Z0-9_])((?:apiKey|passcode|password|reconnectToken|secret|room)=)([^\s&#"'`]+)/gi;
+const QUERY_SECRET_RE =
+  /([?&](?:key|room|token|passcode|password|reconnectToken|secret)=)[^&#\s"'`]+/gi;
+const KV_SECRET_RE =
+  /(?<![a-zA-Z0-9_])((?:apiKey|passcode|password|reconnectToken|secret|room)=)([^\s&#"'`]+)/gi;
 const DATA_IMAGE_RE = /data:image\/[^\s"'`]+/gi;
 
 const entries = [];
@@ -186,7 +188,7 @@ export function initDiagnostics() {
           colno: ev?.colno || 0,
           stack: ev?.error?.stack || '',
         },
-        'error'
+        'error',
       );
     });
 
@@ -196,7 +198,7 @@ export function initDiagnostics() {
         'unhandledrejection',
         reason?.message || String(reason || 'Unhandled promise rejection'),
         reason instanceof Error ? { stack: reason.stack || '' } : { reason },
-        'error'
+        'error',
       );
     });
   }

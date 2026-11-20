@@ -26,7 +26,9 @@ export function extractVideoId(input) {
     const vParam = url.searchParams.get('v');
     if (vParam && VIDEO_ID_RE.test(vParam)) return vParam;
 
-    const pathMatch = url.pathname.match(/^\/(?:live|shorts|embed|v|video)\/([a-zA-Z0-9_-]{11})(?:\/|$)/);
+    const pathMatch = url.pathname.match(
+      /^\/(?:live|shorts|embed|v|video)\/([a-zA-Z0-9_-]{11})(?:\/|$)/,
+    );
     if (pathMatch) return pathMatch[1];
   } catch {
     return null;
@@ -272,8 +274,7 @@ export class YouTubeLiveClient {
       const eventType = snippet.type;
 
       if (eventType === 'textMessageEvent') {
-        const text =
-          snippet.displayMessage || snippet.textMessageDetails?.messageText || '';
+        const text = snippet.displayMessage || snippet.textMessageDetails?.messageText || '';
         if (text) {
           comments.push({ id: item.id, author, text });
         }
