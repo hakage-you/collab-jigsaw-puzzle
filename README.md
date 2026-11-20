@@ -24,8 +24,11 @@ npx serve .
 python -m http.server 8080
 ```
 
-静的解析（CSS / JS / HTML / WCAG 2.1 AA コントラスト / 5層アーキテクチャ依存検証）:
+静的解析（整形 / CSS / JS / HTML / WCAG 2.1 AA コントラスト / 5層アーキテクチャ依存 / 未使用コード）:
 
 ```bash
 npm run lint
+npm run format   # Prettier で自動整形
 ```
+
+`npm install` 時にコミット前フック（`simple-git-hooks`）が有効になり、コミットのたびに `npm run lint` が実行されます。規約の詳細は [docs/architecture-guidelines.md](docs/architecture-guidelines.md) を参照してください。

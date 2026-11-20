@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
+  // src/ui/main.js is loaded by index.html as a module script.
+  "entry": ["src/ui/main.js", "tests/**/*.mjs", "scripts/**/*.mjs"],
+  "project": ["src/**/*.js", "tests/**/*.mjs", "scripts/**/*.mjs"],
+  // peerjs is the upstream source of vendor/peerjs.min.js (used to update the vendored copy).
+  "ignoreDependencies": ["peerjs"],
+}
