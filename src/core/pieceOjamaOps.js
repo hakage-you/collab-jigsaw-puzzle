@@ -31,7 +31,7 @@ export function dropLockedPiecesOp(
     p.groupId = engine.nextGroupId++;
     p.zOrder = engine.maxZ++;
     const angle = Math.random() * Math.PI * 2;
-    const dist = engine.pieceW * (0.6 + Math.random() * 1.0);
+    const dist = engine.pieceW * (0.6 + Math.random());
     p.x = Math.max(-maxX, Math.min(maxX, p.targetX + Math.cos(angle) * dist));
     p.y = Math.max(-maxY, Math.min(maxY, p.targetY + Math.sin(angle) * dist));
     if (allowRotation && Math.random() < 0.6) {
@@ -137,7 +137,7 @@ function buildFakePieceFromSource(engine, src, spec, zOrder, slotIdx) {
     x: spec.x,
     y: spec.y,
     rotation: ((spec.rotation % 4) + 4) % 4,
-    isFlipped: !!spec.isFlipped,
+    isFlipped: Boolean(spec.isFlipped),
     groupId: spec.fakeId,
     isLocked: false,
     isFake: true,

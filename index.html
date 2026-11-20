@@ -222,14 +222,14 @@
             >
               －
             </button>
-            <span
+            <button
+              type="button"
               class="zoom-readout"
               id="zoomReadout"
-              role="button"
-              tabindex="0"
               title="クリックで100%（作業サイズ）へ"
-              >100%</span
             >
+              100%
+            </button>
             <button
               type="button"
               class="btn btn-xs btn-secondary btn-square"
@@ -257,7 +257,7 @@
           </div>
 
           <!-- Floating Reference Image Window -->
-          <div id="floatingRefWindow" class="floating-ref hidden" aria-label="お手本小窓">
+          <section id="floatingRefWindow" class="floating-ref hidden" aria-label="お手本小窓">
             <div class="floating-ref-header">
               <span>お手本</span>
               <button
@@ -272,7 +272,7 @@
             <div class="floating-ref-body" id="floatingRefBody">
               <canvas id="floatingRefCanvas" width="220" height="146"></canvas>
             </div>
-          </div>
+          </section>
 
           <!-- Toast Notifications -->
           <div id="toastContainer" class="toast-container" aria-live="polite"></div>
@@ -403,8 +403,8 @@
                   API キーの取得・設定ガイド
                 </button>
 
-                <label class="field mt-2">
-                  <span>YouTube API キー</span>
+                <div class="field mt-2">
+                  <label for="ytApiKeyInput">YouTube API キー</label>
                   <div class="input-with-btn">
                     <input
                       type="password"
@@ -416,7 +416,7 @@
                       消去
                     </button>
                   </div>
-                </label>
+                </div>
                 <p class="hint-text mt-2">
                   キーはブラウザのメモリ上のみで扱い、リロードやタブを閉じると消去されます。
                 </p>
@@ -1131,15 +1131,15 @@
                       <option value="complex">複雑（歪みグリッド・多形状タブ）</option>
                     </select>
                   </label>
-                  <label class="field mt-2">
-                    <span>形状シード値</span>
+                  <div class="field mt-2">
+                    <label for="inputSeed">形状シード値</label>
                     <div class="input-with-btn">
                       <input type="number" id="inputSeed" value="20261119" />
                       <button type="button" class="btn btn-secondary" id="btnRandomSeed">
                         乱数
                       </button>
                     </div>
-                  </label>
+                  </div>
                 </div>
               </details>
             </div>

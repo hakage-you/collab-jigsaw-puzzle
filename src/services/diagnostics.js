@@ -18,6 +18,10 @@ const listeners = new Set();
 let errorCount = 0;
 let initialized = false;
 
+/**
+ * Redacts secrets and data URLs from a value and truncates it to 1000 characters.
+ * @public
+ */
 export function sanitizeText(value) {
   if (value === null || value === undefined) return '';
   let text = String(value);
@@ -31,6 +35,10 @@ export function sanitizeText(value) {
   return text;
 }
 
+/**
+ * Recursively sanitizes a metadata value (objects, arrays, Errors) for diagnostics storage.
+ * @public
+ */
 export function sanitizeMeta(value, depth = 0, seen = new WeakSet()) {
   if (value === null || value === undefined) return value;
   const t = typeof value;
@@ -203,6 +211,7 @@ export function initDiagnostics() {
     });
   }
 
+  /* eslint-disable no-console -- intentional: diagnostics captures console.error/warn */
   const origError = console.error;
   const origWarn = console.warn;
 
@@ -215,4 +224,5 @@ export function initDiagnostics() {
     origWarn.apply(console, args);
     recordDiagnostic('console.warn', formatConsoleArgs(args), null, 'warn');
   };
+  /* eslint-enable no-console */
 }

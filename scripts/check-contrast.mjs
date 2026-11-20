@@ -86,63 +86,66 @@ function toSrgbObject(c) {
   };
 }
 
-function resolveColor(expr, vars, stack = new Set()) {
-  const trimmed = expr.trim();
+const VAR_ONLY_RE = /^var\(\s*(--[a-zA-Z0-9_-]+)(?:\s*,\s*([^)]+))?\s*\)$/;
 
-  // Direct var(--token)
-  const varOnlyMatch = trimmed.match(/^var\(\s*(--[a-zA-Z0-9_-]+)(?:\s*,\s*([^)]+))?\s*\)$/);
-  if (varOnlyMatch) {
-    const name = varOnlyMatch[1];
-    if (stack.has(name)) {
-      throw new Error(`Circular CSS variable reference: ${name}`);
-    }
-    const rawVal = vars[name] ?? varOnlyMatch[2];
-    if (!rawVal) {
-      throw new Error(`Undefined CSS variable: ${name}`);
-    }
-    const nextStack = new Set(stack);
-    nextStack.add(name);
-    return resolveColor(rawVal, vars, nextStack);
+// Direct var(--token) or var(--token, fallback). Returns null if not a var-only expression.
+function resolveVarOnly(trimmed, vars, stack) {
+  const varOnlyMatch = trimmed.match(VAR_ONLY_RE);
+  if (!varOnlyMatch) return null;
+  const name = varOnlyMatch[1];
+  if (stack.has(name)) {
+    throw new Error(`Circular CSS variable reference: ${name}`);
   }
-
-  // color-mix(in srgb, <arg1>, <arg2>)
-  if (trimmed.startsWith('color-mix(') && trimmed.endsWith(')')) {
-    const inner = trimmed.slice('color-mix('.length, -1);
-    const args = splitTopLevelArgs(inner);
-    if (args.length !== 3 || !args[0].toLowerCase().includes('srgb')) {
-      throw new Error(`Unsupported color-mix syntax: ${trimmed}`);
-    }
-    const a1 = parseColorMixArg(args[1], vars, stack);
-    const a2 = parseColorMixArg(args[2], vars, stack);
-
-    let w1 = a1.pct;
-    let w2 = a2.pct;
-    if (w1 === null && w2 === null) {
-      w1 = 50;
-      w2 = 50;
-    } else if (w1 !== null && w2 === null) {
-      w2 = 100 - w1;
-    } else if (w1 === null && w2 !== null) {
-      w1 = 100 - w2;
-    }
-
-    const total = w1 + w2;
-    const p1 = total > 0 ? w1 / total : 0.5;
-    const p2 = total > 0 ? w2 / total : 0.5;
-    const alphaMult = total < 100 ? total / 100 : 1;
-
-    const c1 = toSrgbObject(a1.color);
-    const c2 = toSrgbObject(a2.color);
-    return {
-      mode: 'rgb',
-      r: c1.r * p1 + c2.r * p2,
-      g: c1.g * p1 + c2.g * p2,
-      b: c1.b * p1 + c2.b * p2,
-      alpha: (c1.alpha * p1 + c2.alpha * p2) * alphaMult,
-    };
+  const rawVal = vars[name] ?? varOnlyMatch[2];
+  if (!rawVal) {
+    throw new Error(`Undefined CSS variable: ${name}`);
   }
+  const nextStack = new Set(stack);
+  nextStack.add(name);
+  return resolveColor(rawVal, vars, nextStack);
+}
 
-  // Fallback: expand inline var(...) inside other color expressions if any
+// Normalizes the two color-mix percentages so that they always sum relative to each other.
+function normalizeMixWeights(pct1, pct2) {
+  if (pct1 === null && pct2 === null) return { w1: 50, w2: 50 };
+  if (pct2 === null) return { w1: pct1, w2: 100 - pct1 };
+  if (pct1 === null) return { w1: 100 - pct2, w2: pct2 };
+  return { w1: pct1, w2: pct2 };
+}
+
+function mixSrgb(a1, a2) {
+  const { w1, w2 } = normalizeMixWeights(a1.pct, a2.pct);
+  const total = w1 + w2;
+  const p1 = total > 0 ? w1 / total : 0.5;
+  const p2 = total > 0 ? w2 / total : 0.5;
+  const alphaMult = total < 100 ? total / 100 : 1;
+
+  const c1 = toSrgbObject(a1.color);
+  const c2 = toSrgbObject(a2.color);
+  return {
+    mode: 'rgb',
+    r: c1.r * p1 + c2.r * p2,
+    g: c1.g * p1 + c2.g * p2,
+    b: c1.b * p1 + c2.b * p2,
+    alpha: (c1.alpha * p1 + c2.alpha * p2) * alphaMult,
+  };
+}
+
+// color-mix(in srgb, <arg1>, <arg2>). Returns null if not a color-mix expression.
+function resolveColorMix(trimmed, vars, stack) {
+  if (!trimmed.startsWith('color-mix(') || !trimmed.endsWith(')')) return null;
+  const inner = trimmed.slice('color-mix('.length, -1);
+  const args = splitTopLevelArgs(inner);
+  if (args.length !== 3 || !args[0].toLowerCase().includes('srgb')) {
+    throw new Error(`Unsupported color-mix syntax: ${trimmed}`);
+  }
+  const a1 = parseColorMixArg(args[1], vars, stack);
+  const a2 = parseColorMixArg(args[2], vars, stack);
+  return mixSrgb(a1, a2);
+}
+
+// Fallback: expand inline var(...) inside other color expressions if any, then parse with culori.
+function resolveParsedColor(trimmed, vars) {
   const expanded = trimmed.replace(/var\(\s*(--[a-zA-Z0-9_-]+)\s*\)/g, (_, name) => {
     if (!vars[name]) throw new Error(`Undefined CSS variable: ${name}`);
     return vars[name];
@@ -153,6 +156,15 @@ function resolveColor(expr, vars, stack = new Set()) {
     throw new Error(`Could not parse color expression: ${trimmed}`);
   }
   return toSrgbObject(parsed);
+}
+
+function resolveColor(expr, vars, stack = new Set()) {
+  const trimmed = expr.trim();
+  return (
+    resolveVarOnly(trimmed, vars, stack) ??
+    resolveColorMix(trimmed, vars, stack) ??
+    resolveParsedColor(trimmed, vars)
+  );
 }
 
 function compositeOver(fg, bg) {

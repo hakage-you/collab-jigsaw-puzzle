@@ -108,14 +108,13 @@ export class PuzzleEngine {
         this.spriteAtlasPages,
       );
     }
-    const sprite = renderPieceBackSprite(
-      piece,
-      this.pieceW,
-      this.pieceH,
-      this.spritePad,
-      this.backPatternCanvas,
-      this.spriteAtlas,
-    );
+    const sprite = renderPieceBackSprite(piece, {
+      pieceW: this.pieceW,
+      pieceH: this.pieceH,
+      spritePad: this.spritePad,
+      backPatternCanvas: this.backPatternCanvas,
+      atlas: this.spriteAtlas,
+    });
     this.spriteAtlasPages = this.spriteAtlas.pages.map((p) => ({ canvas: p.canvas, ctx: p.ctx }));
     return sprite;
   }
@@ -158,7 +157,7 @@ export class PuzzleEngine {
   }) {
     const prevSrc = this.sourceCanvas;
     this.sourceCanvas = sourceCanvas;
-    this.isSampleImage = !!isSampleImage;
+    this.isSampleImage = Boolean(isSampleImage);
     this.imageHash = computeImageSignature(sourceCanvas);
     const clamped = clampGridDimensions(cols, rows);
     this.cols = clamped.cols;
@@ -189,7 +188,7 @@ export class PuzzleEngine {
     const prevSrc = this.sourceCanvas;
     const pInfo = saveData.puzzle;
     this.sourceCanvas = sourceCanvas;
-    this.isSampleImage = !!isSampleImage;
+    this.isSampleImage = Boolean(isSampleImage);
     this.imageHash = computeImageSignature(sourceCanvas);
     const clamped = clampGridDimensions(pInfo.cols, pInfo.rows);
     this.cols = clamped.cols;
@@ -261,14 +260,14 @@ export class PuzzleEngine {
     this._sortedLooseCache = { version: -1, list: [] };
     this.lodCache.clear();
 
-    const layout = generateCutLayout(
-      this.cols,
-      this.rows,
-      this.boardW,
-      this.boardH,
-      this.seed,
-      this.cutComplexity,
-    );
+    const layout = generateCutLayout({
+      cols: this.cols,
+      rows: this.rows,
+      boardW: this.boardW,
+      boardH: this.boardH,
+      seed: this.seed,
+      cutComplexity: this.cutComplexity,
+    });
     const colorInfos = analyzePieceColors(this.sourceCanvas, this.cols, this.rows);
     const rng = mulberry32(this.seed ^ 0x9e3779b9);
 
@@ -293,20 +292,20 @@ export class PuzzleEngine {
         const id = r * this.cols + c;
         const targetX = -this.boardW / 2 + (c + 0.5) * this.pieceW;
         const targetY = -this.boardH / 2 + (r + 0.5) * this.pieceH;
-        const path = buildPiecePath(
-          r,
-          c,
-          this.cols,
-          this.rows,
+        const path = buildPiecePath({
+          row: r,
+          col: c,
+          cols: this.cols,
+          rows: this.rows,
           targetX,
           targetY,
           layout,
-          this.tabSize,
-        );
+          tabSize: this.tabSize,
+        });
 
         const sp = savedMap ? savedMap.get(id) : null;
         const pos = positions ? positions[id] : null;
-        const isLocked = sp ? !!sp.isLocked : false;
+        const isLocked = sp ? Boolean(sp.isLocked) : false;
         const groupId = sp ? sp.groupId : this.nextGroupId++;
         const zOrder = sp ? (isLocked ? 0 : ++highestZ) : this.maxZ++;
         highestGroup = Math.max(highestGroup, groupId);
@@ -322,7 +321,7 @@ export class PuzzleEngine {
           y: sp ? (isLocked ? targetY : sp.y * coordScaleY) : pos.y,
           rotation: sp ? ((sp.rotation % 4) + 4) % 4 : allowRotation ? Math.floor(rng() * 4) : 0,
           isFlipped: sp
-            ? !!sp.isFlipped
+            ? Boolean(sp.isFlipped)
             : allowFlip
               ? rng() < PUZZLE_CONFIG.FLIP_INITIAL_PROB
               : false,
@@ -337,26 +336,24 @@ export class PuzzleEngine {
           spriteHalfH: this.pieceH / 2 + this.spritePad,
         };
 
-        renderPieceSprites(
-          piece,
-          this.sourceCanvas,
-          this.boardW,
-          this.boardH,
-          this.pieceW,
-          this.pieceH,
-          this.spritePad,
+        renderPieceSprites(piece, {
+          sourceCanvas: this.sourceCanvas,
+          boardW: this.boardW,
+          boardH: this.boardH,
+          pieceW: this.pieceW,
+          pieceH: this.pieceH,
+          spritePad: this.spritePad,
           atlas,
-          total,
-        );
+          totalPieces: total,
+        });
         if (piece.isFlipped) {
-          renderPieceBackSprite(
-            piece,
-            this.pieceW,
-            this.pieceH,
-            this.spritePad,
-            this.backPatternCanvas,
+          renderPieceBackSprite(piece, {
+            pieceW: this.pieceW,
+            pieceH: this.pieceH,
+            spritePad: this.spritePad,
+            backPatternCanvas: this.backPatternCanvas,
             atlas,
-          );
+          });
         }
         this.pieces.push(piece);
       }

@@ -46,7 +46,7 @@ export class HostSession {
 
   configure({ passcode = '', requireApproval = true, capacity = 8 }) {
     this.passcode = passcode.trim();
-    this.requireApproval = !!requireApproval;
+    this.requireApproval = Boolean(requireApproval);
     this.capacity = Math.max(
       MULTIPLAYER_CONFIG.MIN_CAPACITY,
       Math.min(

@@ -69,15 +69,12 @@ export function computeGridForPieceCount(targetCount, imgWidth, imgHeight) {
 }
 
 /**
- * Generates deterministic grid vertices and edge parameters from `seed` and `cutComplexity`.
- * cutComplexity: 'uniform' | 'standard' | 'complex'
+ * Builds the (rows+1) x (cols+1) vertex grid, jittering inner vertices when warping.
+ * Consumes rng only for inner vertices when warpRatio > 0.
  */
-export function generateCutLayout(cols, rows, boardW, boardH, seed, cutComplexity = 'standard') {
-  const rng = mulberry32(seed);
+function buildWarpedGrid(rng, { cols, rows, boardW, boardH, complexity }) {
   const pieceW = boardW / cols;
   const pieceH = boardH / rows;
-  const complexity = normalizeCutComplexity(cutComplexity);
-
   const grid = [];
   const warpRatio = CUT_COMPLEXITY_CONFIG.WARP_RATIOS[complexity] ?? 0;
   const warpX = pieceW * warpRatio;
@@ -97,10 +94,16 @@ export function generateCutLayout(cols, rows, boardW, boardH, seed, cutComplexit
     }
     grid.push(rowVerts);
   }
+  return grid;
+}
 
+/**
+ * Returns a function that draws the parameters of one edge from rng.
+ */
+function createEdgeParamsFactory(rng, complexity) {
   const { STANDARD_ARCHETYPES, JITTER } = CUT_COMPLEXITY_CONFIG;
 
-  const makeEdgeParams = () => {
+  return () => {
     const sign = rng() < 0.5 ? 1 : -1;
 
     if (complexity === 'uniform') {
@@ -142,6 +145,31 @@ export function generateCutLayout(cols, rows, boardW, boardH, seed, cutComplexit
       secondSign: rng() < 0.5 ? sign : -sign,
     };
   };
+}
+
+/**
+ * Generates deterministic grid vertices and edge parameters from `seed` and `cutComplexity`.
+ * cutComplexity: 'uniform' | 'standard' | 'complex'
+ * @param {object} options
+ * @param {number} options.cols grid column count
+ * @param {number} options.rows grid row count
+ * @param {number} options.boardW board width
+ * @param {number} options.boardH board height
+ * @param {number} options.seed PRNG seed
+ * @param {string} [options.cutComplexity='standard'] cut complexity preset
+ */
+export function generateCutLayout({
+  cols,
+  rows,
+  boardW,
+  boardH,
+  seed,
+  cutComplexity = 'standard',
+}) {
+  const rng = mulberry32(seed);
+  const complexity = normalizeCutComplexity(cutComplexity);
+  const grid = buildWarpedGrid(rng, { cols, rows, boardW, boardH, complexity });
+  const makeEdgeParams = createEdgeParamsFactory(rng, complexity);
 
   const hEdges = [];
   for (let r = 0; r < rows - 1; r++) {
@@ -165,74 +193,76 @@ export function generateCutLayout(cols, rows, boardW, boardH, seed, cutComplexit
 }
 
 /**
- * Computes canonical cubic Bezier segments from pA to pB with normal (nx, ny).
- * Explicit segments allow exact mathematical reversal so adjacent pieces share
- * bit-identical curves even when asymmetric or warped.
+ * Builds one bump of a "double" tab centred at uMid: three cubic segments.
+ * `pt(u, v, amp)` maps edge-local coordinates to a point.
  */
-function buildCanonicalEdgeSegments(pA, pB, nx, ny, edge, tabSize) {
-  const dx = pB.x - pA.x;
-  const dy = pB.y - pA.y;
-  const amp = edge.sign * tabSize;
+function makeDoubleBump(pt, uMid, bumpAmp) {
+  const w = 0.11;
+  const pStart = pt(uMid - w * 1.4, 0, bumpAmp);
+  const c1a = pt(uMid - w * 0.7, -0.05, bumpAmp);
+  const c1b = pt(uMid - w * 0.9, 0.92, bumpAmp);
+  const pTop = pt(uMid, 0.92, bumpAmp);
+  const c2a = pt(uMid + w * 0.9, 0.92, bumpAmp);
+  const c2b = pt(uMid + w * 0.7, -0.05, bumpAmp);
+  const pEnd = pt(uMid + w * 1.4, 0, bumpAmp);
+  return [
+    { cp1: pStart, cp2: pStart, end: pStart },
+    { cp1: c1a, cp2: c1b, end: pTop },
+    { cp1: c2a, cp2: c2b, end: pEnd },
+  ];
+}
 
-  const pt = (u, v, customAmp = amp) => ({
-    x: pA.x + dx * u + nx * (v * customAmp),
-    y: pA.y + dy * u + ny * (v * customAmp),
-  });
+/**
+ * Segments for the 'double' edge shape (two bumps joined in the middle).
+ */
+function buildDoubleEdgeSegments(pt, pB, edge, tabSize) {
+  const amp1 = edge.sign * tabSize * 0.78;
+  const amp2 = edge.secondSign * tabSize * 0.78;
+  const b1 = makeDoubleBump(pt, 0.32, amp1);
+  const b2 = makeDoubleBump(pt, 0.68, amp2);
+  return [
+    ...b1,
+    { cp1: b1[2].end, cp2: b2[0].end, end: b2[0].end },
+    ...b2,
+    { cp1: b2[2].end, cp2: pB, end: pB },
+  ];
+}
 
-  if (edge.shape === 'double') {
-    const amp1 = edge.sign * tabSize * 0.78;
-    const amp2 = edge.secondSign * tabSize * 0.78;
-    const makeBump = (uMid, bumpAmp) => {
-      const w = 0.11;
-      const pStart = pt(uMid - w * 1.4, 0, bumpAmp);
-      const c1a = pt(uMid - w * 0.7, -0.05, bumpAmp);
-      const c1b = pt(uMid - w * 0.9, 0.92, bumpAmp);
-      const pTop = pt(uMid, 0.92, bumpAmp);
-      const c2a = pt(uMid + w * 0.9, 0.92, bumpAmp);
-      const c2b = pt(uMid + w * 0.7, -0.05, bumpAmp);
-      const pEnd = pt(uMid + w * 1.4, 0, bumpAmp);
-      return [
-        { cp1: pStart, cp2: pStart, end: pStart },
-        { cp1: c1a, cp2: c1b, end: pTop },
-        { cp1: c2a, cp2: c2b, end: pEnd },
-      ];
-    };
-    const b1 = makeBump(0.32, amp1);
-    const b2 = makeBump(0.68, amp2);
-    return [
-      ...b1,
-      { cp1: b1[2].end, cp2: b2[0].end, end: b2[0].end },
-      ...b2,
-      { cp1: b2[2].end, cp2: pB, end: pB },
-    ];
-  }
-
+/**
+ * Segments for the 'square' edge shape (flat-headed tab).
+ */
+function buildSquareEdgeSegments(pt, pB, edge) {
   const uc = edge.uCenter;
   const sk = edge.tilt;
   const d = edge.depth;
+  const neckL = uc - 0.11;
+  const neckR = uc + 0.11;
+  const headL = uc - 0.16 + sk * 0.5;
+  const headR = uc + 0.16 + sk * 0.5;
 
-  if (edge.shape === 'square') {
-    const neckL = uc - 0.11;
-    const neckR = uc + 0.11;
-    const headL = uc - 0.16 + sk * 0.5;
-    const headR = uc + 0.16 + sk * 0.5;
+  const p1 = pt(neckL, 0.18 * d);
+  const p2 = pt(uc + sk * 0.5, 0.94 * d);
+  const p3 = pt(neckR, 0.18 * d);
 
-    const p1 = pt(neckL, 0.18 * d);
-    const p2 = pt(uc + sk * 0.5, 0.94 * d);
-    const p3 = pt(neckR, 0.18 * d);
+  return [
+    { cp1: pt(neckL * 0.55, edge.shoulderBow), cp2: pt(neckL + 0.02, -0.04), end: p1 },
+    { cp1: pt(headL, 0.45 * d), cp2: pt(headL, 0.94 * d), end: p2 },
+    { cp1: pt(headR, 0.94 * d), cp2: pt(headR, 0.45 * d), end: p3 },
+    {
+      cp1: pt(neckR - 0.02, -0.04),
+      cp2: pt(neckR + (1 - neckR) * 0.45, -edge.shoulderBow),
+      end: pB,
+    },
+  ];
+}
 
-    return [
-      { cp1: pt(neckL * 0.55, edge.shoulderBow), cp2: pt(neckL + 0.02, -0.04), end: p1 },
-      { cp1: pt(headL, 0.45 * d), cp2: pt(headL, 0.94 * d), end: p2 },
-      { cp1: pt(headR, 0.94 * d), cp2: pt(headR, 0.45 * d), end: p3 },
-      {
-        cp1: pt(neckR - 0.02, -0.04),
-        cp2: pt(neckR + (1 - neckR) * 0.45, -edge.shoulderBow),
-        end: pB,
-      },
-    ];
-  }
-
+/**
+ * Segments for the 'classic' (and 'uniform' / 'complex' non-special) edge shape.
+ */
+function buildClassicEdgeSegments(pt, pB, edge) {
+  const uc = edge.uCenter;
+  const sk = edge.tilt;
+  const d = edge.depth;
   const neckL = uc - edge.neckWidth;
   const neckR = uc + edge.neckWidth;
   const hw = edge.headWidth;
@@ -274,13 +304,44 @@ function buildCanonicalEdgeSegments(pA, pB, nx, ny, edge, tabSize) {
   ];
 }
 
-function appendEdgeSegments(path, pA, pB, nx, ny, edge, tabSize, reverse) {
+/**
+ * Computes canonical cubic Bezier segments from pA to pB.
+ * Explicit segments allow exact mathematical reversal so adjacent pieces share
+ * bit-identical curves even when asymmetric or warped.
+ * @param {{x: number, y: number}} pA start point
+ * @param {{x: number, y: number}} pB end point
+ * @param {{nx: number, ny: number, edge: object, tabSize: number}} options
+ *   nx, ny: unit normal of the edge; edge: edge parameters; tabSize: tab amplitude
+ */
+function buildCanonicalEdgeSegments(pA, pB, { nx, ny, edge, tabSize }) {
+  const dx = pB.x - pA.x;
+  const dy = pB.y - pA.y;
+  const amp = edge.sign * tabSize;
+
+  const pt = (u, v, customAmp = amp) => ({
+    x: pA.x + dx * u + nx * (v * customAmp),
+    y: pA.y + dy * u + ny * (v * customAmp),
+  });
+
+  if (edge.shape === 'double') return buildDoubleEdgeSegments(pt, pB, edge, tabSize);
+  if (edge.shape === 'square') return buildSquareEdgeSegments(pt, pB, edge);
+  return buildClassicEdgeSegments(pt, pB, edge);
+}
+
+/**
+ * Appends the edge from pA to pB onto `path`, reversed when `reverse` is true.
+ * @param {Path2D} path target path
+ * @param {{x: number, y: number}} pA start point
+ * @param {{x: number, y: number}} pB end point
+ * @param {{nx: number, ny: number, edge: object|null, tabSize: number, reverse: boolean}} options
+ */
+function appendEdgeSegments(path, pA, pB, { nx, ny, edge, tabSize, reverse }) {
   if (!edge) {
     path.lineTo(reverse ? pA.x : pB.x, reverse ? pA.y : pB.y);
     return;
   }
 
-  const segs = buildCanonicalEdgeSegments(pA, pB, nx, ny, edge, tabSize);
+  const segs = buildCanonicalEdgeSegments(pA, pB, { nx, ny, edge, tabSize });
   if (!reverse) {
     for (const s of segs) {
       path.bezierCurveTo(s.cp1.x, s.cp1.y, s.cp2.x, s.cp2.y, s.end.x, s.end.y);
@@ -306,8 +367,17 @@ function unitRightNormal(pA, pB, clockwise90 = true) {
 
 /**
  * Builds a Path2D centered at piece's nominal center (targetX, targetY).
+ * @param {object} options
+ * @param {number} options.row piece row
+ * @param {number} options.col piece column
+ * @param {number} options.cols grid column count
+ * @param {number} options.rows grid row count
+ * @param {number} options.targetX piece center X
+ * @param {number} options.targetY piece center Y
+ * @param {object} options.layout layout returned by generateCutLayout
+ * @param {number} options.tabSize tab amplitude
  */
-export function buildPiecePath(row, col, cols, rows, targetX, targetY, layout, tabSize) {
+export function buildPiecePath({ row, col, cols, rows, targetX, targetY, layout, tabSize }) {
   const toLocal = (v) => ({ x: v.x - targetX, y: v.y - targetY });
 
   const tl = toLocal(layout.grid[row][col]);
@@ -325,19 +395,19 @@ export function buildPiecePath(row, col, cols, rows, targetX, targetY, layout, t
 
   {
     const { nx, ny } = unitRightNormal(tl, tr, true);
-    appendEdgeSegments(path, tl, tr, nx, ny, topEdge, tabSize, false);
+    appendEdgeSegments(path, tl, tr, { nx, ny, edge: topEdge, tabSize, reverse: false });
   }
   {
     const { nx, ny } = unitRightNormal(tr, br, false);
-    appendEdgeSegments(path, tr, br, nx, ny, rightEdge, tabSize, false);
+    appendEdgeSegments(path, tr, br, { nx, ny, edge: rightEdge, tabSize, reverse: false });
   }
   {
     const { nx, ny } = unitRightNormal(bl, br, true);
-    appendEdgeSegments(path, bl, br, nx, ny, bottomEdge, tabSize, true);
+    appendEdgeSegments(path, bl, br, { nx, ny, edge: bottomEdge, tabSize, reverse: true });
   }
   {
     const { nx, ny } = unitRightNormal(tl, bl, false);
-    appendEdgeSegments(path, tl, bl, nx, ny, leftEdge, tabSize, true);
+    appendEdgeSegments(path, tl, bl, { nx, ny, edge: leftEdge, tabSize, reverse: true });
   }
 
   path.closePath();

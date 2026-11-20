@@ -86,10 +86,11 @@ function sha256FallbackHex(ascii) {
     }
   }
 
-  ascii += '\x80';
-  while ((ascii.length % 64) - 56) ascii += '\x00';
-  for (let i = 0; i < ascii.length; i++) {
-    const j = ascii.charCodeAt(i);
+  let padded = ascii;
+  padded += '\x80';
+  while ((padded.length % 64) - 56) padded += '\x00';
+  for (let i = 0; i < padded.length; i++) {
+    const j = padded.charCodeAt(i);
     words[i >> 2] |= j << (((3 - i) % 4) * 8);
   }
   words[words.length] = (asciiBitLength / maxWord) | 0;
@@ -142,6 +143,10 @@ function sha256FallbackHex(ascii) {
   return result;
 }
 
+/**
+ * Computes the SHA-256 hex digest of the input (UTF-8), using crypto.subtle when available.
+ * @public
+ */
 export async function sha256Hex(input) {
   const text = String(input);
   if (globalThis.crypto?.subtle) {
@@ -153,7 +158,7 @@ export async function sha256Hex(input) {
   return sha256FallbackHex(utf8);
 }
 
-export async function computeChallengeHash(nonce, passcode = '') {
+export function computeChallengeHash(nonce, passcode = '') {
   return sha256Hex(`${nonce}:${passcode || ''}`);
 }
 

@@ -96,7 +96,17 @@ export class PieceSpriteAtlas {
   }
 }
 
-function computeSpriteMetrics(sourceCanvas, boardW, pieceW, pieceH, spritePad, totalPieces) {
+/**
+ * Computes logical/physical sprite dimensions and render scale for a piece.
+ * @param {object} options
+ * @param {HTMLCanvasElement|null} options.sourceCanvas source image canvas (may be null)
+ * @param {number} options.boardW board width
+ * @param {number} options.pieceW nominal piece width
+ * @param {number} options.pieceH nominal piece height
+ * @param {number} options.spritePad sprite padding in board units
+ * @param {number} options.totalPieces total piece count
+ */
+function computeSpriteMetrics({ sourceCanvas, boardW, pieceW, pieceH, spritePad, totalPieces }) {
   const logicalW = Math.ceil(pieceW + spritePad * 2);
   const logicalH = Math.ceil(pieceH + spritePad * 2);
   const logicalArea = Math.max(1, logicalW * logicalH);
@@ -251,27 +261,30 @@ export function drawBackPieceToSlot(
 
 /**
  * Renders high-resolution front sprite into a shared CPU PieceSpriteAtlas using 9-arg drawImage.
+ * @param {object} piece piece to render (sprite fields are written onto it)
+ * @param {object} options
+ * @param {HTMLCanvasElement} options.sourceCanvas source image canvas
+ * @param {number} options.boardW board width
+ * @param {number} options.boardH board height
+ * @param {number} options.pieceW nominal piece width
+ * @param {number} options.pieceH nominal piece height
+ * @param {number} options.spritePad sprite padding in board units
+ * @param {PieceSpriteAtlas|null} [options.atlas=null] atlas to allocate into (created if omitted)
+ * @param {number} [options.totalPieces=24] total piece count
  */
 export function renderPieceSprites(
   piece,
-  sourceCanvas,
-  boardW,
-  boardH,
-  pieceW,
-  pieceH,
-  spritePad,
-  atlas = null,
-  totalPieces = 24,
+  { sourceCanvas, boardW, boardH, pieceW, pieceH, spritePad, atlas = null, totalPieces = 24 },
 ) {
   const targetAtlas = atlas || new PieceSpriteAtlas();
-  const { logicalW, logicalH, spriteScale, physW, physH } = computeSpriteMetrics(
+  const { logicalW, logicalH, spriteScale, physW, physH } = computeSpriteMetrics({
     sourceCanvas,
     boardW,
     pieceW,
     pieceH,
     spritePad,
     totalPieces,
-  );
+  });
 
   piece.spriteLogicalW = logicalW;
   piece.spriteLogicalH = logicalH;
@@ -303,8 +316,18 @@ export function renderPieceSprites(
 
 /**
  * On-demand CPU rasterizer for a flipped piece's back sprite.
+ * @param {object} piece piece to render (backSprite is written onto it)
+ * @param {object} options
+ * @param {number} options.pieceW nominal piece width
+ * @param {number} options.pieceH nominal piece height
+ * @param {number} options.spritePad sprite padding in board units
+ * @param {HTMLCanvasElement|null} options.backPatternCanvas back pattern source canvas
+ * @param {PieceSpriteAtlas} options.atlas atlas to allocate into
  */
-export function renderPieceBackSprite(piece, pieceW, pieceH, spritePad, backPatternCanvas, atlas) {
+export function renderPieceBackSprite(
+  piece,
+  { pieceW, pieceH, spritePad, backPatternCanvas, atlas },
+) {
   if (!piece || !atlas) return null;
   if (piece.backSprite) return piece.backSprite;
 

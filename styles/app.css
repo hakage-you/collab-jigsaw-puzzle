@@ -568,6 +568,13 @@
 }
 
 .zoom-readout {
+  /* Reset native button chrome so the <button> looks like the former <span> */
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
   min-width: 48px;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -1018,7 +1025,7 @@
 .stats-hidden #statsHudGroup,
 .stats-hidden .result-countable,
 .stats-hidden .participant-contrib {
-  display: none !important;
+  display: none;
 }
 
 /* =========================================================
@@ -1234,7 +1241,7 @@
 
 .role-guest .host-only,
 .role-guest .guest-hide {
-  display: none !important;
+  display: none;
 }
 
 .room-rules-summary {

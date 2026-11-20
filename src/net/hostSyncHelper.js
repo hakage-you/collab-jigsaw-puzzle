@@ -15,6 +15,10 @@ export function serializePieces(pieces) {
   }));
 }
 
+/**
+ * Builds the room rules payload sent to guests.
+ * @public
+ */
 export function buildRoomRules(room) {
   const settings = room.getSettings();
   const eng = room.engine;
