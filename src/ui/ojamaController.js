@@ -1,4 +1,5 @@
 import { OJAMA_CONFIG, YOUTUBE_CONFIG } from '../config/constants.js';
+import { decideCommentOjama } from '../app/ojamaRules.js';
 import { sound } from '../services/sound.js';
 
 export class OjamaController {
@@ -490,61 +491,51 @@ export class OjamaController {
     else this.triggerPrankOjama();
   }
 
+  _runCommentOjama(action, author, text) {
+    switch (action) {
+      case 'drop':
+        this.triggerDropOjama();
+        break;
+      case 'ghost':
+        this.triggerVisualOjama('ghost');
+        break;
+      case 'fake':
+        this.triggerFakePiecesOjama();
+        break;
+      case 'visual':
+        this.triggerVisualOjama();
+        break;
+      case 'prank':
+        this.triggerPrankOjama();
+        break;
+      case 'superchat':
+        this.triggerSuperchatOjama(text, author);
+        break;
+      case 'random':
+        this.triggerRandomOjama();
+        break;
+      default:
+        break;
+    }
+  }
+
   processIncomingComment(author, text) {
     this.readSettingsFromUI();
-    const settings = this.getSettings();
-    const threshold = settings.ojama.commentThreshold;
-    const cooldownMs = settings.ojama.cooldownSec * 1000;
-    const now = Date.now();
-
-    const words = settings.ojama.triggerWords
-      .split(',')
-      .map((w) => w.trim().toLowerCase())
-      .filter(Boolean)
-      .sort((a, b) => b.length - a.length);
-
-    const lower = text.toLowerCase();
-    const matchedWord = words.find((w) => lower.includes(w));
-
-    let triggered = false;
-    if (this.engine.isCompleted()) {
-      if (matchedWord) {
-        this.showToast('パズル完成済みのためお邪魔は発動しません', 'info');
-      }
-    } else {
-      this.commentCounter += 1;
-      const cooldownReady = now - this.lastOjamaTime >= cooldownMs;
-
-      if (matchedWord && cooldownReady) {
-        triggered = true;
-        this.lastOjamaTime = now;
-        if (matchedWord.includes('drop') || lower.includes('落と')) {
-          this.triggerDropOjama();
-        } else if (matchedWord.includes('ghost') || lower.includes('透明')) {
-          this.triggerVisualOjama('ghost');
-        } else if (matchedWord.includes('fake') || lower.includes('偽')) {
-          this.triggerFakePiecesOjama();
-        } else if (matchedWord.includes('color') || lower.includes('色')) {
-          this.triggerVisualOjama();
-        } else if (matchedWord.includes('spin') || lower.includes('回')) {
-          this.triggerPrankOjama();
-        } else if (matchedWord.includes('sp') || lower.includes('スパ')) {
-          this.triggerSuperchatOjama(text, author);
-        } else {
-          this.triggerRandomOjama();
-        }
-      } else if (this.commentCounter >= threshold) {
-        this.commentCounter = 0;
-        if (cooldownReady) {
-          triggered = true;
-          this.lastOjamaTime = now;
-          this.triggerRandomOjama();
-        }
-      }
-    }
+    const { action, nextState, notice } = decideCommentOjama({
+      text,
+      settings: this.getSettings(),
+      now: Date.now(),
+      state: { commentCounter: this.commentCounter, lastOjamaTime: this.lastOjamaTime },
+      isCompleted: this.engine.isCompleted(),
+    });
+    this.commentCounter = nextState.commentCounter;
+    this.lastOjamaTime = nextState.lastOjamaTime;
+    if (action) this._runCommentOjama(action, author, text);
+    if (notice) this.showToast(notice, 'info');
 
     this.updateCommentProgressUI();
 
+    const triggered = Boolean(action);
     const emptyEl = this.elMiniChatLog.querySelector('.chat-empty');
     if (emptyEl) emptyEl.remove();
 

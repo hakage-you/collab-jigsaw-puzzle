@@ -3,6 +3,9 @@ import { recordDiagnostic } from './diagnostics.js';
 
 const VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
 
+const CHAT_DISABLED_REASON =
+  'ライブチャットが取得できません（配信開始前・アーカイブ・チャット無効・メンバー限定等は非対応です）';
+
 /**
  * Extracts an 11-character YouTube Video ID from various URL formats or raw ID input.
  */
@@ -36,27 +39,111 @@ export function extractVideoId(input) {
   return null;
 }
 
+/**
+ * Ordered rules for mapping a failed API response to a user-facing message.
+ * The first rule whose `match` returns true wins.
+ */
+const API_ERROR_RULES = [
+  {
+    match: ({ reason }) => reason === 'quotaExceeded' || reason === 'dailyLimitExceeded',
+    message: 'YouTube API の本日の無料枠（クォータ上限）に達したため自動停止しました',
+  },
+  {
+    match: ({ reason, status, rawMessage }) =>
+      reason === 'keyInvalid' || (status === 400 && rawMessage.toLowerCase().includes('api key')),
+    message: 'API キーが無効です。Google Cloud Console のキー設定を確認してください',
+  },
+  {
+    match: ({ reason }) => reason === 'liveChatDisabled',
+    message: 'この配信ではライブチャットが無効になっているため取得できません',
+  },
+  {
+    match: ({ reason, status }) => reason === 'forbidden' || status === 403,
+    message:
+      'API リクエストが拒否されました（403: 権限・API制限・配信の公開設定を確認してください）',
+  },
+  {
+    match: ({ reason, status }) => reason === 'liveChatEnded' || status === 404,
+    message: '配信またはライブチャットが見つからないか、すでに終了しています',
+  },
+];
+
 function mapApiError(status, body) {
   const reason = body?.error?.errors?.[0]?.reason || '';
   const rawMessage = body?.error?.message || '';
+  const context = { status, reason, rawMessage };
 
-  if (reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') {
-    return 'YouTube API の本日の無料枠（クォータ上限）に達したため自動停止しました';
-  }
-  if (reason === 'keyInvalid' || (status === 400 && rawMessage.toLowerCase().includes('api key'))) {
-    return 'API キーが無効です。Google Cloud Console のキー設定を確認してください';
-  }
-  if (reason === 'liveChatDisabled') {
-    return 'この配信ではライブチャットが無効になっているため取得できません';
-  }
-  if (reason === 'forbidden' || status === 403) {
-    return 'API リクエストが拒否されました（403: 権限・API制限・配信の公開設定を確認してください）';
-  }
-  if (reason === 'liveChatEnded' || status === 404) {
-    return '配信またはライブチャットが見つからないか、すでに終了しています';
-  }
+  const rule = API_ERROR_RULES.find((r) => r.match(context));
+  if (rule) return rule.message;
   return `YouTube API エラー (${status}): ${rawMessage || '通信に失敗しました'}`;
 }
+
+function buildVideosUrl(videoId, apiKey) {
+  return (
+    `${YOUTUBE_CONFIG.API_BASE}/videos` +
+    `?part=snippet,liveStreamingDetails` +
+    `&id=${encodeURIComponent(videoId)}` +
+    `&key=${encodeURIComponent(apiKey)}`
+  );
+}
+
+function parseVideoInfo(item) {
+  return {
+    title: item.snippet?.title || '無題の配信',
+    channelTitle: item.snippet?.channelTitle || '',
+    liveBroadcastContent: item.snippet?.liveBroadcastContent || 'none',
+    activeLiveChatId: item.liveStreamingDetails?.activeLiveChatId || null,
+  };
+}
+
+function handleTextMessage(_client, item, snippet, author, comments) {
+  const text = snippet.displayMessage || snippet.textMessageDetails?.messageText || '';
+  if (text) {
+    comments.push({ id: item.id, author, text });
+  }
+}
+
+function buildSuperChatPayload(item, snippet, author) {
+  const d = snippet.superChatDetails || {};
+  return {
+    id: item.id,
+    author,
+    amountDisplay: d.amountDisplayString || '¥1,000',
+    message: d.userComment || snippet.displayMessage || '',
+    tier: Number(d.tier) || 1,
+    isSticker: false,
+  };
+}
+
+function buildSuperStickerPayload(item, snippet, author) {
+  const d = snippet.superStickerDetails || {};
+  return {
+    id: item.id,
+    author,
+    amountDisplay: d.amountDisplayString || '¥500',
+    message: d.superStickerMetadata?.altText || 'スーパーステッカー',
+    tier: Number(d.tier) || 1,
+    isSticker: true,
+  };
+}
+
+/**
+ * Per-event-type handlers for live chat items. Superchat/sticker handlers emit
+ * immediately (preserving the original call order); text comments are batched.
+ */
+const CHAT_ITEM_HANDLERS = new Map([
+  ['textMessageEvent', handleTextMessage],
+  [
+    'superChatEvent',
+    (client, item, snippet, author) =>
+      client.onSuperchat(buildSuperChatPayload(item, snippet, author)),
+  ],
+  [
+    'superStickerEvent',
+    (client, item, snippet, author) =>
+      client.onSuperchat(buildSuperStickerPayload(item, snippet, author)),
+  ],
+]);
 
 /**
  * Direct browser client for YouTube Data API v3 (BYOK, read-only).
@@ -112,6 +199,15 @@ export class YouTubeLiveClient {
     return { ok: res.ok, status: res.status, data };
   }
 
+  _storeBroadcast(cleanKey, videoId, info) {
+    this.apiKey = cleanKey;
+    this.videoId = videoId;
+    this.broadcastTitle = info.title;
+    this.channelTitle = info.channelTitle;
+    this.liveBroadcastContent = info.liveBroadcastContent;
+    this.activeLiveChatId = info.activeLiveChatId;
+  }
+
   /**
    * Verifies a broadcast using videos.list (consumes 1 quota unit).
    */
@@ -127,13 +223,7 @@ export class YouTubeLiveClient {
       throw new Error('有効な YouTube 配信 URL または 11文字の動画 ID を入力してください');
     }
 
-    const url =
-      `${YOUTUBE_CONFIG.API_BASE}/videos` +
-      `?part=snippet,liveStreamingDetails` +
-      `&id=${encodeURIComponent(videoId)}` +
-      `&key=${encodeURIComponent(cleanKey)}`;
-
-    const { ok, status, data } = await this._fetchJson(url);
+    const { ok, status, data } = await this._fetchJson(buildVideosUrl(videoId, cleanKey));
     this._addUnits(YOUTUBE_CONFIG.COST_VERIFY_VIDEOS);
 
     if (!ok) {
@@ -145,30 +235,14 @@ export class YouTubeLiveClient {
       throw new Error('該当する動画が見つかりませんでした（URL・公開設定を確認してください）');
     }
 
-    const title = item.snippet?.title || '無題の配信';
-    const channelTitle = item.snippet?.channelTitle || '';
-    const liveBroadcastContent = item.snippet?.liveBroadcastContent || 'none';
-    const activeLiveChatId = item.liveStreamingDetails?.activeLiveChatId || null;
-
-    this.apiKey = cleanKey;
-    this.videoId = videoId;
-    this.broadcastTitle = title;
-    this.channelTitle = channelTitle;
-    this.liveBroadcastContent = liveBroadcastContent;
-    this.activeLiveChatId = activeLiveChatId;
-
-    const chatDisabledReason = activeLiveChatId
-      ? ''
-      : 'ライブチャットが取得できません（配信開始前・アーカイブ・チャット無効・メンバー限定等は非対応です）';
+    const info = parseVideoInfo(item);
+    this._storeBroadcast(cleanKey, videoId, info);
 
     return {
       videoId,
-      title,
-      channelTitle,
-      liveBroadcastContent,
-      activeLiveChatId,
-      hasActiveChat: Boolean(activeLiveChatId),
-      chatDisabledReason,
+      ...info,
+      hasActiveChat: Boolean(info.activeLiveChatId),
+      chatDisabledReason: info.activeLiveChatId ? '' : CHAT_DISABLED_REASON,
       sessionUnits: this.sessionUnits,
     };
   }
@@ -266,34 +340,8 @@ export class YouTubeLiveClient {
     for (const item of items) {
       const snippet = item?.snippet || {};
       const author = item?.authorDetails?.displayName || '視聴者';
-      const eventType = snippet.type;
-
-      if (eventType === 'textMessageEvent') {
-        const text = snippet.displayMessage || snippet.textMessageDetails?.messageText || '';
-        if (text) {
-          comments.push({ id: item.id, author, text });
-        }
-      } else if (eventType === 'superChatEvent') {
-        const d = snippet.superChatDetails || {};
-        this.onSuperchat({
-          id: item.id,
-          author,
-          amountDisplay: d.amountDisplayString || '¥1,000',
-          message: d.userComment || snippet.displayMessage || '',
-          tier: Number(d.tier) || 1,
-          isSticker: false,
-        });
-      } else if (eventType === 'superStickerEvent') {
-        const d = snippet.superStickerDetails || {};
-        this.onSuperchat({
-          id: item.id,
-          author,
-          amountDisplay: d.amountDisplayString || '¥500',
-          message: d.superStickerMetadata?.altText || 'スーパーステッカー',
-          tier: Number(d.tier) || 1,
-          isSticker: true,
-        });
-      }
+      const handle = CHAT_ITEM_HANDLERS.get(snippet.type);
+      if (handle) handle(this, item, snippet, author, comments);
     }
 
     if (comments.length > 0) {
