@@ -1,6 +1,8 @@
 import { MULTIPLAYER_CONFIG } from '../config/constants.js';
 import { saveAutoBackup } from '../services/storage.js';
-import { MSG, generateToken, isValidMessage } from './protocol.js';
+import { recordDiagnostic } from '../services/diagnostics.js';
+import { MSG, generateToken } from './protocol.js';
+import { createRateGate, sanitizeGuestMessage, RATE_OK, RATE_FLOOD } from './guestMessageGuard.js';
 import {
   sendWelcomeToGuest,
   sendImageToGuest,
@@ -15,6 +17,8 @@ import {
   handleDropRequest,
   handleRotateOrFlip,
 } from './hostBoardOps.js';
+
+const FLOOD_KICK_REASON = '通信量が多すぎるため退出しました';
 
 function handleImageAck(session, { connId, msg }) {
   if (msg.needImage) session._sendImageToGuest(connId);
@@ -45,6 +49,9 @@ export class HostSession {
     this.connToPlayer = new Map();
     this.hostContrib = 0;
     this.autoBackupTimer = null;
+    // Monotonic clock for rate limiting; tests replace it to drive time.
+    this.now = () => performance.now();
+    this.rateGates = new Map();
   }
 
   reset() {
@@ -56,6 +63,7 @@ export class HostSession {
     this.pendingKnocks.clear();
     this.guests.clear();
     this.connToPlayer.clear();
+    this.rateGates.clear();
     this.hostContrib = 0;
   }
 
@@ -153,6 +161,7 @@ export class HostSession {
 
   onDisconnect(connId) {
     this.pendingAuth.delete(connId);
+    this.rateGates.delete(connId);
     if (this.pendingKnocks.has(connId)) {
       this.pendingKnocks.delete(connId);
       this.room.cb.onKnockResolved(connId);
@@ -180,14 +189,16 @@ export class HostSession {
   }
 
   async onMessage(connId, msg) {
-    if (!isValidMessage(msg)) return;
+    if (!this._admitRate(connId)) return;
+    const clean = sanitizeGuestMessage(msg);
+    if (!clean) return;
 
-    if (msg.type === MSG.AUTH_RESPONSE) {
-      await handleAuthResponse(this, connId, msg);
+    if (clean.type === MSG.AUTH_RESPONSE) {
+      await handleAuthResponse(this, connId, clean);
       return;
     }
-    if (msg.type === MSG.REJOIN) {
-      handleRejoin(this, connId, msg);
+    if (clean.type === MSG.REJOIN) {
+      handleRejoin(this, connId, clean);
       return;
     }
 
@@ -196,8 +207,27 @@ export class HostSession {
     const guest = this.guests.get(playerId);
     if (!guest) return;
 
-    const handler = GUEST_MESSAGE_HANDLERS.get(msg.type);
-    if (handler) handler(this, { connId, playerId, guest, msg });
+    const handler = GUEST_MESSAGE_HANDLERS.get(clean.type);
+    if (handler) handler(this, { connId, playerId, guest, msg: clean });
+  }
+
+  /** Token-bucket check for one connection. Returns false when the message must be dropped. */
+  _admitRate(connId) {
+    let gate = this.rateGates.get(connId);
+    if (!gate) {
+      gate = createRateGate();
+      this.rateGates.set(connId, gate);
+    }
+    const verdict = gate.admit(this.now());
+    if (verdict === RATE_FLOOD) this._kickFlooder(connId);
+    return verdict === RATE_OK;
+  }
+
+  _kickFlooder(connId) {
+    const playerId = this.connToPlayer.get(connId);
+    if (!playerId) return;
+    recordDiagnostic('p2p', 'guest_flood_kicked', { reason: 'rate_limit' }, 'warn');
+    this.kickGuest(playerId, FLOOD_KICK_REASON);
   }
 
   approveKnock(connId) {
@@ -224,17 +254,14 @@ export class HostSession {
     setTimeout(() => this.room.transport?.disconnect(connId), 100);
   }
 
-  kickGuest(playerId) {
+  kickGuest(playerId, reason = 'ホストにより退出されました') {
     const guest = this.guests.get(playerId);
     if (!guest) return;
     const connId = guest.connId;
     guest.online = false;
     guest.connId = null;
     if (connId) {
-      this.room.transport?.sendTo(connId, {
-        type: MSG.KICKED,
-        reason: 'ホストにより退出されました',
-      });
+      this.room.transport?.sendTo(connId, { type: MSG.KICKED, reason });
       this.connToPlayer.delete(connId);
       setTimeout(() => this.room.transport?.disconnect(connId), 80);
     }

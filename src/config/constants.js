@@ -118,6 +118,33 @@ export const MULTIPLAYER_CONFIG = {
   SUPERCHAT_HP_PER_GUEST: 8,
 };
 
+/**
+ * Limits for messages received from other players (security S3/S4/S7).
+ * Every peer message is untrusted: anything outside these limits is dropped before it is applied.
+ */
+export const NET_LIMITS = {
+  // Largest puzzle the game can build (cols * rows); also bounds every piece list in a message.
+  MAX_PIECES: 3000,
+  // Coordinates must be finite and within this distance of the board origin (world units).
+  MAX_ABS_COORD: 100000,
+  // Strings shown to other players.
+  MAX_NAME_LENGTH: 20,
+  MAX_TEXT_LENGTH: 200,
+  // Guest -> host rate limit (token bucket per guest). Normal play sends at most ~45 messages/s.
+  RATE_TOKENS_PER_SEC: 60,
+  RATE_BURST: 120,
+  // Sustained flooding (messages dropped for this long) gets the guest removed from the room.
+  FLOOD_KICK_AFTER_MS: 5000,
+  // Host -> guest transfers (image and full state); sized from IMAGE_MAX_BYTES with headroom.
+  MAX_IMAGE_CHUNKS: 256,
+  MAX_STATE_CHUNKS: 32,
+  MAX_IMAGE_DIM: 4096,
+  IMAGE_MIME_TYPES: ['image/webp', 'image/jpeg', 'image/png'],
+  // Ojama values relayed by the host.
+  MAX_OJAMA_DURATION_SEC: 600,
+  MAX_SUPERCHAT_HP: 10000,
+};
+
 export const YOUTUBE_CONFIG = {
   API_BASE: 'https://www.googleapis.com/youtube/v3',
   QUOTA_DAILY_LIMIT: 10000,
