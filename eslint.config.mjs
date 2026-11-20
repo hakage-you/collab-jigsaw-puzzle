@@ -134,14 +134,7 @@ export default [
   // tests exist (test plan P1/P2). Remove a file from this list as soon as it is split.
   // See phase 2 in _plan/20261120_2255_lint_hardening_plan.md
   {
-    files: [
-      'src/core/puzzleEngine.js',
-      'src/core/puzzleSnapshot.js',
-      'src/core/pieceOjamaOps.js',
-      'src/net/guestSession.js',
-      'src/net/hostSession.js',
-      'src/app/gameSession.js',
-    ],
+    files: ['src/net/guestSession.js', 'src/net/hostSession.js', 'src/app/gameSession.js'],
     rules: {
       'max-lines': 'off',
       'max-lines-per-function': 'off',

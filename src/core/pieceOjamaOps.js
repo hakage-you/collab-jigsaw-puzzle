@@ -158,13 +158,42 @@ function buildFakePieceFromSource(engine, src, spec, zOrder, slotIdx) {
   return fake;
 }
 
+function pickRandom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+/**
+ * Spawns one fake piece: a shape borrowed from a source piece, a shifted crop centre,
+ * and a random scatter position. Consumes Math.random in a fixed order.
+ */
+function spawnFakePiece(engine, cfg) {
+  const shapeSrc = pickRandom(cfg.shapePool);
+  const cropSrc = pickRandom(engine.pieces);
+  const { targetX, targetY } = pickShiftedCropCenter(engine, cropSrc);
+  const fakeId = -engine.nextFakePieceSeq++;
+  const slotIdx = allocateFakeSlotIndex(engine);
+  const spec = {
+    fakeId,
+    targetX,
+    targetY,
+    x: (Math.random() - 0.5) * cfg.spanW,
+    y: (Math.random() - 0.5) * cfg.spanH,
+    rotation: cfg.allowRotation ? Math.floor(Math.random() * 4) : 0,
+    isFlipped: cfg.allowFlip ? Math.random() < 0.3 : false,
+    expiresAt: cfg.expiresAt,
+  };
+  return buildFakePieceFromSource(engine, shapeSrc, spec, engine.maxZ++, slotIdx);
+}
+
 export function addFakePiecesOp(
   engine,
-  count = OJAMA_CONFIG.FAKE_PIECE_ADD_COUNT,
-  durationSec = OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC,
-  allowRotation = true,
-  allowFlip = true,
-  maxCount = OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT,
+  {
+    count = OJAMA_CONFIG.FAKE_PIECE_ADD_COUNT,
+    durationSec = OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC,
+    allowRotation = true,
+    allowFlip = true,
+    maxCount = OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT,
+  } = {},
 ) {
   if (engine.pieces.length === 0) return [];
   const clampedMax = Math.max(
@@ -172,38 +201,22 @@ export function addFakePiecesOp(
     Math.min(FAKE_MAX_SLOTS, Number(maxCount) || OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT),
   );
   const dur = Math.max(0, Number(durationSec) || 0);
-  const expiresAt = dur > 0 ? Date.now() + dur * 1000 : 0;
-  const spanW = engine.boardW + engine.pieceW * 2.4;
-  const spanH = engine.boardH + engine.pieceH * 2.4;
   const innerPool = engine.pieces.filter((p) => !p.isEdge);
-  const shapePool = innerPool.length > 0 ? innerPool : engine.pieces;
+  const cfg = {
+    allowRotation,
+    allowFlip,
+    expiresAt: dur > 0 ? Date.now() + dur * 1000 : 0,
+    spanW: engine.boardW + engine.pieceW * 2.4,
+    spanH: engine.boardH + engine.pieceH * 2.4,
+    shapePool: innerPool.length > 0 ? innerPool : engine.pieces,
+  };
   const added = [];
 
   for (let i = 0; i < count; i++) {
     while (engine.fakePieces.length >= clampedMax) {
       engine.fakePieces.shift();
     }
-    const shapeSrc = shapePool[Math.floor(Math.random() * shapePool.length)];
-    const cropSrc = engine.pieces[Math.floor(Math.random() * engine.pieces.length)];
-    const { targetX, targetY } = pickShiftedCropCenter(engine, cropSrc);
-    const fakeId = -engine.nextFakePieceSeq++;
-    const slotIdx = allocateFakeSlotIndex(engine);
-    const fake = buildFakePieceFromSource(
-      engine,
-      shapeSrc,
-      {
-        fakeId,
-        targetX,
-        targetY,
-        x: (Math.random() - 0.5) * spanW,
-        y: (Math.random() - 0.5) * spanH,
-        rotation: allowRotation ? Math.floor(Math.random() * 4) : 0,
-        isFlipped: allowFlip ? Math.random() < 0.3 : false,
-        expiresAt,
-      },
-      engine.maxZ++,
-      slotIdx,
-    );
+    const fake = spawnFakePiece(engine, cfg);
     engine.fakePieces.push(fake);
     added.push(fake);
   }
