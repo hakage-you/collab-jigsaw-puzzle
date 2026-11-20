@@ -4,16 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "lint": "npm run lint:format && npm run lint:css && npm run lint:js && npm run lint:html && npm run lint:contrast && npm run lint:arch && npm run lint:unused",
+    "lint:format": "prettier --check .",
     "lint:css": "stylelint \"styles/**/*.css\"",
     "lint:js": "eslint \"src/**/*.js\" \"tests/**/*.mjs\"",
-    "lint:html": "htmlhint index.html",
+    "lint:html": "html-validate index.html && htmlhint index.html",
     "lint:contrast": "node scripts/check-contrast.mjs",
     "lint:arch": "depcruise src --config .dependency-cruiser.cjs",
-    "lint:format": "prettier --check .",
+    "lint:unused": "knip",
+    "format": "prettier --write .",
     "arch:graph": "depcruise src --config .dependency-cruiser.cjs --output-type mermaid",
     "test:yt-key-readonly": "node tests/optional-youtube-key-check.mjs",
-    "lint": "npm run lint:format && npm run lint:css && npm run lint:js && npm run lint:html && npm run lint:contrast && npm run lint:arch",
-    "format": "prettier --write ."
+    "prepare": "simple-git-hooks"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -21,10 +23,16 @@
     "dependency-cruiser": "^18.8.0",
     "eslint": "^10.2.0",
     "globals": "^17.5.0",
+    "html-validate": "^9.7.1",
     "htmlhint": "^1.9.1",
+    "knip": "^5.88.1",
     "peerjs": "^1.5.5",
     "prettier": "3.10.1",
+    "simple-git-hooks": "^2.14.0",
     "stylelint": "^17.8.0",
     "stylelint-config-standard": "^40.0.0"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npm run lint"
   }
 }

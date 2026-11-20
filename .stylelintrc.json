@@ -14,7 +14,12 @@
     "custom-property-empty-line-before": null,
     "comment-empty-line-before": null,
     "rule-empty-line-before": null,
-    "no-descending-specificity": null
+    "no-descending-specificity": null,
+    "max-nesting-depth": 2,
+    "selector-max-compound-selectors": 3,
+    "declaration-no-important": true,
+    "selector-max-id": 1,
+    "selector-max-specificity": "1,1,0"
   },
   "overrides": [
     {
