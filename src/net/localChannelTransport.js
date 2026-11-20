@@ -73,7 +73,9 @@ export class LocalChannelTransport {
         if (!settled) {
           settled = true;
           this.close();
-          reject(new Error('ローカル通信ホストが見つかりません（同一ブラウザで部屋を作成してください）'));
+          reject(
+            new Error('ローカル通信ホストが見つかりません（同一ブラウザで部屋を作成してください）'),
+          );
         }
       }, 4000);
 

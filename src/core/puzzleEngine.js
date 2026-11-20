@@ -105,7 +105,7 @@ export class PuzzleEngine {
       this.spriteAtlas = new PieceSpriteAtlas(
         PUZZLE_CONFIG.SPRITE_ATLAS_SIZE,
         PUZZLE_CONFIG.SPRITE_ATLAS_PAD,
-        this.spriteAtlasPages
+        this.spriteAtlasPages,
       );
     }
     const sprite = renderPieceBackSprite(
@@ -114,7 +114,7 @@ export class PuzzleEngine {
       this.pieceH,
       this.spritePad,
       this.backPatternCanvas,
-      this.spriteAtlas
+      this.spriteAtlas,
     );
     this.spriteAtlasPages = this.spriteAtlas.pages.map((p) => ({ canvas: p.canvas, ctx: p.ctx }));
     return sprite;
@@ -196,7 +196,7 @@ export class PuzzleEngine {
     this.rows = clamped.rows;
     this.seed = pInfo.seed;
     this.cutComplexity = normalizeCutComplexity(
-      pInfo.cutComplexity || saveData.settings?.cutComplexity
+      pInfo.cutComplexity || saveData.settings?.cutComplexity,
     );
 
     this._computeGeometry();
@@ -215,7 +215,7 @@ export class PuzzleEngine {
       const refH = Math.max(1, Number(pInfo.imageHeight) || sourceCanvas.height);
       const legacyScale = Math.min(
         PUZZLE_CONFIG.BOARD_MAX_WIDTH / refW,
-        PUZZLE_CONFIG.BOARD_MAX_HEIGHT / refH
+        PUZZLE_CONFIG.BOARD_MAX_HEIGHT / refH,
       );
       const oldW = Math.max(1, Math.round(refW * legacyScale));
       const oldH = Math.max(1, Math.round(refH * legacyScale));
@@ -261,14 +261,21 @@ export class PuzzleEngine {
     this._sortedLooseCache = { version: -1, list: [] };
     this.lodCache.clear();
 
-    const layout = generateCutLayout(this.cols, this.rows, this.boardW, this.boardH, this.seed, this.cutComplexity);
+    const layout = generateCutLayout(
+      this.cols,
+      this.rows,
+      this.boardW,
+      this.boardH,
+      this.seed,
+      this.cutComplexity,
+    );
     const colorInfos = analyzePieceColors(this.sourceCanvas, this.cols, this.rows);
     const rng = mulberry32(this.seed ^ 0x9e3779b9);
 
     const atlas = new PieceSpriteAtlas(
       PUZZLE_CONFIG.SPRITE_ATLAS_SIZE,
       PUZZLE_CONFIG.SPRITE_ATLAS_PAD,
-      this.spriteAtlasPages
+      this.spriteAtlasPages,
     );
 
     this.pieces = [];
@@ -286,7 +293,16 @@ export class PuzzleEngine {
         const id = r * this.cols + c;
         const targetX = -this.boardW / 2 + (c + 0.5) * this.pieceW;
         const targetY = -this.boardH / 2 + (r + 0.5) * this.pieceH;
-        const path = buildPiecePath(r, c, this.cols, this.rows, targetX, targetY, layout, this.tabSize);
+        const path = buildPiecePath(
+          r,
+          c,
+          this.cols,
+          this.rows,
+          targetX,
+          targetY,
+          layout,
+          this.tabSize,
+        );
 
         const sp = savedMap ? savedMap.get(id) : null;
         const pos = positions ? positions[id] : null;
@@ -296,26 +312,50 @@ export class PuzzleEngine {
         highestGroup = Math.max(highestGroup, groupId);
 
         const piece = {
-          id, row: r, col: c,
+          id,
+          row: r,
+          col: c,
           isEdge: r === 0 || r === this.rows - 1 || c === 0 || c === this.cols - 1,
-          targetX, targetY,
+          targetX,
+          targetY,
           x: sp ? (isLocked ? targetX : sp.x * coordScaleX) : pos.x,
           y: sp ? (isLocked ? targetY : sp.y * coordScaleY) : pos.y,
           rotation: sp ? ((sp.rotation % 4) + 4) % 4 : allowRotation ? Math.floor(rng() * 4) : 0,
-          isFlipped: sp ? !!sp.isFlipped : allowFlip ? rng() < PUZZLE_CONFIG.FLIP_INITIAL_PROB : false,
-          groupId, isLocked, zOrder, colorInfo: colorInfos[id], path,
-          frontSprite: null, backSprite: null,
+          isFlipped: sp
+            ? !!sp.isFlipped
+            : allowFlip
+              ? rng() < PUZZLE_CONFIG.FLIP_INITIAL_PROB
+              : false,
+          groupId,
+          isLocked,
+          zOrder,
+          colorInfo: colorInfos[id],
+          path,
+          frontSprite: null,
+          backSprite: null,
           spriteHalfW: this.pieceW / 2 + this.spritePad,
           spriteHalfH: this.pieceH / 2 + this.spritePad,
         };
 
         renderPieceSprites(
-          piece, this.sourceCanvas, this.boardW, this.boardH,
-          this.pieceW, this.pieceH, this.spritePad, atlas, total
+          piece,
+          this.sourceCanvas,
+          this.boardW,
+          this.boardH,
+          this.pieceW,
+          this.pieceH,
+          this.spritePad,
+          atlas,
+          total,
         );
         if (piece.isFlipped) {
           renderPieceBackSprite(
-            piece, this.pieceW, this.pieceH, this.spritePad, this.backPatternCanvas, atlas
+            piece,
+            this.pieceW,
+            this.pieceH,
+            this.spritePad,
+            this.backPatternCanvas,
+            atlas,
           );
         }
         this.pieces.push(piece);
@@ -348,12 +388,12 @@ export class PuzzleEngine {
     this.tabSize = Math.min(this.pieceW, this.pieceH) * PUZZLE_CONFIG.TAB_RATIO;
     const padExtra = Math.min(
       PUZZLE_CONFIG.SPRITE_PAD_EXTRA,
-      Math.max(2, Math.ceil(Math.min(this.pieceW, this.pieceH) * 0.12))
+      Math.max(2, Math.ceil(Math.min(this.pieceW, this.pieceH) * 0.12)),
     );
     this.spritePad =
       Math.ceil(
         this.tabSize * PUZZLE_CONFIG.SPRITE_PAD_TAB_MULT +
-          Math.max(this.pieceW, this.pieceH) * PUZZLE_CONFIG.SPRITE_PAD_WARP_MULT
+          Math.max(this.pieceW, this.pieceH) * PUZZLE_CONFIG.SPRITE_PAD_WARP_MULT,
       ) + padExtra;
   }
 

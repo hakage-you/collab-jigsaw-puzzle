@@ -57,7 +57,8 @@ module.exports = {
     {
       name: 'ui-no-core-or-net',
       severity: 'error',
-      comment: 'src/ui/** must interact via src/app/** and must not import src/core/** or src/net/** directly.',
+      comment:
+        'src/ui/** must interact via src/app/** and must not import src/core/** or src/net/** directly.',
       from: { path: '^src/ui/' },
       to: { path: '^src/(core|net)/' },
     },

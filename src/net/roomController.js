@@ -193,7 +193,10 @@ export class RoomController {
     if (!this.isMultiplayer()) return;
     const now = performance.now();
     if (now - this.lastCursorSentAt < MULTIPLAYER_CONFIG.CURSOR_THROTTLE_MS) return;
-    if (Math.hypot(wx - this.lastCursorPos.x, wy - this.lastCursorPos.y) < MULTIPLAYER_CONFIG.CURSOR_MIN_MOVE_PX) {
+    if (
+      Math.hypot(wx - this.lastCursorPos.x, wy - this.lastCursorPos.y) <
+      MULTIPLAYER_CONFIG.CURSOR_MIN_MOVE_PX
+    ) {
       return;
     }
     this.lastCursorSentAt = now;

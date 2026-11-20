@@ -89,7 +89,9 @@ export class DiagnosticsUI {
     });
 
     document.getElementById('btnCopyDiagLog')?.addEventListener('click', () => this.copyReport());
-    document.getElementById('btnDownloadDiagJson')?.addEventListener('click', () => this.downloadJson());
+    document
+      .getElementById('btnDownloadDiagJson')
+      ?.addEventListener('click', () => this.downloadJson());
     document.getElementById('btnClearDiagLog')?.addEventListener('click', () => this.clearLogs());
   }
 

@@ -134,45 +134,50 @@ async function main() {
   }
 
   // 2. Private account channels check (must fail with 401 Unauthorized)
-  const channelsUrl =
-    `${YOUTUBE_CONFIG.API_BASE}/channels?part=id&mine=true&key=${encodeURIComponent(apiKey)}`;
+  const channelsUrl = `${YOUTUBE_CONFIG.API_BASE}/channels?part=id&mine=true&key=${encodeURIComponent(apiKey)}`;
   const channelsRes = await guardedFetch(channelsUrl, { method: 'GET' });
   if (channelsRes.status === 401) {
-    results.push('2. 非公開チャンネル読み取り拒否 (GET channels?mine=true): PASS (401 Unauthorized)');
+    results.push(
+      '2. 非公開チャンネル読み取り拒否 (GET channels?mine=true): PASS (401 Unauthorized)',
+    );
   } else {
     hasFailure = true;
     results.push(
-      `2. 非公開チャンネル読み取り拒否 (GET channels?mine=true): FAIL (期待=401, 実際=${channelsRes.status})`
+      `2. 非公開チャンネル読み取り拒否 (GET channels?mine=true): FAIL (期待=401, 実際=${channelsRes.status})`,
     );
   }
 
   // 3. Private account subscriptions check (must fail with 401 Unauthorized)
-  const subsUrl =
-    `${YOUTUBE_CONFIG.API_BASE}/subscriptions?part=id&mine=true&key=${encodeURIComponent(apiKey)}`;
+  const subsUrl = `${YOUTUBE_CONFIG.API_BASE}/subscriptions?part=id&mine=true&key=${encodeURIComponent(apiKey)}`;
   const subsRes = await guardedFetch(subsUrl, { method: 'GET' });
   if (subsRes.status === 401) {
-    results.push('3. 登録チャンネル読み取り拒否 (GET subscriptions?mine=true): PASS (401 Unauthorized)');
+    results.push(
+      '3. 登録チャンネル読み取り拒否 (GET subscriptions?mine=true): PASS (401 Unauthorized)',
+    );
   } else {
     hasFailure = true;
     results.push(
-      `3. 登録チャンネル読み取り拒否 (GET subscriptions?mine=true): FAIL (期待=401, 実際=${subsRes.status})`
+      `3. 登録チャンネル読み取り拒否 (GET subscriptions?mine=true): FAIL (期待=401, 実際=${subsRes.status})`,
     );
   }
 
   // 4. Other Google API restriction check (Books API GET, 0 YouTube quota)
-  const booksUrl =
-    `https://www.googleapis.com/books/v1/volumes?q=jigsaw&maxResults=1&key=${encodeURIComponent(apiKey)}`;
+  const booksUrl = `https://www.googleapis.com/books/v1/volumes?q=jigsaw&maxResults=1&key=${encodeURIComponent(apiKey)}`;
   const booksRes = await guardedFetch(booksUrl, { method: 'GET' });
   if (booksRes.status === 403) {
-    results.push('4. 他 Google API 制限確認 (GET books/v1): PASS (API制限が正しくYouTubeのみに効いています)');
+    results.push(
+      '4. 他 Google API 制限確認 (GET books/v1): PASS (API制限が正しくYouTubeのみに効いています)',
+    );
   } else if (booksRes.status === 200) {
     hasFailure = true;
     results.push(
-      '4. 他 Google API 制限確認 (GET books/v1): WARN / FAIL (APIの制限が未設定の可能性があります：Google CloudでYouTube Data API v3のみに制限してください)'
+      '4. 他 Google API 制限確認 (GET books/v1): WARN / FAIL (APIの制限が未設定の可能性があります：Google CloudでYouTube Data API v3のみに制限してください)',
     );
   } else {
     hasFailure = true;
-    results.push(`4. 他 Google API 制限確認 (GET books/v1): FAIL (期待=403, 実際=${booksRes.status})`);
+    results.push(
+      `4. 他 Google API 制限確認 (GET books/v1): FAIL (期待=403, 実際=${booksRes.status})`,
+    );
   }
 
   // Verify redaction works on URLs containing key=...

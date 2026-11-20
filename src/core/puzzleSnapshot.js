@@ -13,7 +13,7 @@ export function resolveDropOp(engine, groupId) {
 
   const snapDist = Math.max(
     PUZZLE_CONFIG.MIN_SNAP_DISTANCE,
-    Math.min(engine.pieceW, engine.pieceH) * PUZZLE_CONFIG.SNAP_DISTANCE_RATIO
+    Math.min(engine.pieceW, engine.pieceH) * PUZZLE_CONFIG.SNAP_DISTANCE_RATIO,
   );
 
   const ref = group[0];

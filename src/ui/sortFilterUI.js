@@ -53,10 +53,9 @@ export class SortFilterUI {
   updateGuestRules({ isGuest, roomRules }) {
     if (!isGuest || !roomRules || !this.elGuestRoomRulesSummary) return;
     const total = roomRules.cols * roomRules.rows;
-    this.elGuestRoomRulesSummary.textContent =
-      `${roomRules.cols}×${roomRules.rows} (${total}ピース) / 回転: ${
-        roomRules.allowRotation ? 'ON' : 'OFF'
-      } / 裏返し: ${roomRules.allowFlip ? 'ON' : 'OFF'}`;
+    this.elGuestRoomRulesSummary.textContent = `${roomRules.cols}×${roomRules.rows} (${total}ピース) / 回転: ${
+      roomRules.allowRotation ? 'ON' : 'OFF'
+    } / 裏返し: ${roomRules.allowFlip ? 'ON' : 'OFF'}`;
   }
 
   _bindEvents() {

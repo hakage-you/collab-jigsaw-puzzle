@@ -17,11 +17,11 @@ export function normalizeCutComplexity(value) {
 export function clampGridDimensions(cols, rows) {
   let c = Math.max(
     PUZZLE_CONFIG.MIN_GRID,
-    Math.min(PUZZLE_CONFIG.MAX_GRID, Math.round(Number(cols) || PUZZLE_CONFIG.DEFAULT_COLS))
+    Math.min(PUZZLE_CONFIG.MAX_GRID, Math.round(Number(cols) || PUZZLE_CONFIG.DEFAULT_COLS)),
   );
   let r = Math.max(
     PUZZLE_CONFIG.MIN_GRID,
-    Math.min(PUZZLE_CONFIG.MAX_GRID, Math.round(Number(rows) || PUZZLE_CONFIG.DEFAULT_ROWS))
+    Math.min(PUZZLE_CONFIG.MAX_GRID, Math.round(Number(rows) || PUZZLE_CONFIG.DEFAULT_ROWS)),
   );
   const maxTotal = PUZZLE_CONFIG.MAX_TOTAL_PIECES;
   if (c * r > maxTotal) {
@@ -43,7 +43,10 @@ export function computeGridForPieceCount(targetCount, imgWidth, imgHeight) {
   const maxG = PUZZLE_CONFIG.MAX_GRID;
   const maxTotal = PUZZLE_CONFIG.MAX_TOTAL_PIECES;
   const target = Math.max(minG * minG, Math.min(maxTotal, Math.round(Number(targetCount) || 24)));
-  const aspect = Math.max(0.2, Math.min(5, (Number(imgWidth) || 3) / Math.max(1, Number(imgHeight) || 2)));
+  const aspect = Math.max(
+    0.2,
+    Math.min(5, (Number(imgWidth) || 3) / Math.max(1, Number(imgHeight) || 2)),
+  );
 
   let bestCols = PUZZLE_CONFIG.DEFAULT_COLS;
   let bestRows = PUZZLE_CONFIG.DEFAULT_ROWS;
@@ -222,7 +225,11 @@ function buildCanonicalEdgeSegments(pA, pB, nx, ny, edge, tabSize) {
       { cp1: pt(neckL * 0.55, edge.shoulderBow), cp2: pt(neckL + 0.02, -0.04), end: p1 },
       { cp1: pt(headL, 0.45 * d), cp2: pt(headL, 0.94 * d), end: p2 },
       { cp1: pt(headR, 0.94 * d), cp2: pt(headR, 0.45 * d), end: p3 },
-      { cp1: pt(neckR - 0.02, -0.04), cp2: pt(neckR + (1 - neckR) * 0.45, -edge.shoulderBow), end: pB },
+      {
+        cp1: pt(neckR - 0.02, -0.04),
+        cp2: pt(neckR + (1 - neckR) * 0.45, -edge.shoulderBow),
+        end: pB,
+      },
     ];
   }
 

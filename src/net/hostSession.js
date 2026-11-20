@@ -51,8 +51,8 @@ export class HostSession {
       MULTIPLAYER_CONFIG.MIN_CAPACITY,
       Math.min(
         MULTIPLAYER_CONFIG.MAX_CAPACITY,
-        Number(capacity) || MULTIPLAYER_CONFIG.DEFAULT_CAPACITY
-      )
+        Number(capacity) || MULTIPLAYER_CONFIG.DEFAULT_CAPACITY,
+      ),
     );
     this.hostContrib =
       this.room.savedHostContrib !== null
@@ -87,7 +87,9 @@ export class HostSession {
       contrib,
       color,
     }));
-    const existingGuestNames = new Set(entries.filter((e) => e.role === 'guest').map((e) => e.name));
+    const existingGuestNames = new Set(
+      entries.filter((e) => e.role === 'guest').map((e) => e.name),
+    );
     for (const saved of this.room.savedGuestContribs) {
       if (!existingGuestNames.has(saved.name)) {
         entries.push({
@@ -109,7 +111,7 @@ export class HostSession {
       if (this.room.role !== 'host' || this.room.engine.pieces.length === 0) return;
       const payload = this.room.engine.exportSaveData(
         this.room.getSettings(),
-        this.room.buildContributionsList()
+        this.room.buildContributionsList(),
       );
       payload.completed = this.room.engine.isCompleted();
       saveAutoBackup(payload);
@@ -200,7 +202,7 @@ export class HostSession {
       room.applyPositionsOnly(msg.positions);
       room.transport.broadcast(
         { type: MSG.DRAG_PREVIEW, groupId, ownerId: playerId, positions: msg.positions },
-        connId
+        connId,
       );
       room.cb.onRenderNeeded();
       return;
@@ -237,7 +239,10 @@ export class HostSession {
     }
 
     this.pendingAuth.delete(connId);
-    const displayName = String(msg.displayName || 'ゲスト').trim().slice(0, 20) || 'ゲスト';
+    const displayName =
+      String(msg.displayName || 'ゲスト')
+        .trim()
+        .slice(0, 20) || 'ゲスト';
     if (this.requireApproval) {
       this.pendingKnocks.set(connId, { connId, displayName });
       this.room.transport.sendTo(connId, { type: MSG.KNOCK_PENDING });
@@ -360,7 +365,7 @@ export class HostSession {
       this._broadcastPiecesPatch(
         affected,
         { type: isRotate ? 'rotate' : 'flip', opSeq: msg.opSeq },
-        playerId
+        playerId,
       );
       room.cb.onRenderNeeded();
       this.scheduleAutoBackup();
@@ -398,7 +403,10 @@ export class HostSession {
     guest.online = false;
     guest.connId = null;
     if (connId) {
-      this.room.transport?.sendTo(connId, { type: MSG.KICKED, reason: 'ホストにより退出されました' });
+      this.room.transport?.sendTo(connId, {
+        type: MSG.KICKED,
+        reason: 'ホストにより退出されました',
+      });
       this.connToPlayer.delete(connId);
       setTimeout(() => this.room.transport?.disconnect(connId), 80);
     }
@@ -416,7 +424,7 @@ export class HostSession {
 
   _admitNewGuest(connId, displayName) {
     const offlineMatch = Array.from(this.guests.values()).find(
-      (g) => !g.online && g.name === displayName
+      (g) => !g.online && g.name === displayName,
     );
     if (offlineMatch) {
       offlineMatch.connId = connId;

@@ -35,7 +35,10 @@ export class CanvasInteraction {
     const target =
       this.renderer.draggingGroupId !== null
         ? this.app.getGroupPieces(this.renderer.draggingGroupId)[0]
-        : this.app.hitTest(this.renderer.screenToWorld(sx, sy).x, this.renderer.screenToWorld(sx, sy).y);
+        : this.app.hitTest(
+            this.renderer.screenToWorld(sx, sy).x,
+            this.renderer.screenToWorld(sx, sy).y,
+          );
     if (!target) return false;
     const rotated = this.app.submitRotate(target);
     if (rotated && this.renderer.draggingGroupId !== null) {
@@ -149,7 +152,7 @@ export class CanvasInteraction {
         this.app.moveGroup(
           this.renderer.draggingGroupId,
           dxScreen / this.renderer.view.scale,
-          dyScreen / this.renderer.view.scale
+          dyScreen / this.renderer.view.scale,
         );
         this.app.sendDragPreview(this.renderer.draggingGroupId);
         this.renderer.requestRender();
@@ -206,7 +209,7 @@ export class CanvasInteraction {
           e.deltaY < 0 ? VIEWPORT_CONFIG.ZOOM_STEP_WHEEL : 1 / VIEWPORT_CONFIG.ZOOM_STEP_WHEEL;
         this.renderer.view.scale = Math.max(
           VIEWPORT_CONFIG.MIN_ZOOM,
-          Math.min(VIEWPORT_CONFIG.MAX_ZOOM, this.renderer.view.scale * factor)
+          Math.min(VIEWPORT_CONFIG.MAX_ZOOM, this.renderer.view.scale * factor),
         );
         const after = this.renderer.screenToWorld(sx, sy);
         this.renderer.view.x += before.x - after.x;
@@ -214,7 +217,7 @@ export class CanvasInteraction {
         this.updateZoomReadout();
         this.renderer.requestRender();
       },
-      { passive: false }
+      { passive: false },
     );
 
     window.addEventListener('keydown', (e) => {
@@ -246,7 +249,7 @@ export class CanvasInteraction {
     document.getElementById('btnZoomIn').addEventListener('click', () => {
       this.renderer.view.scale = Math.min(
         VIEWPORT_CONFIG.MAX_ZOOM,
-        this.renderer.view.scale * VIEWPORT_CONFIG.ZOOM_STEP_BUTTON
+        this.renderer.view.scale * VIEWPORT_CONFIG.ZOOM_STEP_BUTTON,
       );
       this.updateZoomReadout();
       this.renderer.requestRender();
@@ -254,7 +257,7 @@ export class CanvasInteraction {
     document.getElementById('btnZoomOut').addEventListener('click', () => {
       this.renderer.view.scale = Math.max(
         VIEWPORT_CONFIG.MIN_ZOOM,
-        this.renderer.view.scale / VIEWPORT_CONFIG.ZOOM_STEP_BUTTON
+        this.renderer.view.scale / VIEWPORT_CONFIG.ZOOM_STEP_BUTTON,
       );
       this.updateZoomReadout();
       this.renderer.requestRender();
@@ -302,7 +305,7 @@ export class CanvasInteraction {
         loadImageFromFile(
           file,
           (imgCanvas, name) => this.app.setCustomImage(imgCanvas, name),
-          (msg) => this.showToast(msg, 'ojama')
+          (msg) => this.showToast(msg, 'ojama'),
         );
       }
     });

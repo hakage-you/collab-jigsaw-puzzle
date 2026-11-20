@@ -143,8 +143,7 @@ export class ParticipantsUI {
 
       const badge = document.createElement('span');
       badge.className = `role-badge ${m.role === 'host' ? '' : 'guest'}`;
-      badge.textContent =
-        m.role === 'host' ? 'ホスト' : m.online === false ? '切断中' : 'メンバー';
+      badge.textContent = m.role === 'host' ? 'ホスト' : m.online === false ? '切断中' : 'メンバー';
       nameRow.append(nameSpan, badge);
 
       const contrib = document.createElement('div');

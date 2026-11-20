@@ -10,7 +10,7 @@ const FAKE_MAX_SLOTS = FAKE_SLOT_COLS * FAKE_SLOT_COLS;
 export function dropLockedPiecesOp(
   engine,
   count = OJAMA_CONFIG.DEFAULT_DROP_COUNT,
-  allowRotation = false
+  allowRotation = false,
 ) {
   const locked = engine.pieces.filter((p) => p.isLocked);
   if (locked.length === 0) return 0;
@@ -164,10 +164,13 @@ export function addFakePiecesOp(
   durationSec = OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC,
   allowRotation = true,
   allowFlip = true,
-  maxCount = OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT
+  maxCount = OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT,
 ) {
   if (engine.pieces.length === 0) return [];
-  const clampedMax = Math.max(1, Math.min(FAKE_MAX_SLOTS, Number(maxCount) || OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT));
+  const clampedMax = Math.max(
+    1,
+    Math.min(FAKE_MAX_SLOTS, Number(maxCount) || OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT),
+  );
   const dur = Math.max(0, Number(durationSec) || 0);
   const expiresAt = dur > 0 ? Date.now() + dur * 1000 : 0;
   const spanW = engine.boardW + engine.pieceW * 2.4;
@@ -183,7 +186,7 @@ export function addFakePiecesOp(
     const shapeSrc = shapePool[Math.floor(Math.random() * shapePool.length)];
     const cropSrc = engine.pieces[Math.floor(Math.random() * engine.pieces.length)];
     const { targetX, targetY } = pickShiftedCropCenter(engine, cropSrc);
-    const fakeId = -(engine.nextFakePieceSeq++);
+    const fakeId = -engine.nextFakePieceSeq++;
     const slotIdx = allocateFakeSlotIndex(engine);
     const fake = buildFakePieceFromSource(
       engine,
@@ -199,7 +202,7 @@ export function addFakePiecesOp(
         expiresAt,
       },
       engine.maxZ++,
-      slotIdx
+      slotIdx,
     );
     engine.fakePieces.push(fake);
     added.push(fake);
@@ -233,13 +236,13 @@ export function syncFakePiecesFromSpecsOp(engine, specs) {
 export function prankLoosePiecesOp(
   engine,
   count = OJAMA_CONFIG.PRANK_DEFAULT_COUNT,
-  excludedGroupIds = null
+  excludedGroupIds = null,
 ) {
   const singles = getSingleLoosePieces(engine, excludedGroupIds);
   let targets = singles;
   if (targets.length === 0) {
     targets = engine.pieces.filter(
-      (p) => !p.isLocked && (!excludedGroupIds || !excludedGroupIds.has(p.groupId))
+      (p) => !p.isLocked && (!excludedGroupIds || !excludedGroupIds.has(p.groupId)),
     );
   }
   if (targets.length === 0) return 0;

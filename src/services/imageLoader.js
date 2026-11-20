@@ -6,7 +6,7 @@ export function drawCanvasFit(targetCanvas, sourceCanvas) {
   tCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
   const scale = Math.min(
     targetCanvas.width / sourceCanvas.width,
-    targetCanvas.height / sourceCanvas.height
+    targetCanvas.height / sourceCanvas.height,
   );
   const dw = sourceCanvas.width * scale;
   const dh = sourceCanvas.height * scale;
