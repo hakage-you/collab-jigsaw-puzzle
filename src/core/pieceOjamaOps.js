@@ -2,9 +2,9 @@ import { OJAMA_CONFIG } from '../config/constants.js';
 import { getSingleLoosePieces } from './pieceSorter.js';
 import { drawFrontPieceToSlot } from './pieceSpriteBuilder.js';
 
-const FAKE_ATLAS_SIZE = 512;
+const FAKE_ATLAS_SIZE = 1024;
 const FAKE_SLOT_COLS = 4;
-const FAKE_SLOT_STEP = FAKE_ATLAS_SIZE / FAKE_SLOT_COLS; // 128px, 16 slots = 1MB fixed
+const FAKE_SLOT_STEP = FAKE_ATLAS_SIZE / FAKE_SLOT_COLS; // 256px, 16 slots = 4MB fixed
 const FAKE_MAX_SLOTS = FAKE_SLOT_COLS * FAKE_SLOT_COLS;
 
 export function dropLockedPiecesOp(
