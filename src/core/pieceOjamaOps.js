@@ -1,5 +1,11 @@
 import { OJAMA_CONFIG } from '../config/constants.js';
 import { getSingleLoosePieces } from './pieceSorter.js';
+import { drawFrontPieceToSlot } from './pieceSpriteBuilder.js';
+
+const FAKE_ATLAS_SIZE = 512;
+const FAKE_SLOT_COLS = 4;
+const FAKE_SLOT_STEP = FAKE_ATLAS_SIZE / FAKE_SLOT_COLS; // 128px, 16 slots = 1MB fixed
+const FAKE_MAX_SLOTS = FAKE_SLOT_COLS * FAKE_SLOT_COLS;
 
 export function dropLockedPiecesOp(
   engine,
@@ -41,16 +47,93 @@ export function dropLockedPiecesOp(
   return actual;
 }
 
-function buildFakePieceFromSource(src, spec, zOrder) {
+function ensureFakeAtlas(engine) {
+  if (!engine.fakeAtlasCanvas) {
+    const c = document.createElement('canvas');
+    c.width = FAKE_ATLAS_SIZE;
+    c.height = FAKE_ATLAS_SIZE;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    engine.fakeAtlasCanvas = c;
+    engine.fakeAtlasCtx = ctx;
+  }
+  return { canvas: engine.fakeAtlasCanvas, ctx: engine.fakeAtlasCtx };
+}
+
+function allocateFakeSlotIndex(engine) {
+  const used = new Set((engine.fakePieces || []).map((fp) => fp._fakeSlotIdx));
+  for (let i = 0; i < FAKE_MAX_SLOTS; i++) {
+    if (!used.has(i)) return i;
+  }
+  const oldest = engine.fakePieces?.[0];
+  return typeof oldest?._fakeSlotIdx === 'number' ? oldest._fakeSlotIdx : 0;
+}
+
+function pickShiftedCropCenter(engine, src) {
+  const halfW = engine.boardW / 2;
+  const halfH = engine.boardH / 2;
+  const marginX = Math.min(halfW * 0.8, engine.pieceW * 0.55);
+  const marginY = Math.min(halfH * 0.8, engine.pieceH * 0.55);
+  const signX = Math.random() < 0.5 ? -1 : 1;
+  const signY = Math.random() < 0.5 ? -1 : 1;
+  const offX = signX * engine.pieceW * (0.35 + Math.random() * 0.85);
+  const offY = signY * engine.pieceH * (0.35 + Math.random() * 0.85);
+  const minX = -halfW + marginX;
+  const maxX = halfW - marginX;
+  const minY = -halfH + marginY;
+  const maxY = halfH - marginY;
   return {
+    targetX: Math.max(minX, Math.min(maxX, src.targetX + offX)),
+    targetY: Math.max(minY, Math.min(maxY, src.targetY + offY)),
+  };
+}
+
+function renderFakeFrontSprite(engine, piece, slotIdx) {
+  if (!engine.sourceCanvas) return piece.frontSprite;
+  const { canvas, ctx } = ensureFakeAtlas(engine);
+  const sx = (slotIdx % FAKE_SLOT_COLS) * FAKE_SLOT_STEP;
+  const sy = Math.floor(slotIdx / FAKE_SLOT_COLS) * FAKE_SLOT_STEP;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(sx, sy, FAKE_SLOT_STEP, FAKE_SLOT_STEP);
+
+  const logicalW = piece.spriteLogicalW || Math.ceil(engine.pieceW + engine.spritePad * 2);
+  const logicalH = piece.spriteLogicalH || Math.ceil(engine.pieceH + engine.spritePad * 2);
+  const maxCellScale = (FAKE_SLOT_STEP - 4) / Math.max(1, logicalW, logicalH);
+  const renderScale = Math.min(piece.spriteScale || 1, maxCellScale);
+  const physW = Math.min(FAKE_SLOT_STEP - 2, Math.max(8, Math.ceil(logicalW * renderScale)));
+  const physH = Math.min(FAKE_SLOT_STEP - 2, Math.max(8, Math.ceil(logicalH * renderScale)));
+  const slot = { canvas, sx, sy, sw: physW, sh: physH };
+
+  drawFrontPieceToSlot(ctx, slot, {
+    piece,
+    sourceCanvas: engine.sourceCanvas,
+    boardW: engine.boardW,
+    boardH: engine.boardH,
+    pieceW: engine.pieceW,
+    pieceH: engine.pieceH,
+    logicalW,
+    logicalH,
+    renderScale,
+    isLod: false,
+  });
+
+  piece.spriteScale = renderScale;
+  return slot;
+}
+
+function buildFakePieceFromSource(engine, src, spec, zOrder, slotIdx) {
+  const targetX = typeof spec.targetX === 'number' ? spec.targetX : src.targetX;
+  const targetY = typeof spec.targetY === 'number' ? spec.targetY : src.targetY;
+  const fake = {
     id: spec.fakeId,
     fakeId: spec.fakeId,
     sourcePieceId: src.id,
     row: src.row,
     col: src.col,
     isEdge: src.isEdge,
-    targetX: src.targetX,
-    targetY: src.targetY,
+    targetX,
+    targetY,
     x: spec.x,
     y: spec.y,
     rotation: ((spec.rotation % 4) + 4) % 4,
@@ -58,18 +141,21 @@ function buildFakePieceFromSource(src, spec, zOrder) {
     groupId: spec.fakeId,
     isLocked: false,
     isFake: true,
-    expiresAt: spec.expiresAt,
+    expiresAt: typeof spec.expiresAt === 'number' ? spec.expiresAt : 0,
     zOrder,
     colorInfo: src.colorInfo,
     path: src.path,
     frontSprite: src.frontSprite,
-    backSprite: src.backSprite,
+    backSprite: null,
     spriteScale: src.spriteScale,
     spriteHalfW: src.spriteHalfW,
     spriteHalfH: src.spriteHalfH,
     spriteLogicalW: src.spriteLogicalW,
     spriteLogicalH: src.spriteLogicalH,
+    _fakeSlotIdx: slotIdx,
   };
+  fake.frontSprite = renderFakeFrontSprite(engine, fake, slotIdx);
+  return fake;
 }
 
 export function addFakePiecesOp(
@@ -77,35 +163,46 @@ export function addFakePiecesOp(
   count = OJAMA_CONFIG.FAKE_PIECE_ADD_COUNT,
   durationSec = OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC,
   allowRotation = true,
-  allowFlip = true
+  allowFlip = true,
+  maxCount = OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT
 ) {
   if (engine.pieces.length === 0) return [];
-  const expiresAt = Date.now() + Math.max(1, durationSec) * 1000;
+  const clampedMax = Math.max(1, Math.min(FAKE_MAX_SLOTS, Number(maxCount) || OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT));
+  const dur = Math.max(0, Number(durationSec) || 0);
+  const expiresAt = dur > 0 ? Date.now() + dur * 1000 : 0;
   const spanW = engine.boardW + engine.pieceW * 2.4;
   const spanH = engine.boardH + engine.pieceH * 2.4;
+  const innerPool = engine.pieces.filter((p) => !p.isEdge);
+  const shapePool = innerPool.length > 0 ? innerPool : engine.pieces;
   const added = [];
 
   for (let i = 0; i < count; i++) {
-    const src = engine.pieces[Math.floor(Math.random() * engine.pieces.length)];
+    while (engine.fakePieces.length >= clampedMax) {
+      engine.fakePieces.shift();
+    }
+    const shapeSrc = shapePool[Math.floor(Math.random() * shapePool.length)];
+    const cropSrc = engine.pieces[Math.floor(Math.random() * engine.pieces.length)];
+    const { targetX, targetY } = pickShiftedCropCenter(engine, cropSrc);
     const fakeId = -(engine.nextFakePieceSeq++);
+    const slotIdx = allocateFakeSlotIndex(engine);
     const fake = buildFakePieceFromSource(
-      src,
+      engine,
+      shapeSrc,
       {
         fakeId,
+        targetX,
+        targetY,
         x: (Math.random() - 0.5) * spanW,
         y: (Math.random() - 0.5) * spanH,
         rotation: allowRotation ? Math.floor(Math.random() * 4) : 0,
         isFlipped: allowFlip ? Math.random() < 0.3 : false,
         expiresAt,
       },
-      engine.maxZ++
+      engine.maxZ++,
+      slotIdx
     );
     engine.fakePieces.push(fake);
     added.push(fake);
-  }
-
-  while (engine.fakePieces.length > OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT) {
-    engine.fakePieces.shift();
   }
 
   engine.stats.ojamaTotal += 1;
@@ -118,12 +215,16 @@ export function syncFakePiecesFromSpecsOp(engine, specs) {
   if (!Array.isArray(specs)) return;
   const byId = new Map(engine.pieces.map((p) => [p.id, p]));
   const next = [];
-  for (const spec of specs) {
+  engine.fakePieces = [];
+  for (let i = 0; i < Math.min(specs.length, FAKE_MAX_SLOTS); i++) {
+    const spec = specs[i];
     const src = byId.get(spec.sourcePieceId);
     if (!src) continue;
     const zOrder = typeof spec.zOrder === 'number' ? spec.zOrder : engine.maxZ++;
     engine.maxZ = Math.max(engine.maxZ, zOrder + 1);
-    next.push(buildFakePieceFromSource(src, spec, zOrder));
+    const fake = buildFakePieceFromSource(engine, src, spec, zOrder, i);
+    next.push(fake);
+    engine.fakePieces = next;
   }
   engine.fakePieces = next;
   engine.bumpZVersion();

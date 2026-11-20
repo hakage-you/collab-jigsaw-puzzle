@@ -44,6 +44,8 @@ export class OjamaController {
     this.elOjamaDropCount = document.getElementById('ojamaDropCount');
     this.elOjamaVisualDuration = document.getElementById('ojamaVisualDuration');
     this.elOjamaVisualType = document.getElementById('ojamaVisualType');
+    this.elOjamaFakeDuration = document.getElementById('ojamaFakeDuration');
+    this.elOjamaFakeMaxCount = document.getElementById('ojamaFakeMaxCount');
     this.elOjamaTriggerWords = document.getElementById('ojamaTriggerWords');
 
     this.elCommentTriggerCounter = document.getElementById('commentTriggerCounter');
@@ -56,6 +58,14 @@ export class OjamaController {
   }
 
   _readOjamaInputsToApp() {
+    const rawFakeDur = Number(this.elOjamaFakeDuration?.value);
+    const fakeDuration = Number.isFinite(rawFakeDur)
+      ? Math.max(0, Math.min(600, Math.floor(rawFakeDur)))
+      : OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC;
+    const fakeMaxCount = Math.max(
+      1,
+      Math.min(16, Number(this.elOjamaFakeMaxCount?.value) || OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT)
+    );
     this.app.patchSettings({
       ojama: {
         commentThreshold: Math.max(1, Number(this.elOjamaCommentThreshold.value) || 5),
@@ -63,6 +73,8 @@ export class OjamaController {
         dropCount: Math.max(1, Number(this.elOjamaDropCount.value) || 2),
         visualDuration: Math.max(2, Number(this.elOjamaVisualDuration.value) || 8),
         visualType: this.elOjamaVisualType.value || 'random',
+        fakeDuration,
+        fakeMaxCount,
         triggerWords: this.elOjamaTriggerWords.value || '',
       },
     });
@@ -75,6 +87,12 @@ export class OjamaController {
     this.elOjamaDropCount.value = o.dropCount;
     this.elOjamaVisualDuration.value = o.visualDuration;
     this.elOjamaVisualType.value = o.visualType;
+    if (this.elOjamaFakeDuration) {
+      this.elOjamaFakeDuration.value = o.fakeDuration ?? OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC;
+    }
+    if (this.elOjamaFakeMaxCount) {
+      this.elOjamaFakeMaxCount.value = o.fakeMaxCount ?? OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT;
+    }
     this.elOjamaTriggerWords.value = o.triggerWords;
     this.updateCommentProgressUI();
   }
@@ -99,9 +117,11 @@ export class OjamaController {
       this.elOjamaDropCount,
       this.elOjamaVisualDuration,
       this.elOjamaVisualType,
+      this.elOjamaFakeDuration,
+      this.elOjamaFakeMaxCount,
       this.elOjamaTriggerWords,
     ].forEach((el) => {
-      el.addEventListener('change', () => this._readOjamaInputsToApp());
+      el?.addEventListener('change', () => this._readOjamaInputsToApp());
     });
 
     document.getElementById('btnTestDrop').addEventListener('click', () => this.triggerDropOjama());
@@ -225,7 +245,7 @@ export class OjamaController {
           this.room.broadcastFakePieces();
         }
       }
-      if (this.engine.fakePieces.length === 0) {
+      if (!this.engine.fakePieces.some((fp) => fp.expiresAt > 0)) {
         this._stopFakeCleanupTimer();
       }
     }, 1000);
@@ -420,18 +440,26 @@ export class OjamaController {
 
   triggerFakePiecesOjama() {
     if (this.guardIfCompleted()) return false;
+    const o = this.getSettings().ojama || {};
+    const durationSec = o.fakeDuration ?? OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC;
+    const maxCount = o.fakeMaxCount ?? OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT;
     const added = this.engine.addFakePieces(
       OJAMA_CONFIG.FAKE_PIECE_ADD_COUNT,
-      OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC,
+      durationSec,
       this.app.getAllowRotation(),
-      this.app.getAllowFlip()
+      this.app.getAllowFlip(),
+      maxCount
     );
     if (added.length === 0) return false;
-    this._ensureFakeCleanupTimer();
+    if (durationSec > 0) {
+      this._ensureFakeCleanupTimer();
+    }
     sound.playOjama();
     this.updateHUD();
     this.requestRender();
-    const msg = `お邪魔発動：偽ピースを${added.length}個追加しました（${OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC}秒で消滅）`;
+    const detail =
+      durationSec > 0 ? `${durationSec}秒で消滅` : `消失なし・上限${maxCount}個`;
+    const msg = `お邪魔発動：偽ピースを${added.length}個追加しました（${detail}）`;
     this.showToast(msg, 'ojama');
     this.room.broadcastFakePieces(msg);
     return true;

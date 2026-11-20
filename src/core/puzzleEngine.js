@@ -48,6 +48,8 @@ export class PuzzleEngine {
     this.pieces = [];
     this.fakePieces = [];
     this.nextFakePieceSeq = 1;
+    this.fakeAtlasCanvas = null;
+    this.fakeAtlasCtx = null;
     this.nextGroupId = 1;
     this.maxZ = 1;
     this.zoneLabels = [];
@@ -541,14 +543,14 @@ export class PuzzleEngine {
     return dropLockedPiecesOp(this, count, allowRotation);
   }
 
-  addFakePieces(count, durationSec, allowRotation = true, allowFlip = true) {
-    return addFakePiecesOp(this, count, durationSec, allowRotation, allowFlip);
+  addFakePieces(count, durationSec, allowRotation = true, allowFlip = true, maxCount = undefined) {
+    return addFakePiecesOp(this, count, durationSec, allowRotation, allowFlip, maxCount);
   }
 
   pruneExpiredFakePieces(now = Date.now()) {
     if (this.fakePieces.length === 0) return false;
     const before = this.fakePieces.length;
-    this.fakePieces = this.fakePieces.filter((fp) => fp.expiresAt > now);
+    this.fakePieces = this.fakePieces.filter((fp) => !fp.expiresAt || fp.expiresAt > now);
     if (this.fakePieces.length !== before) {
       this.bumpZVersion();
       return true;
@@ -559,6 +561,10 @@ export class PuzzleEngine {
   clearFakePieces() {
     if (this.fakePieces.length === 0) return false;
     this.fakePieces = [];
+    if (this.fakeAtlasCtx && this.fakeAtlasCanvas) {
+      this.fakeAtlasCtx.setTransform(1, 0, 0, 1, 0, 0);
+      this.fakeAtlasCtx.clearRect(0, 0, this.fakeAtlasCanvas.width, this.fakeAtlasCanvas.height);
+    }
     this.bumpZVersion();
     return true;
   }
@@ -567,6 +573,8 @@ export class PuzzleEngine {
     return this.fakePieces.map((fp) => ({
       fakeId: fp.fakeId ?? fp.id,
       sourcePieceId: fp.sourcePieceId,
+      targetX: Math.round(fp.targetX * 10) / 10,
+      targetY: Math.round(fp.targetY * 10) / 10,
       x: Math.round(fp.x * 10) / 10,
       y: Math.round(fp.y * 10) / 10,
       rotation: fp.rotation,

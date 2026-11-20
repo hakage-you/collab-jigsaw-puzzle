@@ -20,6 +20,8 @@ export const DEFAULT_SETTINGS = {
     dropCount: OJAMA_CONFIG.DEFAULT_DROP_COUNT,
     visualDuration: OJAMA_CONFIG.DEFAULT_VISUAL_DURATION_SEC,
     visualType: 'random',
+    fakeDuration: OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC,
+    fakeMaxCount: OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT,
     triggerWords: '!drop, !color, !spin, !ghost, !fake, お邪魔',
   },
 };
