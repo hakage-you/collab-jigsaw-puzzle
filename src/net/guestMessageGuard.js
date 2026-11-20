@@ -5,35 +5,34 @@
 import { NET_LIMITS } from '../config/constants.js';
 import { recordDiagnostic } from '../services/diagnostics.js';
 import { MSG, isValidMessage } from './protocol.js';
+import {
+  MAX_PLAYER_ID_LENGTH,
+  MAX_TOKEN_LENGTH,
+  clampText,
+  isCoord,
+  isEntityId as isId,
+  isNonNegInt,
+  isShortString,
+} from './messageFieldChecks.js';
 
 /** Outcomes of RateGate.admit: handle the message, drop it, or drop it and kick the sender. */
 export const RATE_OK = 'ok';
 export const RATE_DROPPED = 'dropped';
 export const RATE_FLOOD = 'flood';
 
-const TOKEN_MAX_LENGTH = 128;
-const PLAYER_ID_MAX_LENGTH = 64;
-// Real pieces and groups are positive and bounded by the group filter. Fake (ojama) pieces use
-// negative ids from a counter, and guests can drag them, so both signs are allowed.
-const MAX_ENTITY_ID = 1e6;
-
-const isId = (v) => Number.isSafeInteger(v) && Math.abs(v) <= MAX_ENTITY_ID;
-const isSeq = (v) => Number.isSafeInteger(v) && v >= 0;
-const isCoord = (v) =>
-  typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= NET_LIMITS.MAX_ABS_COORD;
-const isShortString = (v, max) => typeof v === 'string' && v.length <= max;
+const isSeq = (v) => isNonNegInt(v);
 const isOptionalName = (v) => v === undefined || typeof v === 'string';
-const cleanName = (v) => (typeof v === 'string' ? v.slice(0, NET_LIMITS.MAX_NAME_LENGTH) : '');
+const cleanName = (v) => clampText(v, NET_LIMITS.MAX_NAME_LENGTH);
 
 function validateAuthResponse(m) {
-  if (!isShortString(m.hash, TOKEN_MAX_LENGTH) || !isOptionalName(m.displayName)) return null;
+  if (!isShortString(m.hash, MAX_TOKEN_LENGTH) || !isOptionalName(m.displayName)) return null;
   return { type: m.type, hash: m.hash, displayName: cleanName(m.displayName) };
 }
 
 function validateRejoin(m) {
   if (
-    !isShortString(m.playerId, PLAYER_ID_MAX_LENGTH) ||
-    !isShortString(m.reconnectToken, TOKEN_MAX_LENGTH) ||
+    !isShortString(m.playerId, MAX_PLAYER_ID_LENGTH) ||
+    !isShortString(m.reconnectToken, MAX_TOKEN_LENGTH) ||
     !isOptionalName(m.displayName)
   ) {
     return null;

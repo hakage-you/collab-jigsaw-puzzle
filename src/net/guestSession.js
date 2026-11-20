@@ -1,9 +1,15 @@
+import { NET_LIMITS } from '../config/constants.js';
 import { generateSampleImageCanvas } from '../core/sampleImage.js';
 import { validateSaveData } from '../core/saveValidation.js';
 import { recordDiagnostic } from '../services/diagnostics.js';
-import { MSG, computeChallengeHash, isValidMessage } from './protocol.js';
+import { MSG, computeChallengeHash } from './protocol.js';
+import { HOST_TRANSFER_TYPES, sanitizeHostMessage } from './hostMessageGuard.js';
 import { decodeBase64ToCanvas } from './imageTransfer.js';
 import { REALTIME_HANDLERS, isRollbackFor } from './guestSyncHandlers.js';
+
+const IMAGE_REJECTED_REASON = 'ホストから受信した画像が不正なため切断しました';
+const FULL_STATE_REJECTED_REASON = 'ホストの盤面データが不正なため切断しました';
+const FULL_STATE_TYPES = new Set([MSG.FULL_STATE, MSG.FULL_STATE_CHUNK]);
 
 /** Handlers for session-level messages (auth, welcome, image and full state transfer). */
 const SESSION_HANDLERS = new Map([
@@ -59,10 +65,30 @@ export class GuestSession {
     this.pendingGroupOpSeq.clear();
   }
 
+  /** Every host message passes the guard first; handlers only ever see the sanitized copy. */
   async onMessage(msg) {
-    if (!isValidMessage(msg)) return;
-    const handler = GUEST_HANDLERS.get(msg.type);
-    if (handler) await handler(this, msg);
+    const clean = sanitizeHostMessage(msg);
+    if (!clean) {
+      if (HOST_TRANSFER_TYPES.has(msg?.type)) this._failTransfer(msg.type, 'invalid_message');
+      return;
+    }
+    const handler = GUEST_HANDLERS.get(clean.type);
+    if (handler) await handler(this, clean);
+  }
+
+  /**
+   * A broken or hostile host transfer ends the join: discard the partial transfer, leave the
+   * room and report it. Only the type and a short reason are logged.
+   */
+  _failTransfer(type, reason) {
+    const room = this.room;
+    if (room.role !== 'guest') return;
+    recordDiagnostic('p2p', 'host_transfer_rejected', { type, reason }, 'warn');
+    const message = FULL_STATE_TYPES.has(type) ? FULL_STATE_REJECTED_REASON : IMAGE_REJECTED_REASON;
+    this.incomingImage = null;
+    this.pendingFullState = null;
+    room.close();
+    room.cb.onDisconnected(message);
   }
 
   async _handleAuthChallenge(msg) {
@@ -101,7 +127,7 @@ export class GuestSession {
       totalChunks: msg.totalChunks,
       chunks: new Array(msg.totalChunks),
       received: 0,
-      mimeType: msg.mimeType || 'image/webp',
+      mimeType: msg.mimeType,
     };
     this.room.cb.onImageProgress(0, msg.totalChunks);
   }
@@ -112,6 +138,7 @@ export class GuestSession {
         msg,
         chunks: new Array(msg.totalPieceChunks),
         received: 0,
+        pieceCount: 0,
       };
       return;
     }
@@ -121,9 +148,18 @@ export class GuestSession {
   _handleFullStateChunk(msg) {
     const pending = this.pendingFullState;
     if (!pending) return;
-    if (pending.chunks[msg.chunkIndex] === undefined && Array.isArray(msg.pieces)) {
+    if (msg.chunkIndex >= pending.msg.totalPieceChunks) {
+      this._failTransfer(MSG.FULL_STATE_CHUNK, 'index_out_of_range');
+      return;
+    }
+    if (pending.chunks[msg.chunkIndex] === undefined) {
       pending.chunks[msg.chunkIndex] = msg.pieces;
       pending.received += 1;
+      pending.pieceCount += msg.pieces.length;
+    }
+    if (pending.pieceCount > NET_LIMITS.MAX_PIECES) {
+      this._failTransfer(MSG.FULL_STATE_CHUNK, 'too_many_pieces');
+      return;
     }
     if (pending.received >= pending.msg.totalPieceChunks) {
       const mergedPieces = [].concat(...pending.chunks);
@@ -143,7 +179,7 @@ export class GuestSession {
       // A host state we cannot trust is treated as a failed sync: leave the room and report it.
       recordDiagnostic('p2p', 'guest_invalid_full_state', { reason: checked.error }, 'warn');
       room.close();
-      room.cb.onDisconnected('ホストの盤面データが不正なため切断しました');
+      room.cb.onDisconnected(FULL_STATE_REJECTED_REASON);
       return;
     }
     const saveData = checked.data;
@@ -200,22 +236,28 @@ export class GuestSession {
 
   async _handleImageChunk(msg) {
     const room = this.room;
-    if (this.incomingImage.chunks[msg.index] === undefined) {
-      this.incomingImage.chunks[msg.index] = msg.data;
-      this.incomingImage.received += 1;
-      room.cb.onImageProgress(this.incomingImage.received, this.incomingImage.totalChunks);
+    const image = this.incomingImage;
+    if (msg.index >= image.totalChunks) {
+      this._failTransfer(MSG.IMAGE_CHUNK, 'index_out_of_range');
+      return;
     }
-    if (this.incomingImage.received >= this.incomingImage.totalChunks) {
-      const fullBase64 = this.incomingImage.chunks.join('');
-      const mimeType = this.incomingImage.mimeType;
+    if (image.chunks[msg.index] === undefined) {
+      image.chunks[msg.index] = msg.data;
+      image.received += 1;
+      room.cb.onImageProgress(image.received, image.totalChunks);
+    }
+    if (image.received >= image.totalChunks) {
+      const fullBase64 = image.chunks.join('');
       this.incomingImage = null;
+      let decodedCanvas;
       try {
-        const decodedCanvas = await decodeBase64ToCanvas(fullBase64, mimeType);
-        room.cb.onReceiveImage(decodedCanvas, 'ホスト共有画像', false);
-        room.transport.sendToHost({ type: MSG.IMAGE_ACK, needImage: false });
+        decodedCanvas = await decodeBase64ToCanvas(fullBase64, image.mimeType);
       } catch (err) {
-        room.cb.onError(err?.message || '画像受信に失敗しました');
+        this._failTransfer(MSG.IMAGE_CHUNK, err?.reason || 'decode_failed');
+        return;
       }
+      room.cb.onReceiveImage(decodedCanvas, 'ホスト共有画像', false);
+      room.transport.sendToHost({ type: MSG.IMAGE_ACK, needImage: false });
     }
   }
 
