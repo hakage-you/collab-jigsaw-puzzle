@@ -69,6 +69,23 @@ export default [
       ...QUALITY_RULES,
       ...SIZE_RULES,
       'no-console': 'error',
+      // Markup injection sinks: build DOM nodes and use textContent instead (XSS, security S1).
+      'no-restricted-syntax': [
+        'error',
+        ...['innerHTML', 'outerHTML'].map((name) => ({
+          selector: `MemberExpression[property.name='${name}']`,
+          message: `${name} is banned: create elements and set textContent instead.`,
+        })),
+        ...['insertAdjacentHTML', 'write', 'writeln', 'createContextualFragment'].map((name) => ({
+          selector: `CallExpression[callee.property.name='${name}']`,
+          message: `${name}() is banned: create elements and set textContent instead.`,
+        })),
+        {
+          selector:
+            "CallExpression[callee.name=/^(eval|Function)$/], NewExpression[callee.name='Function']",
+          message: 'Dynamic code evaluation is banned.',
+        },
+      ],
     },
   },
   {

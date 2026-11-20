@@ -1,4 +1,5 @@
 import { generateSampleImageCanvas } from '../core/sampleImage.js';
+import { validateSaveData } from '../core/saveValidation.js';
 import { recordDiagnostic } from '../services/diagnostics.js';
 import { MSG, computeChallengeHash, isValidMessage } from './protocol.js';
 import { decodeBase64ToCanvas } from './imageTransfer.js';
@@ -133,10 +134,19 @@ export class GuestSession {
     }
   }
 
-  _applyFullState(msg, saveData) {
+  _applyFullState(msg, rawSaveData) {
     const room = this.room;
     const { sourceCanvas, isSampleImage } = room.getSourceState();
     if (!sourceCanvas) return;
+    const checked = validateSaveData(rawSaveData);
+    if (!checked.ok) {
+      // A host state we cannot trust is treated as a failed sync: leave the room and report it.
+      recordDiagnostic('p2p', 'guest_invalid_full_state', { reason: checked.error }, 'warn');
+      room.close();
+      room.cb.onDisconnected('ホストの盤面データが不正なため切断しました');
+      return;
+    }
+    const saveData = checked.data;
     room.roomRules = msg.roomRules;
     room.groupLocks = new Map(msg.locks || []);
     room.remoteDragTargets.clear();

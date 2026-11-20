@@ -16,6 +16,7 @@ import {
 } from '../core/jigsawPath.js';
 import { computeImageSignature } from '../core/prng.js';
 import { generateSampleImageCanvas } from '../core/sampleImage.js';
+import { validateSaveData } from '../core/saveValidation.js';
 import {
   clearAutoBackup,
   loadSavedSettings,
@@ -222,7 +223,13 @@ export class GameSession {
     return sameHash || (!puz.imageHash && sameDims);
   }
 
-  restoreFromSaveData(saveData, customCanvas, useSample, imgName) {
+  restoreFromSaveData(rawSaveData, customCanvas, useSample, imgName) {
+    const checked = validateSaveData(rawSaveData);
+    if (!checked.ok) {
+      this.emit('toast', { message: checked.error, kind: 'ojama' });
+      return;
+    }
+    const saveData = checked.data;
     const srcCanvas = useSample ? generateSampleImageCanvas() : customCanvas;
     if (!srcCanvas) return;
     const resolvedName = useSample ? 'サンプルテスト画像 (復元)' : imgName || 'ローカル画像 (復元)';
@@ -431,11 +438,17 @@ export class GameSession {
   }
 
   async resumeHostFromBackup(
-    backup,
+    rawBackup,
     imgCanvas,
     isSample,
     { displayName, passcode, requireApproval, capacity },
   ) {
+    const checked = validateSaveData(rawBackup);
+    if (!checked.ok) {
+      this.emit('toast', { message: checked.error, kind: 'ojama' });
+      return;
+    }
+    const backup = checked.data;
     this.emit('stopYoutubePolling', { reason: null });
     const resolvedCanvas = isSample ? generateSampleImageCanvas() : imgCanvas;
     const imgName = isSample
