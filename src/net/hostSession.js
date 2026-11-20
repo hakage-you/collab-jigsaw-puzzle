@@ -1,14 +1,37 @@
 import { MULTIPLAYER_CONFIG } from '../config/constants.js';
-import { recordDiagnostic } from '../services/diagnostics.js';
 import { saveAutoBackup } from '../services/storage.js';
-import { MSG, generateToken, computeChallengeHash, isValidMessage } from './protocol.js';
+import { MSG, generateToken, isValidMessage } from './protocol.js';
 import {
-  serializePieces,
   sendWelcomeToGuest,
   sendImageToGuest,
   sendFullStateToGuest,
   broadcastPiecesPatch,
 } from './hostSyncHelper.js';
+import { handleAuthResponse, handleRejoin, admitNewGuest } from './hostAdmission.js';
+import {
+  handleCursorMove,
+  handleDragPreview,
+  handleLockRequest,
+  handleDropRequest,
+  handleRotateOrFlip,
+} from './hostBoardOps.js';
+
+function handleImageAck(session, { connId, msg }) {
+  if (msg.needImage) session._sendImageToGuest(connId);
+  else session._sendFullStateToGuest(connId);
+}
+
+/** Handlers for messages from an authenticated guest, keyed by message type. */
+const GUEST_MESSAGE_HANDLERS = new Map([
+  [MSG.IMAGE_ACK, handleImageAck],
+  [MSG.CURSOR_MOVE, handleCursorMove],
+  [MSG.LOCK_REQUEST, handleLockRequest],
+  [MSG.DRAG_PREVIEW, handleDragPreview],
+  [MSG.DROP_REQUEST, handleDropRequest],
+  [MSG.ROTATE_REQUEST, handleRotateOrFlip],
+  [MSG.FLIP_REQUEST, handleRotateOrFlip],
+  [MSG.SUPERCHAT_HIT, (session) => session.handleSuperchatHit()],
+]);
 
 export class HostSession {
   constructor(room) {
@@ -158,14 +181,13 @@ export class HostSession {
 
   async onMessage(connId, msg) {
     if (!isValidMessage(msg)) return;
-    const room = this.room;
 
     if (msg.type === MSG.AUTH_RESPONSE) {
-      await this._handleAuthResponse(connId, msg);
+      await handleAuthResponse(this, connId, msg);
       return;
     }
     if (msg.type === MSG.REJOIN) {
-      this._handleRejoin(connId, msg);
+      handleRejoin(this, connId, msg);
       return;
     }
 
@@ -174,202 +196,8 @@ export class HostSession {
     const guest = this.guests.get(playerId);
     if (!guest) return;
 
-    if (msg.type === MSG.IMAGE_ACK) {
-      if (msg.needImage) this._sendImageToGuest(connId);
-      else this._sendFullStateToGuest(connId);
-      return;
-    }
-    if (msg.type === MSG.CURSOR_MOVE) {
-      const cursor = {
-        playerId,
-        x: Number(msg.x) || 0,
-        y: Number(msg.y) || 0,
-        name: guest.name,
-        color: guest.color,
-      };
-      room.remoteCursors.set(playerId, { ...cursor, targetX: cursor.x, targetY: cursor.y });
-      room.transport.broadcast({ type: MSG.CURSOR_MOVE, ...cursor }, connId);
-      room.cb.onRenderNeeded();
-      return;
-    }
-    if (msg.type === MSG.LOCK_REQUEST) {
-      this._handleLockRequest(connId, playerId, Number(msg.groupId));
-      return;
-    }
-    if (msg.type === MSG.DRAG_PREVIEW) {
-      const groupId = Number(msg.groupId);
-      if (room.groupLocks.get(groupId) !== playerId || !Array.isArray(msg.positions)) return;
-      room.applyPositionsOnly(msg.positions);
-      room.transport.broadcast(
-        { type: MSG.DRAG_PREVIEW, groupId, ownerId: playerId, positions: msg.positions },
-        connId,
-      );
-      room.cb.onRenderNeeded();
-      return;
-    }
-    if (msg.type === MSG.DROP_REQUEST) {
-      this._handleDropRequest(connId, playerId, guest, msg);
-      return;
-    }
-    if (msg.type === MSG.ROTATE_REQUEST || msg.type === MSG.FLIP_REQUEST) {
-      this._handleRotateOrFlip(connId, playerId, msg);
-      return;
-    }
-    if (msg.type === MSG.SUPERCHAT_HIT) {
-      this.handleSuperchatHit();
-    }
-  }
-
-  async _handleAuthResponse(connId, msg) {
-    const auth = this.pendingAuth.get(connId);
-    if (!auth) return;
-    const expected = await computeChallengeHash(auth.nonce, this.passcode);
-    if (msg.hash !== expected) {
-      recordDiagnostic('p2p', 'host_auth_failed', { reason: 'passcode_mismatch' }, 'warn');
-      this.room.transport.sendTo(connId, { type: MSG.AUTH_ERROR, reason: '合言葉が一致しません' });
-      this.pendingAuth.delete(connId);
-      setTimeout(() => this.room.transport?.disconnect(connId), 100);
-      return;
-    }
-    if (this.getOnlineCount() >= this.capacity) {
-      this.room.transport.sendTo(connId, { type: MSG.AUTH_ERROR, reason: '部屋が満員です' });
-      this.pendingAuth.delete(connId);
-      setTimeout(() => this.room.transport?.disconnect(connId), 100);
-      return;
-    }
-
-    this.pendingAuth.delete(connId);
-    const displayName =
-      String(msg.displayName || 'ゲスト')
-        .trim()
-        .slice(0, 20) || 'ゲスト';
-    if (this.requireApproval) {
-      this.pendingKnocks.set(connId, { connId, displayName });
-      this.room.transport.sendTo(connId, { type: MSG.KNOCK_PENDING });
-      this.room.cb.onKnockRequest({ connId, displayName });
-    } else {
-      this._admitNewGuest(connId, displayName);
-    }
-  }
-
-  _handleRejoin(connId, msg) {
-    this.pendingAuth.delete(connId);
-    const existing = this.guests.get(msg.playerId);
-    if (!existing || existing.online || existing.reconnectToken !== msg.reconnectToken) {
-      this.room.transport.sendTo(connId, {
-        type: MSG.AUTH_ERROR,
-        reason: '再接続トークンが無効です。新しく参加してください',
-      });
-      setTimeout(() => this.room.transport?.disconnect(connId), 100);
-      return;
-    }
-    if (this.getOnlineCount() >= this.capacity) {
-      this.room.transport.sendTo(connId, { type: MSG.AUTH_ERROR, reason: '部屋が満員です' });
-      return;
-    }
-
-    existing.connId = connId;
-    existing.online = true;
-    if (msg.displayName) {
-      existing.name = String(msg.displayName).trim().slice(0, 20) || existing.name;
-    }
-    this.connToPlayer.set(connId, existing.id);
-    this._sendWelcomeToGuest(existing);
-    this.syncRoster();
-  }
-
-  _handleLockRequest(connId, playerId, groupId) {
-    const room = this.room;
-    const group = room.engine.getGroupPieces(groupId);
-    if (group.length === 0 || group.some((p) => p.isLocked)) {
-      room.transport.sendTo(connId, {
-        type: MSG.LOCK_DENIED,
-        groupId,
-        ownerId: null,
-        pieces: this._serializePieces(group),
-      });
-      return;
-    }
-    const currentOwner = room.groupLocks.get(groupId);
-    if (currentOwner && currentOwner !== playerId) {
-      room.transport.sendTo(connId, {
-        type: MSG.LOCK_DENIED,
-        groupId,
-        ownerId: currentOwner,
-        pieces: this._serializePieces(group),
-      });
-      return;
-    }
-    for (const [heldGid, owner] of room.groupLocks.entries()) {
-      if (owner === playerId && heldGid !== groupId) {
-        room.groupLocks.delete(heldGid);
-        room.transport.broadcast({ type: MSG.LOCK_RELEASE, groupId: heldGid });
-      }
-    }
-    room.groupLocks.set(groupId, playerId);
-    room.engine.bringGroupToFront(groupId);
-    const zOrder = group[0]?.zOrder || 1;
-    room.transport.broadcast({ type: MSG.LOCK_GRANTED, groupId, ownerId: playerId, zOrder });
-    room.cb.onRenderNeeded();
-  }
-
-  _handleDropRequest(connId, playerId, guest, msg) {
-    const room = this.room;
-    const groupId = Number(msg.groupId);
-    const currentOwner = room.groupLocks.get(groupId);
-    if (currentOwner && currentOwner !== playerId) {
-      room.transport.sendTo(connId, {
-        type: MSG.LOCK_DENIED,
-        groupId,
-        ownerId: currentOwner,
-        pieces: this._serializePieces(room.engine.getGroupPieces(groupId)),
-      });
-      return;
-    }
-    room.groupLocks.delete(groupId);
-    if (Array.isArray(msg.positions)) {
-      room.applyPositionsOnly(msg.positions);
-    }
-    const res = room.engine.resolveDrop(groupId);
-    if (res.type === 'snap') {
-      guest.contrib += res.count;
-    }
-    const affected = room.engine.getGroupPieces(groupId);
-    this.syncRoster();
-    this._broadcastPiecesPatch(affected, res, playerId);
-    room.cb.onHostPatchApplied(affected, res, playerId);
-    this.scheduleAutoBackup();
-  }
-
-  _handleRotateOrFlip(connId, playerId, msg) {
-    const room = this.room;
-    const piece = room.engine.getPieceById(msg.pieceId);
-    if (!piece || piece.isLocked) return;
-    const owner = room.groupLocks.get(piece.groupId);
-    if (owner && owner !== playerId) {
-      room.transport.sendTo(connId, {
-        type: MSG.LOCK_DENIED,
-        groupId: piece.groupId,
-        ownerId: owner,
-        pieces: this._serializePieces(room.engine.getGroupPieces(piece.groupId)),
-      });
-      return;
-    }
-    const settings = room.getSettings();
-    const isRotate = msg.type === MSG.ROTATE_REQUEST;
-    const changed = isRotate
-      ? room.engine.rotateGroup(piece, settings.allowRotation)
-      : room.engine.flipPiece(piece, settings.allowFlip);
-    if (changed) {
-      const affected = room.engine.getGroupPieces(piece.groupId);
-      this._broadcastPiecesPatch(
-        affected,
-        { type: isRotate ? 'rotate' : 'flip', opSeq: msg.opSeq },
-        playerId,
-      );
-      room.cb.onRenderNeeded();
-      this.scheduleAutoBackup();
-    }
+    const handler = GUEST_MESSAGE_HANDLERS.get(msg.type);
+    if (handler) handler(this, { connId, playerId, guest, msg });
   }
 
   approveKnock(connId) {
@@ -382,7 +210,7 @@ export class HostSession {
       this.room.transport?.disconnect(connId);
       return;
     }
-    this._admitNewGuest(connId, req.displayName);
+    admitNewGuest(this, connId, req.displayName);
   }
 
   rejectKnock(connId) {
@@ -420,44 +248,6 @@ export class HostSession {
     this.guests.delete(playerId);
     this.syncRoster();
     this.room.cb.onRenderNeeded();
-  }
-
-  _admitNewGuest(connId, displayName) {
-    const offlineMatch = Array.from(this.guests.values()).find(
-      (g) => !g.online && g.name === displayName,
-    );
-    if (offlineMatch) {
-      offlineMatch.connId = connId;
-      offlineMatch.online = true;
-      offlineMatch.reconnectToken = generateToken();
-      this.connToPlayer.set(connId, offlineMatch.id);
-      this._sendWelcomeToGuest(offlineMatch);
-      this.syncRoster();
-      return;
-    }
-
-    const saved = this.room.claimSavedGuestContrib(displayName);
-    const idx = this.guests.size;
-    const playerId = `p-${generateToken().slice(0, 8)}`;
-    const reconnectToken = generateToken();
-    const color =
-      saved?.color ||
-      MULTIPLAYER_CONFIG.PLAYER_COLORS[(idx + 1) % MULTIPLAYER_CONFIG.PLAYER_COLORS.length];
-
-    const guest = {
-      id: playerId,
-      connId,
-      name: displayName,
-      color,
-      role: 'guest',
-      contrib: saved ? saved.contrib : 0,
-      online: true,
-      reconnectToken,
-    };
-    this.guests.set(playerId, guest);
-    this.connToPlayer.set(connId, playerId);
-    this._sendWelcomeToGuest(guest);
-    this.syncRoster();
   }
 
   _sendWelcomeToGuest(guest) {
@@ -509,10 +299,6 @@ export class HostSession {
     this.room.roster = this.buildRosterList();
     this.room.transport?.broadcast({ type: MSG.ROSTER_UPDATE, roster: this.room.roster });
     this.room.cb.onRosterUpdate(this.room.roster);
-  }
-
-  _serializePieces(pieces) {
-    return serializePieces(pieces);
   }
 
   _broadcastPiecesPatch(pieces, actionResult, actorId) {

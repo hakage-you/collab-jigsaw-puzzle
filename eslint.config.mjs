@@ -129,18 +129,4 @@ export default [
       ],
     },
   },
-
-  // TEMPORARY EXCEPTIONS: size/complexity rules are off for these high-risk files until
-  // tests exist (test plan P1/P2). Remove a file from this list as soon as it is split.
-  // See phase 2 in _plan/20261120_2255_lint_hardening_plan.md
-  {
-    files: ['src/net/guestSession.js', 'src/net/hostSession.js', 'src/app/gameSession.js'],
-    rules: {
-      'max-lines': 'off',
-      'max-lines-per-function': 'off',
-      complexity: 'off',
-      'max-depth': 'off',
-      'max-params': 'off',
-    },
-  },
 ];
