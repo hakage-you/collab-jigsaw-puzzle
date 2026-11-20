@@ -3,14 +3,10 @@
  * for cluster sorting and color-based highlight filtering.
  */
 
-import { COLOR_BUCKETS } from '../config/constants.js';
-
-export { COLOR_BUCKETS };
-
-function rgbToHsl(r, g, b) {
-  r /= 255;
-  g /= 255;
-  b /= 255;
+function rgbToHsl(red, green, blue) {
+  const r = red / 255;
+  const g = green / 255;
+  const b = blue / 255;
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   let h = 0;

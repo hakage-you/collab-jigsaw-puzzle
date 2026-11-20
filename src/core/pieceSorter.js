@@ -13,13 +13,7 @@ export function getSingleLoosePieces(engine, excludedGroupIds = null) {
 function layoutGrid(
   engine,
   pieces,
-  originX,
-  originY,
-  maxPerRow,
-  stepX,
-  stepY,
-  alignRight = false,
-  alignBottom = false,
+  { originX, originY, maxPerRow, stepX, stepY, alignRight = false, alignBottom = false },
 ) {
   if (pieces.length === 0) return;
   const colsUsed = Math.min(maxPerRow, pieces.length);
@@ -57,7 +51,13 @@ export function sortEdgesPieces(engine, excludedGroupIds = null) {
     const startX = -((colsUsed - 1) * stepX) / 2;
     const bottomEdgeY = -engine.boardH / 2 - engine.pieceH * 1.05;
     const startY = bottomEdgeY - (rowsUsed - 1) * stepY;
-    layoutGrid(engine, edges, startX, startY, perRow, stepX, stepY);
+    layoutGrid(engine, edges, {
+      originX: startX,
+      originY: startY,
+      maxPerRow: perRow,
+      stepX,
+      stepY,
+    });
     engine.zoneLabels.push({
       text: `外枠ピース (${edges.length})`,
       x: 0,
@@ -69,7 +69,13 @@ export function sortEdgesPieces(engine, excludedGroupIds = null) {
     const colsUsed = Math.min(perRow, inner.length);
     const startX = -((colsUsed - 1) * stepX) / 2;
     const startY = engine.boardH / 2 + engine.pieceH * 1.15;
-    layoutGrid(engine, inner, startX, startY, perRow, stepX, stepY);
+    layoutGrid(engine, inner, {
+      originX: startX,
+      originY: startY,
+      maxPerRow: perRow,
+      stepX,
+      stepY,
+    });
     engine.zoneLabels.push({
       text: `内側ピース (${inner.length})`,
       x: 0,
@@ -117,17 +123,15 @@ export function sortByColorPieces(engine, excludedGroupIds = null) {
 
     let ox = anchor.x;
     if (anchor.center) ox -= ((colsUsed - 1) * stepX) / 2;
-    layoutGrid(
-      engine,
-      list,
-      ox,
-      anchor.y,
-      perRow,
+    layoutGrid(engine, list, {
+      originX: ox,
+      originY: anchor.y,
+      maxPerRow: perRow,
       stepX,
       stepY,
-      anchor.alignR && !anchor.center,
-      anchor.alignB,
-    );
+      alignRight: anchor.alignR && !anchor.center,
+      alignBottom: anchor.alignB,
+    });
 
     const labelX = anchor.center
       ? 0
@@ -178,7 +182,15 @@ export function sortByQuadrantPieces(engine, excludedGroupIds = null) {
     const perRow = Math.max(2, Math.min(4, Math.ceil(Math.sqrt(list.length))));
     const colsUsed = Math.min(perRow, list.length);
     const rowsUsed = Math.ceil(list.length / perRow);
-    layoutGrid(engine, list, s.x, s.y, perRow, stepX, stepY, s.alignR, s.alignB);
+    layoutGrid(engine, list, {
+      originX: s.x,
+      originY: s.y,
+      maxPerRow: perRow,
+      stepX,
+      stepY,
+      alignRight: s.alignR,
+      alignBottom: s.alignB,
+    });
 
     const labelX = s.alignR
       ? s.x - ((colsUsed - 1) * stepX) / 2

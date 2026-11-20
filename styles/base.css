@@ -29,6 +29,7 @@ body {
 }
 
 .hidden {
+  /* stylelint-disable-next-line declaration-no-important -- utility must win */
   display: none !important;
 }
 

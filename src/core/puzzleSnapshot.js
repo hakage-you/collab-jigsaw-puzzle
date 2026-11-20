@@ -103,7 +103,7 @@ export function applyPiecePatchesOp(engine, patches, { preservePositions = false
   for (const sp of patches) {
     const p = byId.get(sp.id);
     if (!p) continue;
-    const nextLocked = !!sp.isLocked;
+    const nextLocked = Boolean(sp.isLocked);
     if (nextLocked !== p.isLocked) lockChanged = true;
     p.isLocked = nextLocked;
     if (p.isLocked) {
@@ -114,7 +114,7 @@ export function applyPiecePatchesOp(engine, patches, { preservePositions = false
       p.y = sp.y;
     }
     p.rotation = ((sp.rotation % 4) + 4) % 4;
-    p.isFlipped = !!sp.isFlipped;
+    p.isFlipped = Boolean(sp.isFlipped);
     p.groupId = sp.groupId;
     if (typeof sp.zOrder === 'number') {
       p.zOrder = sp.zOrder;

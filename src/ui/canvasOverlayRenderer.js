@@ -179,9 +179,9 @@ export function drawRemoteLockBadges(ctx, { room, engine, scale, pal }) {
   ctx.restore();
 }
 
-function drawCursor(ctx, cx, cy, name, color, scale) {
+function drawCursor(ctx, { x, y, name, color, scale }) {
   ctx.save();
-  ctx.translate(cx, cy);
+  ctx.translate(x, y);
   ctx.fillStyle = color;
   ctx.strokeStyle = '#0f172a';
   ctx.lineWidth = 1.5 / scale;
@@ -213,6 +213,12 @@ function drawCursor(ctx, cx, cy, name, color, scale) {
 export function drawAllCursors(ctx, { room, scale, pal }) {
   if (!room?.isMultiplayer()) return;
   for (const cur of room.remoteCursors.values()) {
-    drawCursor(ctx, cur.x, cur.y, cur.name, resolvePlayerColor(cur.color, pal), scale);
+    drawCursor(ctx, {
+      x: cur.x,
+      y: cur.y,
+      name: cur.name,
+      color: resolvePlayerColor(cur.color, pal),
+      scale,
+    });
   }
 }

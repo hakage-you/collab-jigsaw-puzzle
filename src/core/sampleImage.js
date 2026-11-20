@@ -1,19 +1,6 @@
 import { PUZZLE_CONFIG } from '../config/constants.js';
 
-/**
- * Generates a colorful, high-contrast test illustration on an offscreen canvas
- * so users can play immediately without uploading an image.
- */
-export function generateSampleImageCanvas(
-  width = PUZZLE_CONFIG.SAMPLE_IMAGE_WIDTH,
-  height = PUZZLE_CONFIG.SAMPLE_IMAGE_HEIGHT,
-) {
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-
-  // 1. Sky & Ocean split background with vivid color regions
+function drawSkyAndLand(ctx, width, height) {
   const skyGrad = ctx.createLinearGradient(0, 0, width, height * 0.58);
   skyGrad.addColorStop(0, '#ff6b6b');
   skyGrad.addColorStop(0.35, '#fbbf24');
@@ -29,8 +16,9 @@ export function generateSampleImageCanvas(
   landGrad.addColorStop(1, '#1e3a8a');
   ctx.fillStyle = landGrad;
   ctx.fillRect(0, height * 0.55, width, height * 0.45);
+}
 
-  // 2. Glowing Sun (Top-Left)
+function drawSun(ctx, width, height) {
   const sunX = width * 0.19;
   const sunY = height * 0.24;
   const sunGlow = ctx.createRadialGradient(sunX, sunY, 15, sunX, sunY, 150);
@@ -46,8 +34,9 @@ export function generateSampleImageCanvas(
   ctx.beginPath();
   ctx.arc(sunX, sunY, 54, 0, Math.PI * 2);
   ctx.fill();
+}
 
-  // 3. Rainbow Arc across the center sky
+function drawRainbow(ctx, width, height) {
   const rainbowColors = [
     '#ef4444',
     '#f97316',
@@ -64,20 +53,22 @@ export function generateSampleImageCanvas(
     ctx.arc(width * 0.5, height * 0.56, 250 - i * 11, Math.PI * 1.05, Math.PI * 1.95);
     ctx.stroke();
   });
+}
 
-  // 4. Layered Mountains
-  const drawMountain = (pts, color) => {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) {
-      ctx.lineTo(pts[i][0], pts[i][1]);
-    }
-    ctx.closePath();
-    ctx.fill();
-  };
+function drawPolygon(ctx, pts, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) {
+    ctx.lineTo(pts[i][0], pts[i][1]);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
 
-  drawMountain(
+function drawMountains(ctx, width, height) {
+  drawPolygon(
+    ctx,
     [
       [0, height * 0.58],
       [width * 0.22, height * 0.34],
@@ -85,7 +76,8 @@ export function generateSampleImageCanvas(
     ],
     '#4338ca',
   );
-  drawMountain(
+  drawPolygon(
+    ctx,
     [
       [width * 0.3, height * 0.58],
       [width * 0.54, height * 0.27],
@@ -93,7 +85,8 @@ export function generateSampleImageCanvas(
     ],
     '#6d28d9',
   );
-  drawMountain(
+  drawPolygon(
+    ctx,
     [
       [width * 0.62, height * 0.58],
       [width * 0.84, height * 0.32],
@@ -102,7 +95,8 @@ export function generateSampleImageCanvas(
     '#312e81',
   );
 
-  drawMountain(
+  drawPolygon(
+    ctx,
     [
       [width * 0.48, height * 0.34],
       [width * 0.54, height * 0.27],
@@ -111,7 +105,8 @@ export function generateSampleImageCanvas(
     ],
     '#f8fafc',
   );
-  drawMountain(
+  drawPolygon(
+    ctx,
     [
       [width * 0.79, height * 0.38],
       [width * 0.84, height * 0.32],
@@ -120,33 +115,35 @@ export function generateSampleImageCanvas(
     ],
     '#e0f2fe',
   );
+}
 
-  // 5. Rolling Green Hills (Bottom-Left) + Cute Houses
+function drawHouse(ctx, hx, hy, roofCol, wallCol) {
+  ctx.fillStyle = wallCol;
+  ctx.fillRect(hx - 24, hy - 22, 48, 34);
+  ctx.fillStyle = roofCol;
+  ctx.beginPath();
+  ctx.moveTo(hx - 32, hy - 20);
+  ctx.lineTo(hx, hy - 48);
+  ctx.lineTo(hx + 32, hy - 20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#fef08a';
+  ctx.fillRect(hx - 14, hy - 14, 12, 12);
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(hx + 4, hy - 10, 11, 22);
+}
+
+function drawHillsAndHouses(ctx, width, height) {
   ctx.fillStyle = '#22c55e';
   ctx.beginPath();
   ctx.ellipse(width * 0.22, height * 0.76, width * 0.32, height * 0.19, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  const drawHouse = (hx, hy, roofCol, wallCol) => {
-    ctx.fillStyle = wallCol;
-    ctx.fillRect(hx - 24, hy - 22, 48, 34);
-    ctx.fillStyle = roofCol;
-    ctx.beginPath();
-    ctx.moveTo(hx - 32, hy - 20);
-    ctx.lineTo(hx, hy - 48);
-    ctx.lineTo(hx + 32, hy - 20);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#fef08a';
-    ctx.fillRect(hx - 14, hy - 14, 12, 12);
-    ctx.fillStyle = '#78350f';
-    ctx.fillRect(hx + 4, hy - 10, 11, 22);
-  };
+  drawHouse(ctx, width * 0.16, height * 0.73, '#ef4444', '#fef3c7');
+  drawHouse(ctx, width * 0.29, height * 0.78, '#f97316', '#fce7f3');
+}
 
-  drawHouse(width * 0.16, height * 0.73, '#ef4444', '#fef3c7');
-  drawHouse(width * 0.29, height * 0.78, '#f97316', '#fce7f3');
-
-  // 6. Sailboat & Waves (Bottom-Right)
+function drawWavesAndBoat(ctx, width, height) {
   ctx.strokeStyle = 'rgba(186, 230, 253, 0.55)';
   ctx.lineWidth = 4;
   for (let row = 0; row < 4; row++) {
@@ -185,8 +182,9 @@ export function generateSampleImageCanvas(
   ctx.lineTo(bx - 42, by - 10);
   ctx.closePath();
   ctx.fill();
+}
 
-  // 7. Frame & Corner Compass Badges
+function drawFrameAndBadges(ctx, width, height) {
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
   ctx.lineWidth = 10;
   ctx.strokeRect(12, 12, width - 24, height - 24);
@@ -219,6 +217,29 @@ export function generateSampleImageCanvas(
   ctx.fillStyle = '#f8fafc';
   ctx.font = 'bold 18px sans-serif';
   ctx.fillText('COLLAB JIGSAW SAMPLE', width / 2, 47);
+}
+
+/**
+ * Generates a colorful, high-contrast test illustration on an offscreen canvas
+ * so users can play immediately without uploading an image.
+ */
+export function generateSampleImageCanvas(
+  width = PUZZLE_CONFIG.SAMPLE_IMAGE_WIDTH,
+  height = PUZZLE_CONFIG.SAMPLE_IMAGE_HEIGHT,
+) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+
+  // Drawing order matters: later layers overlap earlier ones.
+  drawSkyAndLand(ctx, width, height);
+  drawSun(ctx, width, height);
+  drawRainbow(ctx, width, height);
+  drawMountains(ctx, width, height);
+  drawHillsAndHouses(ctx, width, height);
+  drawWavesAndBoat(ctx, width, height);
+  drawFrameAndBadges(ctx, width, height);
 
   return canvas;
 }

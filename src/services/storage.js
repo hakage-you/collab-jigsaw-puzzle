@@ -1,7 +1,7 @@
 import { PUZZLE_CONFIG, OJAMA_CONFIG, STORAGE_KEYS } from '../config/constants.js';
 import { normalizeCutComplexity } from '../core/jigsawPath.js';
 
-export const DEFAULT_SETTINGS = {
+const DEFAULT_SETTINGS = {
   theme: 'light', // 'light' | 'dark'
   cols: PUZZLE_CONFIG.DEFAULT_COLS,
   rows: PUZZLE_CONFIG.DEFAULT_ROWS,

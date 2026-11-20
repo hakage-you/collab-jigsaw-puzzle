@@ -99,13 +99,16 @@ function boot() {
     screenToWorld: (sx, sy) => renderer.screenToWorld(sx, sy),
   };
 
+  app.startNewPuzzle();
+  lobbyUI.show();
+  startRenderLoop(renderer, topbarUI);
+}
+
+function startRenderLoop(renderer, topbarUI) {
   function animationLoop(now) {
     renderer.renderFrame(now, (elapsedMs) => topbarUI.updateTimer(elapsedMs));
     requestAnimationFrame(animationLoop);
   }
-
-  app.startNewPuzzle();
-  lobbyUI.show();
   requestAnimationFrame(animationLoop);
 }
 

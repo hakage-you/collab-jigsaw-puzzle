@@ -74,6 +74,18 @@ export class CanvasInteraction {
   }
 
   _bindEvents() {
+    this._bindPointerDownEvents();
+    this._bindPointerMoveEvents();
+    this._bindPointerUpEvents();
+    this._bindMouseEvents();
+    this._bindWheelEvents();
+    this._bindKeyboardEvents();
+    this._bindZoomControls();
+    this._bindFileDropEvents();
+    this._bindBeforeUnloadEvent();
+  }
+
+  _bindPointerDownEvents() {
     this.canvas.addEventListener('pointerdown', (e) => {
       const { sx, sy } = this._getCanvasLocalCoords(e);
       this.lastPointerScreen = { x: sx, y: sy };
@@ -114,7 +126,9 @@ export class CanvasInteraction {
         this.canvas.setPointerCapture(e.pointerId);
       }
     });
+  }
 
+  _bindPointerMoveEvents() {
     this.canvas.addEventListener('pointermove', (e) => {
       const { sx, sy } = this._getCanvasLocalCoords(e);
       this.ojama.updateSpotlightPosition(sx, sy);
@@ -167,10 +181,14 @@ export class CanvasInteraction {
       }
       this.canvas.style.cursor = hit || overSheet ? 'pointer' : 'grab';
     });
+  }
 
+  _bindPointerUpEvents() {
     this.canvas.addEventListener('pointerup', (e) => this._finishDrag(e));
     this.canvas.addEventListener('pointercancel', (e) => this._finishDrag(e));
+  }
 
+  _bindMouseEvents() {
     this.canvas.addEventListener('mousedown', (e) => {
       if (e.button !== 2) return;
       if (this._handledRightPointerDown) {
@@ -198,7 +216,9 @@ export class CanvasInteraction {
       const world = this.renderer.screenToWorld(sx, sy);
       this.app.submitFlip(this.app.hitTest(world.x, world.y));
     });
+  }
 
+  _bindWheelEvents() {
     this.canvas.addEventListener(
       'wheel',
       (e) => {
@@ -219,7 +239,9 @@ export class CanvasInteraction {
       },
       { passive: false },
     );
+  }
 
+  _bindKeyboardEvents() {
     window.addEventListener('keydown', (e) => {
       const activeTag = document.activeElement?.tagName;
       if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
@@ -245,7 +267,9 @@ export class CanvasInteraction {
     window.addEventListener('keyup', (e) => {
       if (e.code === 'Space') this.spacePressed = false;
     });
+  }
 
+  _bindZoomControls() {
     document.getElementById('btnZoomIn').addEventListener('click', () => {
       this.renderer.view.scale = Math.min(
         VIEWPORT_CONFIG.MAX_ZOOM,
@@ -277,7 +301,9 @@ export class CanvasInteraction {
         resetTo100Pct();
       }
     });
+  }
 
+  _bindFileDropEvents() {
     this.canvasStage.addEventListener('dragenter', (e) => {
       if (this.app.room.isGuest()) return;
       if (e.dataTransfer?.types?.includes('Files')) {
@@ -309,7 +335,9 @@ export class CanvasInteraction {
         );
       }
     });
+  }
 
+  _bindBeforeUnloadEvent() {
     window.addEventListener('beforeunload', (e) => {
       if (this.app.shouldWarnBeforeUnload()) {
         e.preventDefault();

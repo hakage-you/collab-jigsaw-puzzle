@@ -212,12 +212,7 @@ export class YouTubeLiveClient {
     const pageParam = this.nextPageToken
       ? `&pageToken=${encodeURIComponent(this.nextPageToken)}`
       : '';
-    const url =
-      `${YOUTUBE_CONFIG.API_BASE}/liveChat/messages` +
-      `?liveChatId=${encodeURIComponent(this.activeLiveChatId)}` +
-      `&part=snippet,authorDetails` +
-      `&key=${encodeURIComponent(this.apiKey)}` +
-      pageParam;
+    const url = `${YOUTUBE_CONFIG.API_BASE}/liveChat/messages?liveChatId=${encodeURIComponent(this.activeLiveChatId)}&part=snippet,authorDetails&key=${encodeURIComponent(this.apiKey)}${pageParam}`;
 
     let res;
     try {

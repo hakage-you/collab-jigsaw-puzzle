@@ -113,6 +113,13 @@ export class LobbyUI {
   }
 
   _bindEvents() {
+    this._bindOverlayEvents();
+    this._bindHostEvents();
+    this._bindBackupEvents();
+    this._bindGuestEvents();
+  }
+
+  _bindOverlayEvents() {
     document.querySelectorAll('.lobby-tab').forEach((tab) => {
       tab.addEventListener('click', () => this.selectTab(tab.dataset.lobbyTab));
     });
@@ -130,7 +137,9 @@ export class LobbyUI {
         this.cancel();
       }
     });
+  }
 
+  _bindHostEvents() {
     document.getElementById('btnStartSolo').addEventListener('click', () => {
       this.hasStartedSession = true;
       this.hide();
@@ -158,7 +167,9 @@ export class LobbyUI {
         btn.disabled = false;
       }
     });
+  }
 
+  _bindBackupEvents() {
     this.elBackupImageInput.addEventListener('change', (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -207,7 +218,9 @@ export class LobbyUI {
       clearAutoBackup();
       this.refreshAutoBackup();
     });
+  }
 
+  _bindGuestEvents() {
     document.getElementById('btnJoinGuestRoom').addEventListener('click', async () => {
       const roomId = this.elGuestRoomId.value.trim();
       if (!roomId) {
