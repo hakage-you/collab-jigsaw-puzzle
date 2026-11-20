@@ -72,7 +72,13 @@ export default [
     },
   },
   {
-    files: ['tests/**/*.mjs', 'scripts/**/*.mjs', '*.config.mjs', '.dependency-cruiser.cjs'],
+    files: [
+      'tests/**/*.mjs',
+      'measure/**/*.mjs',
+      'scripts/**/*.mjs',
+      '*.config.mjs',
+      '.dependency-cruiser.cjs',
+    ],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -86,7 +92,7 @@ export default [
   },
   {
     // Vitest tests run in headless Chromium (vitest.config.mjs).
-    files: ['tests/**/*.js'],
+    files: ['tests/**/*.js', 'measure/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -100,6 +106,11 @@ export default [
       'max-lines-per-function': 'off',
       'max-nested-callbacks': ['error', 5],
     },
+  },
+  {
+    // Measurements run scenarios one after another on purpose.
+    files: ['measure/**/*.{js,mjs}'],
+    rules: { 'no-await-in-loop': 'off' },
   },
   {
     files: ['.dependency-cruiser.cjs'],
