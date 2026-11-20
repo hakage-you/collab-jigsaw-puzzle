@@ -3,17 +3,14 @@ import { mulberry32, computeImageSignature } from './prng.js';
 import {
   clampGridDimensions,
   generateCutLayout,
-  buildPiecePath,
   createBacksidePatternCanvas,
   normalizeCutComplexity,
 } from './jigsawPath.js';
 import { analyzePieceColors } from './colorAnalysis.js';
 import { PieceLodCache } from './pieceLodCache.js';
-import {
-  PieceSpriteAtlas,
-  renderPieceBackSprite,
-  renderPieceSprites,
-} from './pieceSpriteBuilder.js';
+import { PieceSpriteAtlas, renderPieceBackSprite } from './pieceSpriteBuilder.js';
+import { buildPieceSet } from './pieceFactory.js';
+import { buildSavedMap, computeCoordScale, restoreStats } from './saveRestore.js';
 import {
   sortEdgesPieces,
   sortByColorPieces,
@@ -27,6 +24,14 @@ import {
   syncFakePiecesFromSpecsOp,
 } from './pieceOjamaOps.js';
 import { applyPiecePatchesOp, exportSaveDataOp, resolveDropOp } from './puzzleSnapshot.js';
+
+/** Clears the previous source canvas once it has been replaced by a new one. */
+function releasePreviousSource(prevSrc, sourceCanvas) {
+  if (prevSrc && prevSrc !== sourceCanvas) {
+    prevSrc.width = 0;
+    prevSrc.height = 0;
+  }
+}
 
 export class PuzzleEngine {
   constructor() {
@@ -175,10 +180,7 @@ export class PuzzleEngine {
 
     this._buildPieces({ allowRotation, allowFlip, savedMap: null });
     this.completedFired = false;
-    if (prevSrc && prevSrc !== sourceCanvas) {
-      prevSrc.width = 0;
-      prevSrc.height = 0;
-    }
+    releasePreviousSource(prevSrc, sourceCanvas);
   }
 
   /**
@@ -186,6 +188,25 @@ export class PuzzleEngine {
    */
   restoreFromSave(saveData, sourceCanvas, isSampleImage) {
     const prevSrc = this.sourceCanvas;
+    this._applySaveHeader(saveData, sourceCanvas, isSampleImage);
+
+    const savedMap = buildSavedMap(saveData.pieces);
+    const { coordScaleX, coordScaleY } = computeCoordScale(this, saveData.puzzle, sourceCanvas);
+    this._buildPieces({
+      allowRotation: false,
+      allowFlip: false,
+      savedMap,
+      coordScaleX,
+      coordScaleY,
+    });
+
+    this.stats = restoreStats(saveData.stats);
+    this.completedFired = this.isCompleted();
+    releasePreviousSource(prevSrc, sourceCanvas);
+  }
+
+  /** Applies the source image, grid, seed and geometry recorded in a save file. */
+  _applySaveHeader(saveData, sourceCanvas, isSampleImage) {
     const pInfo = saveData.puzzle;
     this.sourceCanvas = sourceCanvas;
     this.isSampleImage = Boolean(isSampleImage);
@@ -197,57 +218,7 @@ export class PuzzleEngine {
     this.cutComplexity = normalizeCutComplexity(
       pInfo.cutComplexity || saveData.settings?.cutComplexity,
     );
-
     this._computeGeometry();
-
-    const savedMap = new Map();
-    for (const sp of saveData.pieces) {
-      savedMap.set(sp.id, sp);
-    }
-    let coordScaleX;
-    let coordScaleY;
-    if (pInfo.boardW > 0 && pInfo.boardH > 0) {
-      coordScaleX = this.boardW / pInfo.boardW;
-      coordScaleY = this.boardH / pInfo.boardH;
-    } else {
-      const refW = Math.max(1, Number(pInfo.imageWidth) || sourceCanvas.width);
-      const refH = Math.max(1, Number(pInfo.imageHeight) || sourceCanvas.height);
-      const legacyScale = Math.min(
-        PUZZLE_CONFIG.BOARD_MAX_WIDTH / refW,
-        PUZZLE_CONFIG.BOARD_MAX_HEIGHT / refH,
-      );
-      const oldW = Math.max(1, Math.round(refW * legacyScale));
-      const oldH = Math.max(1, Math.round(refH * legacyScale));
-      coordScaleX = this.boardW / oldW;
-      coordScaleY = this.boardH / oldH;
-    }
-
-    this._buildPieces({
-      allowRotation: false,
-      allowFlip: false,
-      savedMap,
-      coordScaleX,
-      coordScaleY,
-    });
-
-    const st = saveData.stats || {};
-    this.stats = {
-      elapsedMs: Number(st.elapsedMs) || 0,
-      placedCount: Number(st.placedCount) || 0,
-      ojamaTotal: Number(st.ojamaTotal) || 0,
-      ojamaBreakdown: {
-        drop: Number(st.ojamaBreakdown?.drop) || 0,
-        visual: Number(st.ojamaBreakdown?.visual) || 0,
-        superchat: Number(st.ojamaBreakdown?.superchat) || 0,
-        prank: Number(st.ojamaBreakdown?.prank) || 0,
-        fake: Number(st.ojamaBreakdown?.fake) || 0,
-      },
-    };
-    this.completedFired = this.isCompleted();
-    if (prevSrc && prevSrc !== sourceCanvas) {
-      prevSrc.width = 0;
-      prevSrc.height = 0;
-    }
   }
 
   _buildPieces({ allowRotation, allowFlip, savedMap, coordScaleX = 1, coordScaleY = 1 }) {
@@ -282,82 +253,17 @@ export class PuzzleEngine {
     this.nextGroupId = 1;
     this.maxZ = 1;
 
-    const total = this.cols * this.rows;
-    const positions = savedMap ? null : this._generatePerimeterScatterPositions(total, rng);
-    let highestGroup = 0;
-    let highestZ = 1;
-
-    for (let r = 0; r < this.rows; r++) {
-      for (let c = 0; c < this.cols; c++) {
-        const id = r * this.cols + c;
-        const targetX = -this.boardW / 2 + (c + 0.5) * this.pieceW;
-        const targetY = -this.boardH / 2 + (r + 0.5) * this.pieceH;
-        const path = buildPiecePath({
-          row: r,
-          col: c,
-          cols: this.cols,
-          rows: this.rows,
-          targetX,
-          targetY,
-          layout,
-          tabSize: this.tabSize,
-        });
-
-        const sp = savedMap ? savedMap.get(id) : null;
-        const pos = positions ? positions[id] : null;
-        const isLocked = sp ? Boolean(sp.isLocked) : false;
-        const groupId = sp ? sp.groupId : this.nextGroupId++;
-        const zOrder = sp ? (isLocked ? 0 : ++highestZ) : this.maxZ++;
-        highestGroup = Math.max(highestGroup, groupId);
-
-        const piece = {
-          id,
-          row: r,
-          col: c,
-          isEdge: r === 0 || r === this.rows - 1 || c === 0 || c === this.cols - 1,
-          targetX,
-          targetY,
-          x: sp ? (isLocked ? targetX : sp.x * coordScaleX) : pos.x,
-          y: sp ? (isLocked ? targetY : sp.y * coordScaleY) : pos.y,
-          rotation: sp ? ((sp.rotation % 4) + 4) % 4 : allowRotation ? Math.floor(rng() * 4) : 0,
-          isFlipped: sp
-            ? Boolean(sp.isFlipped)
-            : allowFlip
-              ? rng() < PUZZLE_CONFIG.FLIP_INITIAL_PROB
-              : false,
-          groupId,
-          isLocked,
-          zOrder,
-          colorInfo: colorInfos[id],
-          path,
-          frontSprite: null,
-          backSprite: null,
-          spriteHalfW: this.pieceW / 2 + this.spritePad,
-          spriteHalfH: this.pieceH / 2 + this.spritePad,
-        };
-
-        renderPieceSprites(piece, {
-          sourceCanvas: this.sourceCanvas,
-          boardW: this.boardW,
-          boardH: this.boardH,
-          pieceW: this.pieceW,
-          pieceH: this.pieceH,
-          spritePad: this.spritePad,
-          atlas,
-          totalPieces: total,
-        });
-        if (piece.isFlipped) {
-          renderPieceBackSprite(piece, {
-            pieceW: this.pieceW,
-            pieceH: this.pieceH,
-            spritePad: this.spritePad,
-            backPatternCanvas: this.backPatternCanvas,
-            atlas,
-          });
-        }
-        this.pieces.push(piece);
-      }
-    }
+    const { highestGroup, highestZ } = buildPieceSet(this, {
+      layout,
+      colorInfos,
+      rng,
+      atlas,
+      savedMap,
+      allowRotation,
+      allowFlip,
+      coordScaleX,
+      coordScaleY,
+    });
 
     atlas.releaseUnusedPool();
     this.spriteAtlas = atlas;
@@ -392,43 +298,6 @@ export class PuzzleEngine {
         this.tabSize * PUZZLE_CONFIG.SPRITE_PAD_TAB_MULT +
           Math.max(this.pieceW, this.pieceH) * PUZZLE_CONFIG.SPRITE_PAD_WARP_MULT,
       ) + padExtra;
-  }
-
-  _generatePerimeterScatterPositions(count, rng) {
-    const positions = [];
-    const marginX = this.boardW / 2 + this.pieceW * 0.95;
-    const marginY = this.boardH / 2 + this.pieceH * 0.95;
-    const perimeterSpan = 2 * (this.boardW + this.boardH);
-    const neededArea = count * this.pieceW * this.pieceH * 1.45;
-    const idealBand = Math.ceil(neededArea / Math.max(1, perimeterSpan));
-    const bandW = Math.max(this.pieceW * 3.0, Math.min(this.boardW * 0.48, idealBand));
-    const bandH = Math.max(this.pieceH * 2.4, Math.min(this.boardH * 0.48, idealBand));
-
-    for (let i = 0; i < count; i++) {
-      const side = i % 4;
-      let x;
-      let y;
-      if (side === 0) {
-        x = (rng() - 0.5) * (this.boardW + bandW * 1.4);
-        y = -marginY - rng() * bandH;
-      } else if (side === 1) {
-        x = marginX + rng() * bandW;
-        y = (rng() - 0.5) * (this.boardH + bandH * 0.8);
-      } else if (side === 2) {
-        x = (rng() - 0.5) * (this.boardW + bandW * 1.4);
-        y = marginY + rng() * bandH;
-      } else {
-        x = -marginX - rng() * bandW;
-        y = (rng() - 0.5) * (this.boardH + bandH * 0.8);
-      }
-      positions.push({ x, y });
-    }
-
-    for (let i = positions.length - 1; i > 0; i--) {
-      const j = Math.floor(rng() * (i + 1));
-      [positions[i], positions[j]] = [positions[j], positions[i]];
-    }
-    return positions;
   }
 
   getPieceById(pieceId) {
@@ -581,7 +450,13 @@ export class PuzzleEngine {
   }
 
   addFakePieces(count, durationSec, allowRotation = true, allowFlip = true, maxCount = undefined) {
-    return addFakePiecesOp(this, count, durationSec, allowRotation, allowFlip, maxCount);
+    return addFakePiecesOp(this, {
+      count,
+      durationSec,
+      allowRotation,
+      allowFlip,
+      maxCount,
+    });
   }
 
   pruneExpiredFakePieces(now = Date.now()) {
