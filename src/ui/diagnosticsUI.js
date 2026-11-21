@@ -72,7 +72,7 @@ export class DiagnosticsUI {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    this.showToast('診断ログ JSON を保存しました', 'success');
+    this.showToast('診断ログ（JSON）を保存しました', 'success');
     return report;
   }
 

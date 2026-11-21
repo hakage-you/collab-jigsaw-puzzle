@@ -215,12 +215,12 @@ export class YouTubeLiveClient {
     this.stopPolling();
     const cleanKey = String(apiKey || '').trim();
     if (!cleanKey) {
-      throw new Error('YouTube Data API v3 の API キーを入力してください');
+      throw new Error('YouTube Data API v3 のAPIキーを入力してください');
     }
 
     const videoId = extractVideoId(rawUrlOrId);
     if (!videoId) {
-      throw new Error('有効な YouTube 配信 URL または 11文字の動画 ID を入力してください');
+      throw new Error('有効なYouTube配信URLまたは11文字の動画IDを入力してください');
     }
 
     const { ok, status, data } = await this._fetchJson(buildVideosUrl(videoId, cleanKey));

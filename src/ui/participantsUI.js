@@ -71,9 +71,9 @@ export class ParticipantsUI {
       if (!this.room.roomId) return;
       try {
         await navigator.clipboard.writeText(this.room.roomId);
-        this.showToast('ルームIDをコピーしました', 'success');
+        this.showToast('部屋IDをコピーしました', 'success');
       } catch {
-        this.showToast('ルームIDをコピーできませんでした', 'ojama');
+        this.showToast('部屋IDをコピーできませんでした', 'ojama');
       }
     });
   }

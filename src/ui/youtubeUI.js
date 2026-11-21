@@ -10,6 +10,11 @@ export class YouTubeUI {
 
     this.elApiKey = document.getElementById('ytApiKeyInput');
     this.elBtnClearKey = document.getElementById('btnYtClearKey');
+    this.elRememberKeyToggle = document.getElementById('ytRememberKeyToggle');
+    this.elRememberKeyConsent = document.getElementById('ytRememberKeyConsent');
+    this.elBtnConfirmRememberKey = document.getElementById('btnConfirmYtRememberKey');
+    this.elBtnCancelRememberKey = document.getElementById('btnCancelYtRememberKey');
+    this.elKeyStorageHint = document.getElementById('ytKeyStorageHint');
     this.elVideoUrl = document.getElementById('ytVideoUrlInput');
     this.elPollInterval = document.getElementById('ytPollInterval');
     this.elScaleTier = document.getElementById('ytScaleSuperchatTier');
@@ -52,7 +57,8 @@ export class YouTubeUI {
       },
     });
 
-    this._cleanupLegacyStoredKeys();
+    this.isLocalSaveEnabled = false;
+    this._initStoredKey();
     this._bindEvents();
     this._subscribeApp();
     this._updateQuotaUI(0);
@@ -62,13 +68,91 @@ export class YouTubeUI {
     this.app.on('stopYoutubePolling', ({ reason }) => this.stopIfPolling(reason));
   }
 
-  _cleanupLegacyStoredKeys() {
+  _clearStorageKeys() {
     try {
       sessionStorage.removeItem(STORAGE_KEYS.YOUTUBE_API_KEY);
       localStorage.removeItem(STORAGE_KEYS.YOUTUBE_API_KEY);
       localStorage.removeItem(STORAGE_KEYS.YOUTUBE_STORAGE_MODE);
     } catch {
       // Ignore storage restrictions
+    }
+  }
+
+  _initStoredKey() {
+    try {
+      sessionStorage.removeItem(STORAGE_KEYS.YOUTUBE_API_KEY);
+      const mode = localStorage.getItem(STORAGE_KEYS.YOUTUBE_STORAGE_MODE);
+      if (mode === 'local') {
+        this.isLocalSaveEnabled = true;
+        const savedKey = localStorage.getItem(STORAGE_KEYS.YOUTUBE_API_KEY) || '';
+        if (savedKey && this.elApiKey) {
+          this.elApiKey.value = savedKey;
+        }
+      } else {
+        this.isLocalSaveEnabled = false;
+        localStorage.removeItem(STORAGE_KEYS.YOUTUBE_API_KEY);
+        localStorage.removeItem(STORAGE_KEYS.YOUTUBE_STORAGE_MODE);
+      }
+    } catch {
+      this.isLocalSaveEnabled = false;
+    }
+    this._syncStorageUI();
+  }
+
+  _syncStorageUI() {
+    if (this.elRememberKeyToggle) {
+      this.elRememberKeyToggle.checked = this.isLocalSaveEnabled;
+    }
+    if (this.elKeyStorageHint) {
+      if (this.isLocalSaveEnabled) {
+        this.elKeyStorageHint.textContent =
+          'このブラウザ（localStorage）にキーを保存しています。共有PCではオフにし、必ず「YouTube Data API v3 のみ」に制限したキーをご使用ください。';
+        this.elKeyStorageHint.classList.add('is-warning');
+      } else {
+        this.elKeyStorageHint.textContent =
+          '初期設定ではブラウザのメモリ上のみで扱い、リロードやタブを閉じると消去されます。';
+        this.elKeyStorageHint.classList.remove('is-warning');
+      }
+    }
+  }
+
+  _persistKeyIfEnabled() {
+    if (!this.isLocalSaveEnabled) return true;
+    try {
+      const value = (this.elApiKey?.value || '').trim();
+      localStorage.setItem(STORAGE_KEYS.YOUTUBE_STORAGE_MODE, 'local');
+      if (value) {
+        localStorage.setItem(STORAGE_KEYS.YOUTUBE_API_KEY, value);
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.YOUTUBE_API_KEY);
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  _enableLocalSave() {
+    this.isLocalSaveEnabled = true;
+    const ok = this._persistKeyIfEnabled();
+    this.elRememberKeyConsent?.classList.add('hidden');
+    if (!ok) {
+      this.isLocalSaveEnabled = false;
+      this._syncStorageUI();
+      this.showToast('ブラウザの制限によりキーを保存できませんでした', 'ojama');
+      return;
+    }
+    this._syncStorageUI();
+    this.showToast('APIキーのブラウザ保存を有効にしました', 'info');
+  }
+
+  _disableLocalSave({ silent = false } = {}) {
+    this.isLocalSaveEnabled = false;
+    this._clearStorageKeys();
+    this.elRememberKeyConsent?.classList.add('hidden');
+    this._syncStorageUI();
+    if (!silent) {
+      this.showToast('ブラウザ保存をオフにし、保存済みキーを削除しました', 'info');
     }
   }
 
@@ -79,9 +163,9 @@ export class YouTubeUI {
     this.elApiKey.value = '';
     this.elBtnTogglePoll.disabled = true;
     this.elPreview.classList.add('hidden');
-    this._cleanupLegacyStoredKeys();
-    this.setStatus('入力されていた API キーを消去しました', false);
-    this.showToast('API キーを消去しました', 'info');
+    this._disableLocalSave({ silent: true });
+    this.setStatus('入力されていたAPIキーを消去しました', false);
+    this.showToast('APIキーを消去しました', 'info');
   }
 
   _resetVerification() {
@@ -131,6 +215,37 @@ export class YouTubeUI {
     }
   }
 
+  _bindKeyStorageEvents() {
+    this.elApiKey.addEventListener('input', () => {
+      this._resetVerification();
+      this._persistKeyIfEnabled();
+    });
+
+    this.elBtnClearKey.addEventListener('click', () => {
+      this._clearApiKey();
+    });
+
+    this.elRememberKeyToggle?.addEventListener('change', () => {
+      if (this.elRememberKeyToggle.checked) {
+        if (!this.isLocalSaveEnabled) {
+          this.elRememberKeyToggle.checked = false;
+          this.elRememberKeyConsent?.classList.remove('hidden');
+        }
+      } else {
+        this._disableLocalSave();
+      }
+    });
+
+    this.elBtnConfirmRememberKey?.addEventListener('click', () => {
+      this._enableLocalSave();
+    });
+
+    this.elBtnCancelRememberKey?.addEventListener('click', () => {
+      this.elRememberKeyConsent?.classList.add('hidden');
+      this._syncStorageUI();
+    });
+  }
+
   _bindEvents() {
     this.elBtnOpenGuide?.addEventListener('click', () => this.openGuideModal());
     this.elBtnCloseGuide?.addEventListener('click', () => this.closeGuideModal());
@@ -149,13 +264,7 @@ export class YouTubeUI {
       }
     });
 
-    this.elApiKey.addEventListener('input', () => {
-      this._resetVerification();
-    });
-
-    this.elBtnClearKey.addEventListener('click', () => {
-      this._clearApiKey();
-    });
+    this._bindKeyStorageEvents();
 
     this.elVideoUrl.addEventListener('input', () => {
       this._resetVerification();

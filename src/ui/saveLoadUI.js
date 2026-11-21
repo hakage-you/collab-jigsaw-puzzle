@@ -22,7 +22,7 @@ export class SaveLoadUI {
     document.getElementById('btnDownloadSave').addEventListener('click', () => {
       const payload = this.app.exportSaveData();
       const filename = downloadJsonFile(payload);
-      this.showToast(`セーブデータを保存しました (${filename})`, 'success');
+      this.showToast(`セーブデータを保存しました（${filename}）`, 'success');
     });
 
     this.elLoadJsonInput.addEventListener('change', (e) => {
@@ -103,11 +103,11 @@ export class SaveLoadUI {
     // Save files are untrusted input: build nodes and set text only, never markup.
     const total = this.pendingSaveData.pieces.length;
     const label = document.createElement('b');
-    label.textContent = '読込待機中:';
+    label.textContent = '読み込み待機中:';
     const lines = [
       [
         label,
-        ` ${puz.cols}×${puz.rows} (${total}ピース) / 進捗 ${locked}/${total} / seed: ${puz.seed}`,
+        ` ${puz.cols}×${puz.rows}（${total}ピース） / 進捗 ${locked}/${total} / seed: ${puz.seed}`,
       ],
       [
         `元画像種別: ${

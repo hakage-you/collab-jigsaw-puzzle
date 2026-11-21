@@ -61,7 +61,7 @@ export class SuperchatCard {
   /** Shows the card; `duration` 0 keeps it until driven off, with no countdown on the card. */
   show({ maxHp, duration, author, message, amountDisplay }) {
     this.dismiss();
-    this.elAuthor.textContent = author || 'リスナー（お邪魔枠）';
+    this.elAuthor.textContent = author || '視聴者（お邪魔枠）';
     this.elAmount.textContent = amountDisplay || '¥10,000';
     this.elMessage.textContent = message || '完成させるな！中央をブロック中';
 
