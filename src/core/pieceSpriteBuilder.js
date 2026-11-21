@@ -359,3 +359,45 @@ export function renderPieceBackSprite(
   };
   return piece.backSprite;
 }
+
+/** Turns a piece outline (core/jigsawPath.js buildPieceOutline) into a closed Path2D. */
+export function outlineToPath2D(outline) {
+  const path = new Path2D();
+  for (const c of outline.commands) {
+    if (c.op === 'M') path.moveTo(c.x, c.y);
+    else if (c.op === 'L') path.lineTo(c.x, c.y);
+    else path.bezierCurveTo(c.x1, c.y1, c.x2, c.y2, c.x, c.y);
+  }
+  path.closePath();
+  return path;
+}
+
+/**
+ * Creates a reusable cardboard-like backside pattern canvas for flipped pieces.
+ */
+export function createBacksidePatternCanvas() {
+  const size = PUZZLE_CONFIG.BACKSIDE_PATTERN_SIZE;
+  const pCanvas = document.createElement('canvas');
+  pCanvas.width = size;
+  pCanvas.height = size;
+  const ctx = pCanvas.getContext('2d');
+
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(0, 0, size, size);
+
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  for (let i = -size; i <= size * 2; i += 16) {
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i + size, size);
+  }
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(226, 232, 240, 0.22)';
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  return pCanvas;
+}

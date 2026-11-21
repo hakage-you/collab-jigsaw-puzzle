@@ -1,13 +1,13 @@
 import { PUZZLE_CONFIG } from '../config/constants.js';
 import { mulberry32 } from './prng.js';
-import {
-  clampGridDimensions,
-  generateCutLayout,
-  createBacksidePatternCanvas,
-  normalizeCutComplexity,
-} from './jigsawPath.js';
+import { clampGridDimensions, generateCutLayout, normalizeCutComplexity } from './jigsawPath.js';
 import { PieceLodCache } from './pieceLodCache.js';
-import { PieceSpriteAtlas, renderPieceBackSprite } from './pieceSpriteBuilder.js';
+import {
+  PieceSpriteAtlas,
+  createBacksidePatternCanvas,
+  renderPieceBackSprite,
+} from './pieceSpriteBuilder.js';
+import { isPointInOutline } from './pieceHitTest.js';
 import { buildPieceSet } from './pieceFactory.js';
 import { buildSavedMap, computeCoordScale, restoreStats } from './saveRestore.js';
 import {
@@ -87,10 +87,6 @@ export class PuzzleEngine {
       },
     };
 
-    this.hitCanvas = document.createElement('canvas');
-    this.hitCanvas.width = 1;
-    this.hitCanvas.height = 1;
-    this.hitCtx = this.hitCanvas.getContext('2d');
     this.backPatternCanvas = createBacksidePatternCanvas();
     this.spriteAtlas = null;
     this.spriteAtlasPages = [];
@@ -241,6 +237,7 @@ export class PuzzleEngine {
       oldP.frontSprite = null;
       oldP.backSprite = null;
       oldP.path = null;
+      oldP.outline = null;
     }
     this.fakePieces = [];
     this._sortedLooseCache = { version: -1, list: [] };
@@ -378,7 +375,7 @@ export class PuzzleEngine {
       }
       if (piece.isFlipped) lx = -lx;
 
-      if (this.hitCtx.isPointInPath(piece.path, lx, ly)) {
+      if (isPointInOutline(piece.outline, lx, ly)) {
         return piece;
       }
     }

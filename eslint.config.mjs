@@ -60,7 +60,6 @@ function noScreenDom(layer, { allowDocumentGlobal = false } = {}) {
 // _plan/20261121_1014_render_separation_plan.md). Files listed here still do and are being moved
 // out stage by stage. This list must only shrink; do not add to it.
 const CORE_CANVAS_EXEMPT = [
-  'src/core/jigsawPath.js',
   'src/core/pieceLodCache.js',
   'src/core/pieceOjamaOps.js',
   'src/core/pieceSpriteBuilder.js',

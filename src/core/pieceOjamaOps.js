@@ -145,6 +145,7 @@ function buildFakePieceFromSource(engine, src, spec, zOrder, slotIdx) {
     expiresAt: typeof spec.expiresAt === 'number' ? spec.expiresAt : 0,
     zOrder,
     colorInfo: src.colorInfo,
+    outline: src.outline,
     path: src.path,
     frontSprite: src.frontSprite,
     backSprite: null,
