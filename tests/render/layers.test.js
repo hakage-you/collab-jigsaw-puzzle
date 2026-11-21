@@ -73,7 +73,7 @@ describe('table and effects layers', () => {
     const vs = renderer.viewState;
     vs.addSnapFlashes([engine.pieces[0]]);
     renderer.launchConfetti();
-    for (let i = 1; i <= 300 && vs.hasEffects; i++) renderer.renderFrame(1000 + i * 16, () => {});
+    for (let i = 1; i <= 600 && vs.hasEffects; i++) renderer.renderFrame(1000 + i * 16, () => {});
     expect(vs.hasEffects).toBe(false);
     expect(tableDraws()).toBe(1);
   });
@@ -82,21 +82,13 @@ describe('table and effects layers', () => {
     const positionsAfterOneSecond = [60, 144].map((hz) => {
       const { renderer } = setup();
       renderer.renderFrame(1000, () => {});
-      renderer.viewState.confetti.push({
-        x: 0,
-        y: 0,
-        vx: 100,
-        vy: 0,
-        rot: 0,
-        vr: 0,
-        size: 8,
-        color: '#000',
-      });
+      renderer.viewState.launchConfetti();
       for (let i = 1; i <= hz; i++) renderer.renderFrame(1000 + (i * 1000) / hz, () => {});
-      return renderer.viewState.confetti[0]?.x;
+      return Math.max(...renderer.viewState.particles.map((p) => p.age));
     });
-    expect(positionsAfterOneSecond[0]).toBeCloseTo(100, 0);
-    expect(positionsAfterOneSecond[1]).toBeCloseTo(100, 0);
+    // The first wave has played one second, whatever the screen's refresh rate.
+    expect(positionsAfterOneSecond[0]).toBeCloseTo(1, 1);
+    expect(positionsAfterOneSecond[1]).toBeCloseTo(1, 1);
   });
 });
 

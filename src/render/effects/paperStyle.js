@@ -15,6 +15,18 @@ function jump(u) {
   return 1 - 0.3 * ((u - top) / (1 - top)) ** 2;
 }
 
+/** Appears quickly, stays, and shrinks away only at the very end. */
+function settle(u) {
+  if (u < 0.06) return u / 0.06;
+  if (u < 0.9) return 1;
+  return 1 - (u - 0.9) / 0.1;
+}
+
+/** Falling: starts gently and speeds up a little, like paper in the air. */
+function fall(u) {
+  return 0.6 * u + 0.4 * u * u;
+}
+
 /** Pops up slightly too big, settles, then shrinks away at the end. */
 function pop(u) {
   if (u < 0.2) return 1.2 * Math.sin((u / 0.2) * (Math.PI / 2));
@@ -45,9 +57,9 @@ export const paperStyle = Object.freeze({
     shadowOffsetRatio: 0.06,
     /** Animation steps per second. */
     framesPerSec: 12,
-    durations: Object.freeze({ short: 0.4, medium: 0.7, long: 1.2 }),
+    durations: Object.freeze({ short: 0.4, medium: 0.7, long: 1.2, celebrate: 3 }),
   }),
-  easings: Object.freeze({ out, pop, jump }),
+  easings: Object.freeze({ out, pop, jump, settle, fall }),
 
   /**
    * @param {{commands: object[]}} shape outline in a -1..1 box (shapes.js)

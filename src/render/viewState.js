@@ -28,10 +28,9 @@ export class ViewState {
     this.highlightFilter = 'all';
     this.ghostPiecesActive = false;
 
-    /** Effect data (world-space snap flashes, screen-space confetti); drawn on the effects layer. */
+    /** Effect data drawn on the effects layer: world-space snap flashes, and stamp effects
+     * (effects/effectRecipes.js) at world points or across the screen; sizes are screen px. */
     this.snapFlashes = [];
-    this.confetti = [];
-    /** Stamp effects (effects/effectRecipes.js) at world points; sizes are screen px. */
     this.particles = [];
     /** Effect strength: 'normal', 'reduced' or 'off' (effects/effectPlayer.js INTENSITY). */
     this.effectIntensity = 'normal';
@@ -93,7 +92,6 @@ export class ViewState {
     this.draggingGroupId = null;
     if (clearEffects) {
       this.snapFlashes = [];
-      this.confetti = [];
       this.particles = [];
     }
     this.needsRender = true;
@@ -229,24 +227,16 @@ export class ViewState {
     }
   }
 
-  /** Confetti across the stage; `colors` come from the theme. Speeds are per second. */
-  launchConfetti(colors) {
-    const { width } = this.getViewportSize();
-    for (let i = 0; i < 90; i++) {
-      this.confetti.push({
-        x: Math.random() * width,
-        y: -10 - Math.random() * 80,
-        vx: (Math.random() - 0.5) * 300,
-        vy: 120 + Math.random() * 240,
-        rot: Math.random() * Math.PI,
-        vr: (Math.random() - 0.5) * 12,
-        size: 7 + Math.random() * 6,
-        color: colors[i % colors.length],
-      });
-    }
+  /** Confetti across the whole stage (the result screen plays it on completion). */
+  launchConfetti() {
+    const { width, height } = this.getViewportSize();
+    spawnEffect(this.particles, 'confetti', 0, 0, {
+      intensity: this.effectIntensity,
+      area: { width, height },
+    });
   }
 
   get hasEffects() {
-    return this.snapFlashes.length > 0 || this.confetti.length > 0 || this.particles.length > 0;
+    return this.snapFlashes.length > 0 || this.particles.length > 0;
   }
 }

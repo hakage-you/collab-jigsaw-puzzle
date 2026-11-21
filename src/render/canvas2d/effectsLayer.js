@@ -1,10 +1,16 @@
 import { EFFECTS } from '../effects/effectRecipes.js';
-import { advanceParticles, sampleParticle, StampCache } from '../effects/effectPlayer.js';
+import {
+  advanceParticles,
+  dropLaterWaves,
+  sampleParticle,
+  SLOW_FRAME_SEC,
+  SLOW_FRAMES_IN_A_ROW,
+  StampCache,
+} from '../effects/effectPlayer.js';
 import { drawAllCursors } from './canvasOverlayRenderer.js';
 
 /** Snap flashes fade out over about a third of a second. */
 const FLASH_FADE_PER_SEC = 2.7;
-const CONFETTI_GRAVITY = 504; // px/s²
 
 /**
  * Transparent canvas over the table for things that move on their own: other players'
@@ -17,6 +23,8 @@ export class EffectsLayer {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.stamps = new StampCache();
+    /** Frames in a row slower than SLOW_FRAME_SEC (a struggling PC thins big effects out). */
+    this.slowFrames = 0;
     /** True when the last frame drew effects: one more frame is needed to clear their traces. */
     this.dirty = false;
   }
@@ -54,10 +62,9 @@ export class EffectsLayer {
     ctx.restore();
 
     this._drawParticles(vs, f.pal, rect, f.dtSec);
-    this._drawConfetti(vs, rect, f.dtSec);
   }
 
-  /** Stamp effects: placed at world points, drawn at a fixed screen size. */
+  /** Stamp effects: at world points or screen points (confetti), drawn at a fixed screen size. */
   _drawParticles(vs, pal, rect, dtSec) {
     const { ctx } = this;
     const cam = vs.camera;
@@ -65,16 +72,18 @@ export class EffectsLayer {
       const s = sampleParticle(p);
       const size = s.sizePx * s.scale;
       if (size <= 0) continue;
-      const stamp = this.stamps.get(EFFECTS[p.name], pal.fx);
+      const stamp = this.stamps.get(EFFECTS[p.name].shape, p.color, pal.fx);
+      const x = p.screen ? p.x : (p.x - cam.x) * cam.scale + rect.width / 2;
+      const y = p.screen ? p.y : (p.y - cam.y) * cam.scale + rect.height / 2;
       ctx.save();
-      ctx.translate(
-        (p.x - cam.x) * cam.scale + rect.width / 2 + s.dx,
-        (p.y - cam.y) * cam.scale + rect.height / 2 + s.dy,
-      );
+      ctx.translate(x + s.dx, y + s.dy);
       ctx.rotate(s.rotation);
+      ctx.scale(s.flip, 1);
       ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
       ctx.restore();
     }
+    this.slowFrames = dtSec > SLOW_FRAME_SEC ? this.slowFrames + 1 : 0;
+    if (this.slowFrames >= SLOW_FRAMES_IN_A_ROW) dropLaterWaves(vs.particles);
     advanceParticles(vs.particles, dtSec);
   }
 
@@ -91,25 +100,6 @@ export class EffectsLayer {
       ctx.restore();
       fl.alpha -= FLASH_FADE_PER_SEC * dtSec;
       if (fl.alpha <= 0) flashes.splice(i, 1);
-    }
-  }
-
-  _drawConfetti(vs, rect, dtSec) {
-    const { ctx } = this;
-    const confetti = vs.confetti;
-    for (let i = confetti.length - 1; i >= 0; i--) {
-      const c = confetti[i];
-      c.x += c.vx * dtSec;
-      c.y += c.vy * dtSec;
-      c.vy += CONFETTI_GRAVITY * dtSec;
-      c.rot += c.vr * dtSec;
-      ctx.save();
-      ctx.translate(c.x, c.y);
-      ctx.rotate(c.rot);
-      ctx.fillStyle = c.color;
-      ctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size * 0.6);
-      ctx.restore();
-      if (c.y > rect.height + 30) confetti.splice(i, 1);
     }
   }
 

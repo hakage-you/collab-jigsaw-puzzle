@@ -15,10 +15,10 @@ import { createRandom } from '../helpers/determinism.js';
  * Every check returns a list of problems (empty when it passes).
  */
 const LIMITS = Object.freeze({
-  /** Longest an effect may play (s). */
-  maxDurationSec: 1.5,
-  /** Most stamps one effect may spawn. */
-  maxCount: 12,
+  /** Longest one stamp may play (s); only a celebration should come near it. */
+  maxDurationSec: 3.5,
+  /** Most stamps in one wave of an effect. */
+  maxCount: 30,
   /** Largest stamp on screen (CSS px) and farthest it may travel. */
   maxSizePx: 32,
   maxTravelPx: 120,
@@ -31,32 +31,49 @@ const LIMITS = Object.freeze({
   minContrast: 1.5,
 });
 
-const MOTIONS = ['hop', 'spread'];
+const MOTIONS = ['hop', 'spread', 'rain'];
 
-/** A recipe uses only names that exist, and stays within the limits. */
-export function checkRecipe(name, recipe, style) {
-  const problems = [];
-  const fail = (msg) => problems.push(`${name}: ${msg}`);
+/** Names a recipe refers to: shape, colour roles, motion, duration and easings. */
+function checkNames(recipe, style, fail) {
   if (!SHAPES[recipe.shape]) fail(`unknown shape "${recipe.shape}"`);
-  if (!FX_BODY_COLORS[recipe.color]) fail(`unknown colour role "${recipe.color}"`);
+  if (!Array.isArray(recipe.colors) || recipe.colors.length === 0) fail('no colour roles');
+  for (const role of recipe.colors || []) {
+    if (!FX_BODY_COLORS[role]) fail(`unknown colour role "${role}"`);
+  }
   if (!MOTIONS.includes(recipe.motion)) fail(`unknown motion "${recipe.motion}"`);
-  const duration = style.tokens.durations[recipe.duration];
-  if (duration === undefined) fail(`duration "${recipe.duration}" is not a ${style.name} duration`);
-  else if (duration > LIMITS.maxDurationSec) {
-    fail(`plays ${duration}s (max ${LIMITS.maxDurationSec}s)`);
+  if (style.tokens.durations[recipe.duration] === undefined) {
+    fail(`duration "${recipe.duration}" is not a ${style.name} duration`);
   }
   for (const key of ['scale', 'travel']) {
     if (!style.easings[recipe[key]]) {
       fail(`${key} easing "${recipe[key]}" is not a ${style.name} easing`);
     }
   }
-  if (!Number.isInteger(recipe.count) || recipe.count < 1 || recipe.count > LIMITS.maxCount) {
+}
+
+/** Amounts: how many, how big, how far, how long. */
+function checkAmounts(recipe, style, fail) {
+  const inRange = (v, lo, hi) => typeof v === 'number' && v >= lo && v <= hi;
+  const waves = recipe.waves ?? 1;
+  if (!Number.isInteger(waves) || waves < 1) fail(`waves ${waves}`);
+  if (!Number.isInteger(recipe.count) || !inRange(recipe.count, 1, LIMITS.maxCount)) {
     fail(`count ${recipe.count} (1..${LIMITS.maxCount})`);
   }
-  if (!(recipe.sizePx > 0 && recipe.sizePx <= LIMITS.maxSizePx)) fail(`sizePx ${recipe.sizePx}`);
-  if (!(recipe.travelPx >= 0 && recipe.travelPx <= LIMITS.maxTravelPx)) {
-    fail(`travelPx ${recipe.travelPx}`);
+  if (recipe.count * waves > MAX_PARTICLES / 2) {
+    fail(`${recipe.count * waves} stamps in all (max ${MAX_PARTICLES / 2}, half the live cap)`);
   }
+  const duration = style.tokens.durations[recipe.duration];
+  if (duration > LIMITS.maxDurationSec) fail(`plays ${duration}s (max ${LIMITS.maxDurationSec}s)`);
+  if (!inRange(recipe.sizePx, 1, LIMITS.maxSizePx)) fail(`sizePx ${recipe.sizePx}`);
+  if (!inRange(recipe.travelPx, 0, LIMITS.maxTravelPx)) fail(`travelPx ${recipe.travelPx}`);
+}
+
+/** A recipe uses only names that exist, and stays within the limits. */
+export function checkRecipe(name, recipe, style) {
+  const problems = [];
+  const fail = (msg) => problems.push(`${name}: ${msg}`);
+  checkNames(recipe, style, fail);
+  checkAmounts(recipe, style, fail);
   return problems;
 }
 

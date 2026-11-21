@@ -74,4 +74,23 @@ describe('effect triggers', () => {
       new Set([`smokePuff@${p.targetX},${p.targetY}`, `smallPuff@${p.x},${p.y}`]),
     );
   });
+
+  it('confetti falls in waves, and a struggling PC skips the later waves but keeps the first', () => {
+    const play = (frameMs) => {
+      const { renderer, vs } = setup();
+      renderer.renderFrame(1000, () => {});
+      vs.launchConfetti();
+      const all = vs.particles.length;
+      let now = 1000;
+      for (const ms of frameMs) renderer.renderFrame((now += ms), () => {});
+      return { all, left: vs.particles.length };
+    };
+    const smooth = play([16, 16, 16, 16]);
+    const hiccup = play([16, 90, 16, 16]);
+    const struggling = play([90, 90, 90, 16]);
+    expect(smooth.left).toBe(smooth.all);
+    expect(hiccup.left).toBe(hiccup.all);
+    expect(struggling.left).toBeGreaterThan(0);
+    expect(struggling.left).toBeLessThan(struggling.all / 2);
+  });
 });
