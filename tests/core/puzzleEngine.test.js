@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PUZZLE_CONFIG } from '../../src/config/constants.js';
-import { generateSampleImageCanvas } from '../../src/core/sampleImage.js';
+import { generateSampleImageCanvas } from '../../src/services/sampleImage.js';
 import {
   boardState,
   createEngine,

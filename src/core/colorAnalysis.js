@@ -1,5 +1,5 @@
 /**
- * Extracts average RGB / HSL per piece cell and classifies pieces into color buckets
+ * Computes average RGB / HSL per piece cell from already-read pixels and classifies pieces into color buckets
  * for cluster sorting and color-based highlight filtering.
  */
 
@@ -44,21 +44,25 @@ function classifyBucket(h, s, l) {
   return 'purple';
 }
 
-export function analyzePieceColors(sourceCanvas, cols, rows) {
+/**
+ * Size the source image is downscaled to before its colors are read: about 256 px on the long
+ * side, and at least 2 px per cell so every piece gets its own pixels.
+ */
+export function colorSampleSize(sourceWidth, sourceHeight, cols, rows) {
   const maxDim = Math.max(256, cols * 2, rows * 2);
-  const scale = Math.min(1, maxDim / Math.max(1, sourceCanvas.width, sourceCanvas.height));
-  const tmpW = Math.max(cols, Math.round(sourceCanvas.width * scale));
-  const tmpH = Math.max(rows, Math.round(sourceCanvas.height * scale));
+  const scale = Math.min(1, maxDim / Math.max(1, sourceWidth, sourceHeight));
+  return {
+    width: Math.max(cols, Math.round(sourceWidth * scale)),
+    height: Math.max(rows, Math.round(sourceHeight * scale)),
+  };
+}
 
-  const tmpCanvas = document.createElement('canvas');
-  tmpCanvas.width = tmpW;
-  tmpCanvas.height = tmpH;
-  const tmpCtx = tmpCanvas.getContext('2d', { willReadFrequently: true });
-  tmpCtx.drawImage(sourceCanvas, 0, 0, tmpW, tmpH);
-  const data = tmpCtx.getImageData(0, 0, tmpW, tmpH).data;
-  tmpCanvas.width = 0;
-  tmpCanvas.height = 0;
-
+/**
+ * Average color and color bucket of every piece cell, row by row.
+ * `pixels` is the RGBA data of the source image downscaled to colorSampleSize().
+ */
+export function analyzePieceColors(pixels, cols, rows) {
+  const { width: tmpW, height: tmpH, data } = pixels;
   const cellW = tmpW / cols;
   const cellH = tmpH / rows;
   const results = [];

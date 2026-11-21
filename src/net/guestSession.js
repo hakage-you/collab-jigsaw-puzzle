@@ -1,5 +1,5 @@
 import { NET_LIMITS } from '../config/constants.js';
-import { generateSampleImageCanvas } from '../core/sampleImage.js';
+import { generateSampleImageCanvas } from '../services/sampleImage.js';
 import { validateSaveData } from '../core/saveValidation.js';
 import { recordDiagnostic } from '../services/diagnostics.js';
 import { MSG, computeChallengeHash } from './protocol.js';
