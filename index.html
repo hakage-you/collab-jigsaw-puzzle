@@ -72,7 +72,7 @@
         <div class="topbar-right">
           <button type="button" class="btn btn-secondary btn-sm host-only" id="btnOpenStreamModal">
             配信・お邪魔
-            <span class="live-status-dot hidden" id="ytLiveIndicator" aria-hidden="true"></span>
+            <span class="live-status-dot yt-live-indicator hidden" aria-hidden="true"></span>
           </button>
 
           <div class="participants-anchor">
@@ -129,6 +129,11 @@
 
           <button type="button" class="btn btn-secondary btn-sm" id="btnOpenMenuModal">
             メニュー
+            <!-- On small screens the stream button lives in the menu, so its live dot shows here. -->
+            <span
+              class="live-status-dot yt-live-indicator menu-live-dot hidden"
+              aria-hidden="true"
+            ></span>
           </button>
         </div>
       </header>
@@ -793,6 +798,15 @@
             <div class="drawer-section">
               <h3>ゲーム操作</h3>
               <div class="action-stack">
+                <!-- Small screens only: the header has no room for this button there. -->
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-block host-only menu-stream-entry"
+                  id="btnOpenStreamFromMenu"
+                >
+                  配信・お邪魔
+                  <span class="live-status-dot yt-live-indicator hidden" aria-hidden="true"></span>
+                </button>
                 <button
                   type="button"
                   class="btn btn-primary btn-block host-only"

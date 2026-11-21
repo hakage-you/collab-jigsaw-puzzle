@@ -821,6 +821,12 @@
   flex-shrink: 0;
 }
 
+/* Small screens only (the stream button moves into the menu there); after .live-status-dot. */
+.menu-stream-entry,
+.menu-live-dot {
+  display: none;
+}
+
 .hint-text {
   margin: 0 0 var(--space-3);
   font-size: var(--font-size-xs);
@@ -1784,7 +1790,7 @@
     overflow: hidden;
   }
 
-  /* Streaming and ojama settings stay on a PC (_plan/open_issues.md section 10). */
+  /* The stream button moves into the menu (.menu-stream-entry): no room for it up here. */
   .brand,
   .topbar-center,
   .pill-label,
@@ -1858,6 +1864,14 @@
 
   .timed-ojama-banner {
     top: calc(var(--space-2) + 40px);
+  }
+
+  body:not(.role-guest) .menu-stream-entry {
+    display: flex;
+  }
+
+  .menu-live-dot {
+    display: inline-block;
   }
 
   /* The popover spans the screen instead of hanging off its button. */
