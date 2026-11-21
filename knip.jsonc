@@ -6,6 +6,8 @@
     "scripts/**/*.mjs",
     "measure/**/*.mjs",
     "measure/**/*.measure.js",
+    // Render bench page (measure/bench/render.html loads it as a module script).
+    "measure/bench/benchPage.js",
   ],
   "project": ["src/**/*.js", "tests/**/*.{js,mjs}", "measure/**/*.{js,mjs}", "scripts/**/*.mjs"],
   // peerjs is the upstream source of vendor/peerjs.min.js (used to update the vendored copy).
