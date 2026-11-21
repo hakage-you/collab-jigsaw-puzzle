@@ -10,7 +10,7 @@ exports[`CanvasRenderer pixel snapshots > fresh puzzle with reference sheet, vie
 
 exports[`CanvasRenderer pixel snapshots > ghost pieces active with fake pieces present 1`] = `"127d744b7ac4782b"`;
 
-exports[`CanvasRenderer pixel snapshots > rotation and flip enabled with rotated and flipped pieces 1`] = `"42bb97fa426f8871"`;
+exports[`CanvasRenderer pixel snapshots > rotation and flip enabled with rotated and flipped pieces 1`] = `"f1f448130eecaf64"`;
 
 exports[`CanvasRenderer pixel snapshots > two pieces snapped and one two-piece group merged 1`] = `"303916af93f74a75"`;
 

@@ -1,3 +1,5 @@
+import { PieceSpriteStore } from '../../src/render/pieceSpriteStore.js';
+
 /**
  * Helper layers for the render bench (measure/bench/render.html). Not part of the game.
  * - MinimalCanvas2DPieces: the same "pieces only" drawing as the WebGL2 prototype, with
@@ -20,10 +22,13 @@ export class MinimalCanvas2DPieces {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.engine = engine;
+    this.sprites = new PieceSpriteStore();
+    this.sprites.sync(engine);
   }
 
   _draw(p) {
-    const sprite = p.isFlipped ? this.engine.ensureBackSprite(p) : p.frontSprite;
+    const sprite = p.isFlipped ? this.sprites.backSprite(p) : this.sprites.frontSprite(p);
+    const m = this.sprites.metrics;
     const { ctx } = this;
     ctx.save();
     ctx.translate(p.x, p.y);
@@ -35,10 +40,10 @@ export class MinimalCanvas2DPieces {
       sprite.sy,
       sprite.sw,
       sprite.sh,
-      -p.spriteHalfW,
-      -p.spriteHalfH,
-      p.spriteLogicalW || sprite.sw,
-      p.spriteLogicalH || sprite.sh,
+      -m.halfW,
+      -m.halfH,
+      m.logicalW,
+      m.logicalH,
     );
     ctx.restore();
   }

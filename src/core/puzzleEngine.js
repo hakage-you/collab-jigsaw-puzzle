@@ -1,12 +1,6 @@
 import { PUZZLE_CONFIG } from '../config/constants.js';
 import { mulberry32 } from './prng.js';
 import { clampGridDimensions, generateCutLayout, normalizeCutComplexity } from './jigsawPath.js';
-import { PieceLodCache } from './pieceLodCache.js';
-import {
-  PieceSpriteAtlas,
-  createBacksidePatternCanvas,
-  renderPieceBackSprite,
-} from './pieceSpriteBuilder.js';
 import { isPointInOutline } from './pieceHitTest.js';
 import { buildPieceSet } from './pieceFactory.js';
 import { buildSavedMap, computeCoordScale, restoreStats } from './saveRestore.js';
@@ -68,8 +62,6 @@ export class PuzzleEngine {
     this.pieces = [];
     this.fakePieces = [];
     this.nextFakePieceSeq = 1;
-    this.fakeAtlasCanvas = null;
-    this.fakeAtlasCtx = null;
     this.nextGroupId = 1;
     this.maxZ = 1;
     this.zoneLabels = [];
@@ -87,52 +79,11 @@ export class PuzzleEngine {
       },
     };
 
-    this.backPatternCanvas = createBacksidePatternCanvas();
-    this.spriteAtlas = null;
-    this.spriteAtlasPages = [];
-    this.lodCache = new PieceLodCache();
     this.puzzleGeneration = 0;
     this.zVersion = 0;
     this.lockedVersion = 0;
     this._sortedLooseCache = { version: -1, list: [] };
     this.completedFired = false;
-  }
-
-  get atlasCount() {
-    return this.spriteAtlas ? this.spriteAtlas.canvases.length : 0;
-  }
-
-  get spriteAtlases() {
-    return this.spriteAtlas ? this.spriteAtlas.canvases : [];
-  }
-
-  get lodCanvasCount() {
-    return this.lodCache.canvasCount;
-  }
-
-  get lodStats() {
-    return this.lodCache.getStats();
-  }
-
-  ensureBackSprite(piece) {
-    if (!piece) return null;
-    if (piece.backSprite) return piece.backSprite;
-    if (!this.spriteAtlas) {
-      this.spriteAtlas = new PieceSpriteAtlas(
-        PUZZLE_CONFIG.SPRITE_ATLAS_SIZE,
-        PUZZLE_CONFIG.SPRITE_ATLAS_PAD,
-        this.spriteAtlasPages,
-      );
-    }
-    const sprite = renderPieceBackSprite(piece, {
-      pieceW: this.pieceW,
-      pieceH: this.pieceH,
-      spritePad: this.spritePad,
-      backPatternCanvas: this.backPatternCanvas,
-      atlas: this.spriteAtlas,
-    });
-    this.spriteAtlasPages = this.spriteAtlas.pages.map((p) => ({ canvas: p.canvas, ctx: p.ctx }));
-    return sprite;
   }
 
   bumpZVersion() {
@@ -233,15 +184,8 @@ export class PuzzleEngine {
   }
 
   _buildPieces({ allowRotation, allowFlip, savedMap, coordScaleX = 1, coordScaleY = 1 }) {
-    for (const oldP of this.pieces) {
-      oldP.frontSprite = null;
-      oldP.backSprite = null;
-      oldP.path = null;
-      oldP.outline = null;
-    }
     this.fakePieces = [];
     this._sortedLooseCache = { version: -1, list: [] };
-    this.lodCache.clear();
 
     const layout = generateCutLayout({
       cols: this.cols,
@@ -254,12 +198,6 @@ export class PuzzleEngine {
     const colorInfos = this.imageAnalyzer.pieceColors(this.sourceCanvas, this.cols, this.rows);
     const rng = mulberry32(this.seed ^ 0x9e3779b9);
 
-    const atlas = new PieceSpriteAtlas(
-      PUZZLE_CONFIG.SPRITE_ATLAS_SIZE,
-      PUZZLE_CONFIG.SPRITE_ATLAS_PAD,
-      this.spriteAtlasPages,
-    );
-
     this.pieces = [];
     this.zoneLabels = [];
     this.nextGroupId = 1;
@@ -269,7 +207,6 @@ export class PuzzleEngine {
       layout,
       colorInfos,
       rng,
-      atlas,
       savedMap,
       allowRotation,
       allowFlip,
@@ -277,9 +214,6 @@ export class PuzzleEngine {
       coordScaleY,
     });
 
-    atlas.releaseUnusedPool();
-    this.spriteAtlas = atlas;
-    this.spriteAtlasPages = atlas.pages.map((p) => ({ canvas: p.canvas, ctx: p.ctx }));
     if (savedMap) {
       this.nextGroupId = highestGroup + 1;
       this.maxZ = highestZ + 1;
@@ -486,10 +420,6 @@ export class PuzzleEngine {
   clearFakePieces() {
     if (this.fakePieces.length === 0) return false;
     this.fakePieces = [];
-    if (this.fakeAtlasCtx && this.fakeAtlasCanvas) {
-      this.fakeAtlasCtx.setTransform(1, 0, 0, 1, 0, 0);
-      this.fakeAtlasCtx.clearRect(0, 0, this.fakeAtlasCanvas.width, this.fakeAtlasCanvas.height);
-    }
     this.bumpZVersion();
     return true;
   }

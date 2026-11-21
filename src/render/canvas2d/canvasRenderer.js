@@ -1,4 +1,5 @@
 import { VIEWPORT_CONFIG } from '../../config/constants.js';
+import { PieceSpriteStore } from '../pieceSpriteStore.js';
 import { LockedBoardCache } from './lockedBoardCache.js';
 import {
   collectVisiblePieces,
@@ -53,6 +54,7 @@ export class CanvasRenderer {
     this.lastFrameTime = performance.now();
     this._paletteCache = { key: null, palette: null };
     this._lockedCache = new LockedBoardCache();
+    this.sprites = new PieceSpriteStore();
   }
 
   afterNextRender(callback) {
@@ -60,6 +62,11 @@ export class CanvasRenderer {
       this.postRenderCallbacks.push(callback);
       this.needsRender = true;
     }
+  }
+
+  /** Diagnostics: sprite atlas pages and zoom cache use. */
+  getStats() {
+    return this.sprites.getStats();
   }
 
   requestRender() {
@@ -231,11 +238,12 @@ export class CanvasRenderer {
       snapFlashes: this.snapFlashes,
       confetti: this.confetti,
       lockedCache: this._lockedCache,
+      sprites: this.sprites,
     };
   }
 
   _finishFrame(lodConfig) {
-    const lod = this.engine.lodCache;
+    const lod = this.sprites.lodCache;
     this.needsRender = Boolean(lodConfig && lod?.budgetExhausted && !lod?.evictedInFrame);
     if (this.postRenderCallbacks.length > 0) {
       const callbacks = this.postRenderCallbacks.splice(0);
@@ -264,6 +272,7 @@ export class CanvasRenderer {
       return;
     }
 
+    this.sprites.sync(this.engine);
     const frame = this._buildFrame();
     prepareCanvas(frame);
     drawDeskStage(frame);

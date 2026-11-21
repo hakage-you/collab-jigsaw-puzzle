@@ -26,6 +26,8 @@ function boot() {
     getSettings: () => app.getSettings(),
   });
 
+  app.setRenderStatsProvider(() => renderer.getStats());
+
   const showToast = (msg, kind) => topbarUI.showToast(msg, kind);
   const lobbyUI = new LobbyUI({ app, showToast });
   new NoticeUI({ app, actions: { rejoin: () => lobbyUI.rejoinLastRoom() } });

@@ -56,16 +56,8 @@ function noScreenDom(layer, { allowDocumentGlobal = false } = {}) {
   };
 }
 
-// core must not draw or read pixels: no canvas, Path2D or document (render separation plan,
-// _plan/20261121_1014_render_separation_plan.md). Files listed here still do and are being moved
-// out stage by stage. This list must only shrink; do not add to it.
-const CORE_CANVAS_EXEMPT = [
-  'src/core/pieceLodCache.js',
-  'src/core/pieceOjamaOps.js',
-  'src/core/pieceSpriteBuilder.js',
-  'src/core/puzzleEngine.js',
-];
-
+// core must not draw or read pixels: no canvas, Path2D or document. Drawing lives in src/render,
+// reading image pixels in src/services (_plan/20261121_1014_render_separation_plan.md).
 const CANVAS_GLOBALS = [
   'Path2D',
   'OffscreenCanvas',
@@ -170,8 +162,7 @@ export default [
   // Per-layer DOM restrictions (import boundaries live in dependency-cruiser).
   // services / net may create offscreen canvases via document.createElement, so `document` itself is allowed.
   { files: ['src/config/**/*.js'], rules: noScreenDom('src/config') },
-  { files: ['src/core/**/*.js'], ignores: CORE_CANVAS_EXEMPT, rules: coreNoCanvas() },
-  { files: CORE_CANVAS_EXEMPT, rules: noScreenDom('src/core', { allowDocumentGlobal: true }) },
+  { files: ['src/core/**/*.js'], rules: coreNoCanvas() },
   {
     files: ['src/services/**/*.js'],
     rules: noScreenDom('src/services', { allowDocumentGlobal: true }),

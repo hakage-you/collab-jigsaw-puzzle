@@ -1,7 +1,7 @@
 import { PUZZLE_CONFIG } from '../config/constants.js';
 
 /**
- * Shared 2048x2048 CPU-rasterized offscreen canvas texture atlas (`willReadFrequently: true`)
+ * Shared 2048x2048 CPU-rasterized offscreen canvas texture atlas for piece sprites (`willReadFrequently: true`)
  * with page pooling across puzzle rebuilds to eliminate Skia GPU path/surface accumulation.
  */
 export class PieceSpriteAtlas {
@@ -106,7 +106,14 @@ export class PieceSpriteAtlas {
  * @param {number} options.spritePad sprite padding in board units
  * @param {number} options.totalPieces total piece count
  */
-function computeSpriteMetrics({ sourceCanvas, boardW, pieceW, pieceH, spritePad, totalPieces }) {
+export function computeSpriteMetrics({
+  sourceCanvas,
+  boardW,
+  pieceW,
+  pieceH,
+  spritePad,
+  totalPieces,
+}) {
   const logicalW = Math.ceil(pieceW + spritePad * 2);
   const logicalH = Math.ceil(pieceH + spritePad * 2);
   const logicalArea = Math.max(1, logicalW * logicalH);
@@ -135,6 +142,9 @@ export function drawFrontPieceToSlot(
   slot,
   {
     piece,
+    path,
+    halfW,
+    halfH,
     sourceCanvas,
     boardW,
     boardH,
@@ -148,8 +158,8 @@ export function drawFrontPieceToSlot(
 ) {
   const physW = slot.sw;
   const physH = slot.sh;
-  const cx = piece.spriteHalfW;
-  const cy = piece.spriteHalfH;
+  const cx = halfW;
+  const cy = halfH;
   const minDim = Math.min(pieceW, pieceH);
 
   const outerWidth = isLod
@@ -177,7 +187,7 @@ export function drawFrontPieceToSlot(
 
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.clip(piece.path);
+  ctx.clip(path);
   if (visW > 0 && visH > 0) {
     const srcScaleX = sourceCanvas.width / Math.max(1, boardW);
     const srcScaleY = sourceCanvas.height / Math.max(1, boardH);
@@ -191,14 +201,14 @@ export function drawFrontPieceToSlot(
   }
   ctx.lineWidth = innerWidth;
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-  ctx.stroke(piece.path);
+  ctx.stroke(path);
   ctx.restore();
 
   ctx.save();
   ctx.translate(cx, cy);
   ctx.lineWidth = outerWidth;
   ctx.strokeStyle = 'rgba(15, 23, 42, 0.55)';
-  ctx.stroke(piece.path);
+  ctx.stroke(path);
   ctx.restore();
 
   ctx.restore();
@@ -210,12 +220,12 @@ export function drawFrontPieceToSlot(
 export function drawBackPieceToSlot(
   ctx,
   slot,
-  { piece, pieceW, pieceH, logicalW, logicalH, renderScale, pattern, isLod = false },
+  { path, halfW, halfH, pieceW, pieceH, logicalW, logicalH, renderScale, pattern, isLod = false },
 ) {
   const physW = slot.sw;
   const physH = slot.sh;
-  const cx = piece.spriteHalfW;
-  const cy = piece.spriteHalfH;
+  const cx = halfW;
+  const cy = halfH;
   const minDim = Math.min(pieceW, pieceH);
   const backOuterWidth = isLod
     ? Math.max(0.18, Math.min(1.6, 1.35 / renderScale))
@@ -230,7 +240,7 @@ export function drawBackPieceToSlot(
 
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.clip(piece.path);
+  ctx.clip(path);
   ctx.fillStyle = pattern || '#334155';
   ctx.fillRect(-cx, -cy, logicalW, logicalH);
 
@@ -253,111 +263,10 @@ export function drawBackPieceToSlot(
   ctx.translate(cx, cy);
   ctx.lineWidth = backOuterWidth;
   ctx.strokeStyle = 'rgba(203, 213, 225, 0.55)';
-  ctx.stroke(piece.path);
+  ctx.stroke(path);
   ctx.restore();
 
   ctx.restore();
-}
-
-/**
- * Renders high-resolution front sprite into a shared CPU PieceSpriteAtlas using 9-arg drawImage.
- * @param {object} piece piece to render (sprite fields are written onto it)
- * @param {object} options
- * @param {HTMLCanvasElement} options.sourceCanvas source image canvas
- * @param {number} options.boardW board width
- * @param {number} options.boardH board height
- * @param {number} options.pieceW nominal piece width
- * @param {number} options.pieceH nominal piece height
- * @param {number} options.spritePad sprite padding in board units
- * @param {PieceSpriteAtlas|null} [options.atlas=null] atlas to allocate into (created if omitted)
- * @param {number} [options.totalPieces=24] total piece count
- */
-export function renderPieceSprites(
-  piece,
-  { sourceCanvas, boardW, boardH, pieceW, pieceH, spritePad, atlas = null, totalPieces = 24 },
-) {
-  const targetAtlas = atlas || new PieceSpriteAtlas();
-  const { logicalW, logicalH, spriteScale, physW, physH } = computeSpriteMetrics({
-    sourceCanvas,
-    boardW,
-    pieceW,
-    pieceH,
-    spritePad,
-    totalPieces,
-  });
-
-  piece.spriteLogicalW = logicalW;
-  piece.spriteLogicalH = logicalH;
-  piece.spriteScale = spriteScale;
-
-  const fSlot = targetAtlas.allocate(physW, physH);
-  drawFrontPieceToSlot(fSlot.ctx, fSlot, {
-    piece,
-    sourceCanvas,
-    boardW,
-    boardH,
-    pieceW,
-    pieceH,
-    logicalW,
-    logicalH,
-    renderScale: spriteScale,
-    isLod: false,
-  });
-
-  piece.frontSprite = {
-    canvas: fSlot.canvas,
-    sx: fSlot.sx,
-    sy: fSlot.sy,
-    sw: physW,
-    sh: physH,
-  };
-  piece.backSprite = null;
-}
-
-/**
- * On-demand CPU rasterizer for a flipped piece's back sprite.
- * @param {object} piece piece to render (backSprite is written onto it)
- * @param {object} options
- * @param {number} options.pieceW nominal piece width
- * @param {number} options.pieceH nominal piece height
- * @param {number} options.spritePad sprite padding in board units
- * @param {HTMLCanvasElement|null} options.backPatternCanvas back pattern source canvas
- * @param {PieceSpriteAtlas} options.atlas atlas to allocate into
- */
-export function renderPieceBackSprite(
-  piece,
-  { pieceW, pieceH, spritePad, backPatternCanvas, atlas },
-) {
-  if (!piece || !atlas) return null;
-  if (piece.backSprite) return piece.backSprite;
-
-  const logicalW = piece.spriteLogicalW || Math.ceil(pieceW + spritePad * 2);
-  const logicalH = piece.spriteLogicalH || Math.ceil(pieceH + spritePad * 2);
-  const spriteScale = piece.spriteScale || 2;
-  const physW = Math.max(8, Math.ceil(logicalW * spriteScale));
-  const physH = Math.max(8, Math.ceil(logicalH * spriteScale));
-
-  const bSlot = atlas.allocate(physW, physH);
-  const pat = atlas.getBackPattern(bSlot.ctx, backPatternCanvas);
-  drawBackPieceToSlot(bSlot.ctx, bSlot, {
-    piece,
-    pieceW,
-    pieceH,
-    logicalW,
-    logicalH,
-    renderScale: spriteScale,
-    pattern: pat,
-    isLod: false,
-  });
-
-  piece.backSprite = {
-    canvas: bSlot.canvas,
-    sx: bSlot.sx,
-    sy: bSlot.sy,
-    sw: physW,
-    sh: physH,
-  };
-  return piece.backSprite;
 }
 
 /** Turns a piece outline (core/jigsawPath.js buildPieceOutline) into a closed Path2D. */

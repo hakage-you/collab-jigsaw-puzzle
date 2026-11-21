@@ -94,7 +94,7 @@ async function renderScenario({ settings = {}, prepare = () => {}, view = null }
     renderer.renderFrame(FRAME_TIME, () => {});
     return {
       hash: await hashCanvas(canvas),
-      lodCanvases: app.engine.lodCache.canvasCount,
+      lodCanvases: renderer.getStats().lodCanvasCount,
     };
   } finally {
     restoreRandom();
