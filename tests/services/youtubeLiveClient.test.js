@@ -242,7 +242,7 @@ describe('YouTubeLiveClient', () => {
 
     it('rejects an empty API key without making a request', async () => {
       await expect(client.verifyBroadcast('   ', VIDEO_ID)).rejects.toThrow(
-        'API キーを入力してください',
+        'APIキーを入力してください',
       );
       expect(fake.fetch).not.toHaveBeenCalled();
     });
@@ -250,7 +250,7 @@ describe('YouTubeLiveClient', () => {
     it('rejects an input that is not a YouTube video without making a request', async () => {
       await expect(
         client.verifyBroadcast(KEY, 'https://example.com/watch?v=LIVEVIDEO01'),
-      ).rejects.toThrow('有効な YouTube 配信 URL');
+      ).rejects.toThrow('有効なYouTube配信URL');
       expect(fake.fetch).not.toHaveBeenCalled();
     });
   });

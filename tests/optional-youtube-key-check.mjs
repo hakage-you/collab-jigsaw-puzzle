@@ -4,11 +4,16 @@
  * Manual execution only (excluded from lint and standard E2E).
  */
 
+import fs from 'node:fs';
+import nodePath from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { YOUTUBE_CONFIG } from '../src/config/constants.js';
 import { YouTubeLiveClient, extractVideoId } from '../src/services/youtubeLiveClient.js';
 
 const MAX_REQUESTS = 4;
 const DEFAULT_PUBLIC_VIDEO_ID = 'jNQXAC9IVRw';
+const SCRIPT_DIR = nodePath.dirname(fileURLToPath(import.meta.url));
+const INDEX_HTML_PATH = nodePath.resolve(SCRIPT_DIR, '../index.html');
 
 function redactSecrets(text, apiKey) {
   let out = String(text ?? '');
@@ -155,6 +160,52 @@ async function checkBooksRestriction(guardedFetch, booksUrl) {
   };
 }
 
+function formatJapaneseDate(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}年${m}月${d}日`;
+}
+
+function readGuideVerifiedDates() {
+  try {
+    const html = fs.readFileSync(INDEX_HTML_PATH, 'utf8');
+    const modalStart = html.indexOf('id="ytGuideModal"');
+    const slice = modalStart >= 0 ? html.slice(modalStart, modalStart + 6000) : html;
+    const matches = [...slice.matchAll(/(\d{4}年\d{2}月\d{2}日)時点/g)].map((m) => m[1]);
+    return [...new Set(matches)];
+  } catch {
+    return [];
+  }
+}
+
+function printGuideDateReminder(log, { isDryRun, hasFailure }) {
+  const today = formatJapaneseDate();
+  const dates = readGuideVerifiedDates();
+  const currentLabel = dates.length > 0 ? dates.join(', ') : '未検出';
+
+  log('--- ガイド確認日チェック (content/yt-guide.html) ---');
+  if (hasFailure) {
+    log(
+      `[要確認] テストに失敗項目があります。YouTube API 仕様やキー設定が変わっている場合は、content/yt-guide.html の説明と確認日（現在: ${currentLabel}）を見直し、npm run sync:content を実行してください。`,
+    );
+    return;
+  }
+  if (isDryRun) {
+    log(
+      `現在のガイド確認日: ${currentLabel}（実通信テスト通過後、必要に応じて content/yt-guide.html の確認日を ${today} 時点へ更新し、npm run sync:content を実行してください）`,
+    );
+    return;
+  }
+  if (dates.length === 1 && dates[0] === today) {
+    log(`現在のガイド確認日（${today}）は本日付と一致しています。`);
+    return;
+  }
+  log(
+    `[更新リマインダー] 現在のガイド確認日: ${currentLabel} → 実通信チェックが通過しました。必要であれば content/yt-guide.html の確認日を「${today}時点」に更新し、npm run sync:content を実行してください。`,
+  );
+}
+
 function printSummary(log, usage, redactionSmoke) {
   log('--- サマリー ---');
   log(`実行した HTTP メソッド: ${usage.methodsUsed.join(', ')} (すべて GET)`);
@@ -217,6 +268,7 @@ async function main() {
     log(check.line);
   }
   printSummary(log, usage, redactionSmoke);
+  printGuideDateReminder(log, { isDryRun, hasFailure });
 
   if (hasFailure) {
     process.exit(1);

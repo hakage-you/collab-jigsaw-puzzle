@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "npm run lint:format && npm run lint:css && npm run lint:js && npm run lint:html && npm run lint:contrast && npm run lint:arch && npm run lint:unused",
+    "lint": "npm run lint:format && npm run lint:css && npm run lint:js && npm run lint:html && npm run lint:contrast && npm run lint:arch && npm run lint:unused && npm run lint:content",
     "lint:format": "prettier --check .",
     "lint:css": "stylelint \"styles/**/*.css\"",
     "lint:js": "eslint \"src/**/*.js\" \"tests/**/*.{js,mjs}\" \"measure/**/*.{js,mjs}\" \"scripts/**/*.mjs\" \"*.config.mjs\"",
@@ -12,6 +12,8 @@
     "lint:contrast": "node scripts/check-contrast.mjs",
     "lint:arch": "depcruise src --config .dependency-cruiser.cjs",
     "lint:unused": "knip",
+    "lint:content": "node scripts/sync-content.mjs --check",
+    "sync:content": "node scripts/sync-content.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "measure": "node measure/hosting.mjs && vitest run --config vitest.measure.config.mjs && node measure/report.mjs",

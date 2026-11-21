@@ -242,7 +242,9 @@ export class GameSession {
     const saveData = checked.data;
     const srcCanvas = useSample ? generateSampleImageCanvas() : customCanvas;
     if (!srcCanvas) return;
-    const resolvedName = useSample ? 'サンプルテスト画像 (復元)' : imgName || 'ローカル画像 (復元)';
+    const resolvedName = useSample
+      ? 'サンプルテスト画像（復元）'
+      : imgName || 'ローカル画像（復元）';
 
     if (saveData.settings) {
       this.patchSettings({

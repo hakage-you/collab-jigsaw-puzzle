@@ -111,7 +111,7 @@ export class OjamaController {
       this.elBtnAutoComments.textContent = '自動コメント停止';
       this.autoCommentInterval = setInterval(() => {
         const msg = samples[Math.floor(Math.random() * samples.length)];
-        const user = `リスナー${Math.floor(10 + Math.random() * 90)}`;
+        const user = `視聴者${Math.floor(10 + Math.random() * 90)}`;
         this.processIncomingComment(user, msg);
       }, OJAMA_CONFIG.AUTO_COMMENT_INTERVAL_MS);
     });
@@ -210,7 +210,7 @@ export class OjamaController {
     this.app.emit('ojamaDropEffect', { pieces: dropped });
     this.updateHUD();
     this.requestRender();
-    const msg = `お邪魔発動：${dropped.length}個のピースが台紙から落ちました`;
+    const msg = `ピースが${dropped.length}個、ポロッと外れてしまった！`;
     this.showToast(msg, 'ojama');
     this.room.broadcastPhysicalOjama(msg, dropped, 'ojama_drop');
     return true;
@@ -224,6 +224,13 @@ export class OjamaController {
       hue: '色相シャッフル妨害',
       spotlight: '暗闇スポットライト妨害',
       ghost: 'ピース透明化妨害',
+    };
+    const toastMap = {
+      grayscale: '世界から色が消えてしまった！',
+      sepia: '急にノスタルジックな気分になった！',
+      hue: '色がごちゃまぜになってしまった！',
+      spotlight: '明かりが消えた！手元しか見えない！',
+      ghost: 'ピースたちが透けて見えなくなった！',
     };
 
     if (chosen === 'spotlight') {
@@ -240,7 +247,7 @@ export class OjamaController {
     this.elVisualBanner.classList.remove('hidden');
 
     sound.playOjama();
-    this.showToast(`お邪魔発動：${labelMap[chosen]} (${durationSec}秒)`, 'ojama');
+    this.showToast(`${toastMap[chosen]}（${durationSec}秒）`, 'ojama');
 
     this.visualSabotageTimerId = setInterval(() => {
       this.visualSabotageRemaining -= 0.2;
@@ -278,7 +285,7 @@ export class OjamaController {
       '赤スパで視界ジャック！連打で退治してね',
       'そろそろピース外れちゃうかもよ？',
     ];
-    const author = customAuthor || 'リスナー（お邪魔枠）';
+    const author = customAuthor || '視聴者（お邪魔枠）';
     const message = customText || sampleMsgs[Math.floor(Math.random() * sampleMsgs.length)];
     const amountDisplay = options.amountDisplay || '¥10,000';
     let maxHp = this.room.computeSuperchatMaxHp();
@@ -329,7 +336,7 @@ export class OjamaController {
     this.updateHUD();
     this.requestRender();
     this.app.emit('ojamaPrankEffect', { pieces: changed, before });
-    const msg = `お邪魔発動：未配置ピース ${changed.length}個が回転・裏返りました`;
+    const msg = `ピース${changed.length}個がくるりと回転した！`;
     this.showToast(msg, 'ojama');
     this.room.broadcastPhysicalOjama(msg, changed, 'ojama_prank');
     return true;
@@ -355,7 +362,7 @@ export class OjamaController {
     this.updateHUD();
     this.requestRender();
     const detail = durationSec > 0 ? `${durationSec}秒で消滅` : `消失なし・上限${maxCount}個`;
-    const msg = `お邪魔発動：偽ピースを${added.length}個追加しました（${detail}）`;
+    const msg = `ニセモノのピースが${added.length}個まぎれ込んだ！（${detail}）`;
     this.showToast(msg, 'ojama');
     this.room.broadcastFakePieces(msg);
     return true;

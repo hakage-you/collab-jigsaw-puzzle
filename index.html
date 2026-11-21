@@ -64,7 +64,7 @@
             <span class="stat-label">お邪魔</span>
             <strong id="ojamaTotalCount">0</strong>
             <span class="ojama-mini-breakdown" id="ojamaBreakdownText"
-              >(落:0 視:0 ス:0 悪:0 偽:0)</span
+              >（落:0 視:0 ス:0 悪:0 偽:0）</span
             >
           </div>
         </div>
@@ -202,7 +202,7 @@
               <div class="superchat-header">
                 <div class="superchat-avatar" aria-hidden="true">SC</div>
                 <div class="superchat-meta">
-                  <div class="superchat-author" id="superchatAuthor">リスナー（お邪魔枠）</div>
+                  <div class="superchat-author" id="superchatAuthor">視聴者（お邪魔枠）</div>
                   <div class="superchat-amount" id="superchatAmount">¥10,000</div>
                 </div>
                 <div class="superchat-countdown" id="superchatCountdown">10s</div>
@@ -213,7 +213,7 @@
                   <div class="superchat-hp-fill" id="superchatHpFill"></div>
                 </div>
                 <button type="button" class="btn btn-danger btn-sm" id="btnHitSuperchat">
-                  連打で撃退 (残り <span id="superchatHpText">5</span>回)
+                  連打で撃退（残り <span id="superchatHpText">5</span>回）
                 </button>
               </div>
             </div>
@@ -270,7 +270,7 @@
               type="button"
               class="btn btn-xs btn-secondary"
               id="btnResetView"
-              title="全体を表示 (ショートカット: 0)"
+              title="全体を表示（ショートカット: 0）"
             >
               全体表示
             </button>
@@ -312,10 +312,10 @@
           <section
             id="ojamaTestPalette"
             class="test-palette host-only hidden"
-            aria-label="おじゃまテスト用パレット"
+            aria-label="お邪魔テスト用パレット"
           >
             <div class="test-palette-header" id="testPaletteHandle">
-              <span>おじゃまテスト</span>
+              <span>お邪魔テスト</span>
               <button type="button" class="btn btn-xs btn-ghost" id="btnCloseTestPalette">
                 閉じる
               </button>
@@ -440,7 +440,7 @@
 
             <div class="drawer-section guest-only">
               <h3>部屋ルール</h3>
-              <div class="room-rules-summary" id="guestRoomRulesSummary">6×4 (24ピース)</div>
+              <div class="room-rules-summary" id="guestRoomRulesSummary">6×4（24ピース）</div>
             </div>
           </div>
         </aside>
@@ -501,11 +501,11 @@
                   class="btn btn-secondary btn-sm btn-block"
                   id="btnOpenYtGuide"
                 >
-                  API キーの取得・設定ガイド
+                  APIキーの取得・設定ガイド
                 </button>
 
                 <div class="field mt-2">
-                  <label for="ytApiKeyInput">YouTube API キー</label>
+                  <label for="ytApiKeyInput">YouTube APIキー</label>
                   <div class="input-with-btn">
                     <input
                       type="password"
@@ -518,12 +518,49 @@
                     </button>
                   </div>
                 </div>
-                <p class="hint-text mt-2">
-                  キーはブラウザのメモリ上のみで扱い、リロードやタブを閉じると消去されます。
+
+                <div class="switch-list mt-2">
+                  <label class="md-switch md-switch-row">
+                    <span class="md-switch-label">
+                      <span>このブラウザにキーを保存</span>
+                      <span class="md-switch-sub">次回入力を省略（リスク承諾が必要）</span>
+                    </span>
+                    <input type="checkbox" class="md-switch-input" id="ytRememberKeyToggle" />
+                    <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+                  </label>
+                </div>
+
+                <div id="ytRememberKeyConsent" class="yt-consent-box hidden mt-2" role="alert">
+                  <p class="yt-consent-title">ブラウザに保存する前にご確認ください</p>
+                  <ul class="guide-list">
+                    <li>
+                      キーはご利用中のブラウザ内（localStorage）に保存され、<strong>手動でオフにするか消去するまで期限なく残り続けます</strong>（開発者サーバーや参加者へは送信されません）。
+                    </li>
+                    <li>
+                      共有PCの別ユーザーや、悪意のあるブラウザ拡張機能などから読み取られるリスクがあります。共有PCでは有効にしないでください。
+                    </li>
+                    <li>必ず「YouTube Data API v3 のみ」に制限したキーをご使用ください。</li>
+                  </ul>
+                  <div class="yt-consent-actions">
+                    <button
+                      type="button"
+                      class="btn btn-primary btn-xs"
+                      id="btnConfirmYtRememberKey"
+                    >
+                      リスクを理解して保存を有効にする
+                    </button>
+                    <button type="button" class="btn btn-ghost btn-xs" id="btnCancelYtRememberKey">
+                      やめる
+                    </button>
+                  </div>
+                </div>
+
+                <p class="hint-text mt-2" id="ytKeyStorageHint">
+                  初期設定ではブラウザのメモリ上のみで扱い、リロードやタブを閉じると消去されます。
                 </p>
 
                 <label class="field mt-2">
-                  <span>配信 URL または 動画 ID</span>
+                  <span>配信URLまたは動画ID</span>
                   <input
                     type="text"
                     id="ytVideoUrlInput"
@@ -558,7 +595,7 @@
 
                 <div class="btn-row">
                   <button type="button" class="btn btn-outline-accent btn-sm" id="btnYtVerify">
-                    配信を確認 (1ユニット)
+                    配信を確認（1ユニット）
                   </button>
                   <button
                     type="button"
@@ -590,7 +627,7 @@
                     <input type="number" id="ojamaCommentThreshold" min="1" max="100" value="5" />
                   </label>
                   <label class="field">
-                    <span>クールタイム(秒)</span>
+                    <span>クールタイム（秒）</span>
                     <input type="number" id="ojamaCooldownSec" min="0" max="120" value="3" />
                   </label>
                 </div>
@@ -600,13 +637,13 @@
                     <input type="number" id="ojamaDropCount" min="1" max="20" value="2" />
                   </label>
                   <label class="field">
-                    <span>視覚妨害時間(秒)</span>
+                    <span>視覚妨害時間（秒）</span>
                     <input type="number" id="ojamaVisualDuration" min="2" max="30" value="8" />
                   </label>
                 </div>
                 <div class="form-row-2">
                   <label class="field">
-                    <span>偽ピース持続(秒/0で永続)</span>
+                    <span>偽ピース持続（秒/0で永続）</span>
                     <input type="number" id="ojamaFakeDuration" min="0" max="600" value="60" />
                   </label>
                   <label class="field">
@@ -615,7 +652,7 @@
                   </label>
                 </div>
                 <label class="field">
-                  <span>巨大スパチャで消えるまで(秒/0で倒すまで残る)</span>
+                  <span>巨大スパチャで消えるまで（秒/0で倒すまで残る）</span>
                   <input type="number" id="ojamaSuperchatDuration" min="0" max="600" value="0" />
                 </label>
                 <label class="field">
@@ -640,11 +677,11 @@
                 </label>
                 <div class="form-row-2">
                   <label class="field">
-                    <span>続く時間(秒)</span>
+                    <span>続く時間（秒）</span>
                     <input type="number" id="ojamaHeavyDuration" min="5" max="300" value="30" />
                   </label>
                   <label class="field">
-                    <span>1個はめると減る(秒)</span>
+                    <span>1個はめると減る（秒）</span>
                     <input type="number" id="ojamaHeavyReduceSec" min="0" max="60" value="3" />
                   </label>
                 </div>
@@ -655,22 +692,22 @@
                     <input type="number" id="ojamaRunawayChance" min="0" max="100" value="30" />
                   </label>
                   <label class="field">
-                    <span>続く時間(秒)</span>
+                    <span>続く時間（秒）</span>
                     <input type="number" id="ojamaRunawayDuration" min="5" max="300" value="30" />
                   </label>
                 </div>
                 <div class="form-row-2">
                   <label class="field">
-                    <span>手から逃げる 最短(秒)</span>
+                    <span>手から逃げる 最短（秒）</span>
                     <input type="number" id="ojamaRunawayGripMinSec" min="1" max="30" value="3" />
                   </label>
                   <label class="field">
-                    <span>手から逃げる 最長(秒)</span>
+                    <span>手から逃げる 最長（秒）</span>
                     <input type="number" id="ojamaRunawayGripMaxSec" min="1" max="30" value="6" />
                   </label>
                 </div>
                 <label class="field">
-                  <span>1個はめると減る(秒)</span>
+                  <span>1個はめると減る（秒）</span>
                   <input type="number" id="ojamaRunawayReduceSec" min="0" max="60" value="3" />
                 </label>
                 <h3 class="mt-2">合言葉（カンマ区切り・どれかを含むコメントで発動）</h3>
@@ -803,17 +840,17 @@
             <div class="drawer-section host-only">
               <h3>セーブ / ロード</h3>
               <button type="button" class="btn btn-outline-accent btn-block" id="btnDownloadSave">
-                現在の状態をJSON保存
+                セーブファイルを保存
               </button>
 
               <details class="drawer-details mt-2" id="saveRestoreDetails">
-                <summary class="drawer-details-summary">JSON＋画像から復元ロード</summary>
+                <summary class="drawer-details-summary">セーブファイルと画像から復元</summary>
                 <div class="drawer-details-body">
                   <p class="hint-text">
-                    保存したJSONファイルと元画像（サンプル画像も可）を指定して途中から再開します。
+                    保存したセーブファイル（JSON）と元画像（サンプル画像も可）を指定して途中から再開します。
                   </p>
                   <label class="field">
-                    <span>1. セーブJSONファイルを選択</span>
+                    <span>1. セーブファイル（JSON）を選択</span>
                     <input type="file" id="loadJsonInput" accept=".json,application/json" />
                   </label>
                   <div id="loadedJsonSummary" class="save-summary hidden"></div>
@@ -944,7 +981,7 @@
               </p>
               <div class="lobby-puzzle-summary-box">
                 <div class="lobby-puzzle-summary-text" id="lobbySoloPuzzleSummary">
-                  現在の設定: サンプルテスト画像 / 6×4 (24ピース)
+                  現在の設定: サンプルテスト画像 / 6×4（24ピース）
                 </div>
                 <button type="button" class="btn btn-secondary btn-xs" id="btnOpenSetupFromSolo">
                   画像・ルールを変更
@@ -1036,7 +1073,7 @@
 
               <div class="lobby-puzzle-summary-box">
                 <div class="lobby-puzzle-summary-text" id="lobbyHostPuzzleSummary">
-                  現在の設定: サンプルテスト画像 / 6×4 (24ピース)
+                  現在の設定: サンプルテスト画像 / 6×4（24ピース）
                 </div>
                 <button type="button" class="btn btn-secondary btn-xs" id="btnOpenSetupFromHost">
                   画像・ルールを変更
@@ -1051,7 +1088,7 @@
             <!-- Guest Mode -->
             <div class="lobby-panel" id="lobby-panel-guest">
               <label class="field">
-                <span>招待ルームID</span>
+                <span>招待部屋ID</span>
                 <input type="text" id="lobbyGuestRoomId" placeholder="例: cj-xxxxxxxxxxxx" />
               </label>
               <div class="form-row-2 mt-2">
@@ -1109,6 +1146,7 @@
             <button type="button" class="btn btn-xs btn-ghost" id="btnCloseTerms">閉じる</button>
           </div>
           <div class="terms-body">
+            <!-- @content:terms:start -->
             <h3>1. 免責事項・無保証の原則</h3>
             <p>
               本アプリケーションは現状有姿（AS-IS）で提供されます。動作の完全性、P2P
@@ -1132,6 +1170,7 @@
               キーを使用します。公開・限定公開ライブチャットの読み取り専用アクセスのみを行い、Google
               API 利用規約および YouTube 利用規約に従ってご利用ください。
             </p>
+            <!-- @content:terms:end -->
           </div>
         </div>
       </div>
@@ -1146,38 +1185,154 @@
       >
         <div class="terms-card">
           <div class="terms-header">
-            <h2 id="ytGuideTitle">YouTube API キーの取得・設定ガイド</h2>
+            <h2 id="ytGuideTitle">YouTube APIキーの取得・設定ガイド</h2>
             <button type="button" class="btn btn-xs btn-ghost" id="btnCloseYtGuide">閉じる</button>
           </div>
           <div class="terms-body">
-            <h3>1. ホストご自身の API キーを使用する理由</h3>
+            <!-- @content:yt-guide:start -->
+            <h3>1. なぜご自身のAPIキーが必要なの？（無料運営の仕組み）</h3>
             <p>
-              安全性と最小限の権限（配信チャットの読み取り専用）を保ちつつ安定してコメント連動を行うため、少しお手数をおかけしますがホストご自身の
-              Google API キーをご利用いただく方式を採用しています。
+              少し見慣れない操作でお手数をおかけしますが、本アプリを<strong>サーバーレスかつ無料</strong>で運営し続けるために、ホストご自身のYouTube
+              APIキーをご利用いただく方式を採用しています。
             </p>
             <p>
-              入力した API
-              キーはご利用中のブラウザのメモリ上のみに保持され、リロードやタブを閉じると自動で消去されます（セーブ
-              JSON や P2P 通信にも含まれません）。
+              開発者側の共有キーを使う方式では、多くの配信が重なるとすぐに1日の利用上限に達したり、高額な維持費が発生したりしてしまいます。また、Googleアカウントでログイン連携（OAuth）する方式と比べ、アカウント操作の権限を渡さずに済む安全な仕組みでもあります。
             </p>
-            <h3>2. 初回作成手順（Google Cloud Console）</h3>
+
+            <h3>2. どんな権限を渡すの？（できること・できないこと）</h3>
+            <p>
+              下記の手順どおりに<strong>「YouTube Data API v3 のみ」に制限したAPIキー</strong
+              >を作成した場合、許可される範囲は次のとおりです。
+            </p>
+            <ul class="guide-list">
+              <li>
+                <strong>できること</strong>:
+                公開・限定公開されている配信の基本情報と、ライブチャットの<strong
+                  >読み取りのみ</strong
+                >
+              </li>
+              <li>
+                <strong>できないこと</strong>:
+                動画の投稿・削除、チャンネル設定の変更、チャットの代理送信、非公開動画やメンバー限定チャットの閲覧、GmailやGoogleドライブなど他のGoogleサービスへのアクセス
+              </li>
+            </ul>
+            <p class="guide-note">
+              ※2026年11月21日時点の YouTube Data API v3 仕様および動作確認に基づく内容です。
+            </p>
+
+            <h3>3. このゲームでは何に使うの？（データの扱いと保存オプション）</h3>
+            <p>
+              入力されたAPIキーは、あなたのブラウザからGoogleの公式APIへ直接問い合わせるためだけに使います。行う通信は次の読み取り（GET）のみです。
+            </p>
+            <ol class="guide-steps">
+              <li>配信URLまたは動画IDから、ライブチャットを特定する（接続確認時に1回）</li>
+              <li>配信中のコメントやスパチャを一定間隔で読み取り、お邪魔や演出に使う</li>
+            </ol>
+            <div class="guide-callout">
+              <p><strong>キーの保存と保護について</strong></p>
+              <ul class="guide-list">
+                <li>
+                  <strong>初期設定（推奨）</strong>:
+                  ブラウザのメモリ上のみで扱い、リロードやタブを閉じると自動で消去されます。
+                </li>
+                <li>
+                  <strong>ブラウザに保存（任意オプション）</strong>:
+                  次回からの再入力を省きたい場合は、リスクを確認・承諾したうえで設定画面のスイッチからブラウザ内（localStorage）へ保存できます。いつでもスイッチをオフにするか「消去」ボタンで削除できます。
+                </li>
+                <li>
+                  <strong>保存時の注意</strong>:
+                  ブラウザ（localStorage）に保存したキーは、<strong>手動でオフまたは消去するまで期限なく残ります</strong>。また、共有PCの別ユーザーやブラウザ拡張機能などから読み取られるリスクがあります。共有PCでは使わず、必ず「YouTube
+                  Data API v3 のみ」に制限したキーをご使用ください。
+                </li>
+                <li>
+                  <strong>外部送信なし</strong>:
+                  どちらの設定でも、開発者サーバーへの送信・セーブファイルへの保存・参加者（P2P）への共有は一切行いません。
+                </li>
+              </ul>
+            </div>
+
+            <h3>4. 料金はかかる？（無料枠と配信時間の目安）</h3>
+            <p>
+              YouTube Data API v3
+              には1日あたり<strong>10,000ユニットの無料枠</strong>があります。Google Cloud
+              で課金設定（請求先アカウントの登録）を行わない限り、自動的に料金が発生することはありません。
+            </p>
+            <ul class="guide-list">
+              <li>取得間隔 5秒: 約2.7時間／日</li>
+              <li>取得間隔 10秒（標準）: 約5.5時間／日</li>
+              <li>取得間隔 15秒（節約）: 約8.3時間／日</li>
+            </ul>
+            <p>
+              上限に達した場合はその日のコメント取得が止まりますが、翌日に無料枠が自動でリセットされます。
+            </p>
+
+            <h3>5. 取得・設定手順（初回のみ）</h3>
             <ol class="guide-steps">
               <li>
-                Google Cloud Console でプロジェクトを作成し、「YouTube Data API v3」を有効化します。
+                Google Cloud Console
+                にGoogleアカウントでログインし、新しいプロジェクトを作成します（プロジェクト名は何でも構いません）。
               </li>
-              <li>「API とサービス」→「認証情報」から新しい API キーを作成します。</li>
               <li>
-                作成したキーの編集画面で「API の制限」→「キーを制限」を選び、<b
-                  >YouTube Data API v3 のみ</b
-                >
-                を選択して保存してください。
+                左メニューの「APIとサービス」→「ライブラリ」から<strong
+                  >「YouTube Data API v3」</strong
+                >を検索し、「有効にする」をクリックします。
+              </li>
+              <li>
+                「APIとサービス」→「認証情報」を開き、上部の「認証情報を作成」→「APIキー」を選びます。
+              </li>
+              <li>
+                作成されたAPIキーの編集画面を開き、「APIの制限」で<strong>「キーを制限」</strong>を選択し、一覧から<strong
+                  >「YouTube Data API v3」のみ</strong
+                >にチェックを入れて保存します。
+              </li>
+              <li>
+                発行されたキー（<code>AIza...</code>
+                から始まる文字列）をコピーし、この画面の「YouTube APIキー」欄に貼り付けて完了です。
               </li>
             </ol>
-            <h3>3. ご利用時の注意</h3>
-            <p>
-              公開・限定公開のライブ配信チャットに対応しています（メンバー限定チャット・配信開始前・アーカイブではチャットを取得できません）。1日の無料枠は
-              10,000 ユニット（10秒間隔で約5.5時間目安）です。
+            <p class="guide-note">
+              ※手順内のメニュー名称は2026年11月21日時点の Google Cloud Console
+              の表示に基づきます。Google側のアップデートにより表記が変わる場合があります。
             </p>
+
+            <h3>6. 配信時の注意点（漏洩対策・対応条件）</h3>
+            <ul class="guide-list">
+              <li>
+                <strong>配信画面にキーを映さない</strong>: 入力欄は伏せ字になりますが、Google Cloud
+                Console の画面やコピー操作をOBS等の配信画面に映さないようご注意ください。
+              </li>
+              <li>
+                <strong>万が一映ってしまったら</strong>: Google Cloud Console
+                の「認証情報」から該当のAPIキーを削除し、新しく作り直せばすぐに無効化できます。
+              </li>
+              <li>
+                <strong>対応する配信</strong>:
+                公開・限定公開の配信中ライブチャットに対応しています（配信開始前・アーカイブ・メンバー限定チャットは取得できません）。
+              </li>
+            </ul>
+
+            <details class="drawer-details mt-2">
+              <summary class="drawer-details-summary">
+                うまく接続できないときは（よくある原因）
+              </summary>
+              <div class="drawer-details-body">
+                <ul class="guide-list">
+                  <li>
+                    <strong>チャットが見つからない</strong>:
+                    配信が開始されているか、YouTube側の設定でライブチャットが有効になっているかをご確認ください。
+                  </li>
+                  <li>
+                    <strong>権限エラー（403）が出る</strong>: 「YouTube Data API
+                    v3」の有効化忘れ、またはキーの制限設定が保存されていない可能性があります。
+                  </li>
+                  <li>
+                    <strong>上限エラー（クォータ超過）が出る</strong>:
+                    1日の無料枠を使い切っています。取得間隔を15秒に延ばすか、翌日のリセットをお待ちください。
+                  </li>
+                </ul>
+              </div>
+            </details>
+            <!-- @content:yt-guide:end -->
           </div>
         </div>
       </div>
@@ -1271,11 +1426,11 @@
                 <div class="drawer-details-body">
                   <div class="form-row-2">
                     <label class="field">
-                      <span>横 (列)</span>
+                      <span>横（列）</span>
                       <input type="number" id="inputCols" min="2" max="80" value="6" />
                     </label>
                     <label class="field">
-                      <span>縦 (行)</span>
+                      <span>縦（行）</span>
                       <input type="number" id="inputRows" min="2" max="80" value="4" />
                     </label>
                   </div>
@@ -1346,7 +1501,7 @@
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
           </div>
-          <h2 id="resultTitle">ジグソーパズル完成</h2>
+          <h2 id="resultTitle">パズル完成！</h2>
           <p class="result-subtitle" id="resultSubtitle">
             すべてのピースが正しい位置にはまりました。
           </p>

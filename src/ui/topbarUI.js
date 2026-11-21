@@ -113,12 +113,12 @@ export class TopbarUI {
   updateRendererStatus() {
     if (!this.elRendererStatus) return;
     const { renderer: kind, mode, fallbackReason } = this.renderer.getStats();
-    let text = '描画: WebGL2（高速）';
+    let text = '描画: 高速（WebGL2）';
     if (kind !== 'webgl2') {
       text =
         mode === 'canvas2d'
-          ? '描画: Canvas 2D（互換モード）'
-          : '描画: Canvas 2D（この環境では WebGL2 を使えないため）';
+          ? '描画: 互換モード（Canvas 2D）'
+          : '描画: 互換モード（Canvas 2D・WebGL2非対応環境）';
     }
     this.elRendererStatus.textContent = text;
     this.elRendererStatus.title = fallbackReason || '';
@@ -176,7 +176,7 @@ export class TopbarUI {
     this.elContributionCount.textContent = String(this.app.getMyContribution());
     this.elOjamaTotalCount.textContent = String(engine.stats.ojamaTotal);
     const bd = engine.stats.ojamaBreakdown;
-    this.elOjamaBreakdownText.textContent = `(落:${bd.drop} 視:${bd.visual} ス:${bd.superchat} 悪:${bd.prank} 偽:${bd.fake || 0} 重:${bd.heavy || 0} 逃:${bd.runaway || 0})`;
+    this.elOjamaBreakdownText.textContent = `（落:${bd.drop} 視:${bd.visual} ス:${bd.superchat} 悪:${bd.prank} 偽:${bd.fake || 0} 重:${bd.heavy || 0} 逃:${bd.runaway || 0}）`;
   }
 
   renderKnockBanner(knockQueue) {
@@ -185,7 +185,7 @@ export class TopbarUI {
       return;
     }
     const current = knockQueue[0];
-    const extra = knockQueue.length > 1 ? ` (ほか${knockQueue.length - 1}名待機)` : '';
+    const extra = knockQueue.length > 1 ? `（ほか${knockQueue.length - 1}名待機）` : '';
     this.elKnockBannerText.textContent = `${current.displayName} さんが参加を希望しています${extra}`;
     this.elKnockBanner.classList.remove('hidden');
   }

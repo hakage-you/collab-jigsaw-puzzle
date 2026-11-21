@@ -109,7 +109,7 @@ export class LobbyUI {
     this.elTransferWrap.classList.remove('hidden');
     const pct = total > 0 ? Math.round((received / total) * 100) : 0;
     this.elTransferBar.style.width = `${pct}%`;
-    this.elTransferText.textContent = `画像を受信中... (${received} / ${total} チャンク)`;
+    this.elTransferText.textContent = `画像を受信中...（${received} / ${total} チャンク）`;
   }
 
   _bindEvents() {
@@ -229,7 +229,7 @@ export class LobbyUI {
   async _joinFromForm() {
     const roomId = this.elGuestRoomId.value.trim();
     if (!roomId) {
-      this.setGuestStatus('招待ルームIDを入力してください', true);
+      this.setGuestStatus('招待部屋IDを入力してください', true);
       return;
     }
     const btn = document.getElementById('btnJoinGuestRoom');

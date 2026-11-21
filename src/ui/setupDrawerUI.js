@@ -112,7 +112,7 @@ export class SetupDrawerUI {
   updateLobbySummaries() {
     const { name } = this._image();
     const s = this.app.getSettings();
-    const summary = `現在の設定: ${name} / ${s.cols}×${s.rows} (${s.cols * s.rows}ピース)`;
+    const summary = `現在の設定: ${name} / ${s.cols}×${s.rows}（${s.cols * s.rows}ピース）`;
     if (this.elLobbySoloSummary) this.elLobbySoloSummary.textContent = summary;
     if (this.elLobbyHostSummary) this.elLobbyHostSummary.textContent = summary;
   }
