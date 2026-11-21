@@ -147,6 +147,27 @@ export class CanvasInteraction {
     this._bindZoomControls();
     this._bindFileDropEvents();
     this._bindBeforeUnloadEvent();
+    this._bindBrowserGestureGuards();
+  }
+
+  /**
+   * Keeps the browser's own pinch zoom and double-tap zoom off the board. `touch-action: none`
+   * (styles/app.css) does this in current browsers; these cover iOS Safari, which may still zoom.
+   */
+  _bindBrowserGestureGuards() {
+    const stop = (e) => e.preventDefault();
+    for (const type of ['gesturestart', 'gesturechange']) {
+      this.canvasStage.addEventListener(type, stop, { passive: false });
+    }
+    this.canvasStage.addEventListener(
+      'touchmove',
+      (e) => {
+        if (e.touches.length > 1) e.preventDefault();
+      },
+      { passive: false },
+    );
+    // The board needs no clicks from touches, so stopping them here also stops double-tap zoom.
+    this.canvas.addEventListener('touchend', stop, { passive: false });
   }
 
   _bindPointerDownEvents() {
