@@ -278,6 +278,8 @@
   position: relative;
   overflow: hidden;
   background: var(--desk-bg);
+  /* The board handles touch itself (src/ui/touchGestures.js): no browser pinch zoom or panning. */
+  touch-action: none;
 }
 
 #puzzleCanvas {
