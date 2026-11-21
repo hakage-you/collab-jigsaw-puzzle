@@ -221,27 +221,42 @@ export class LobbyUI {
   }
 
   _bindGuestEvents() {
-    document.getElementById('btnJoinGuestRoom').addEventListener('click', async () => {
-      const roomId = this.elGuestRoomId.value.trim();
-      if (!roomId) {
-        this.setGuestStatus('招待ルームIDを入力してください', true);
-        return;
-      }
-      const btn = document.getElementById('btnJoinGuestRoom');
-      btn.disabled = true;
-      this.setGuestStatus('ホストへ接続中...', false);
-      try {
-        await this.app.joinGuestRoom({
-          roomId,
-          displayName: this.elGuestName.value.trim() || 'ゲスト',
-          passcode: this.elGuestPasscode.value,
-        });
-      } catch (err) {
-        this.setGuestStatus(err?.message || '接続に失敗しました', true);
-      } finally {
-        btn.disabled = false;
-      }
-    });
+    document
+      .getElementById('btnJoinGuestRoom')
+      .addEventListener('click', () => this._joinFromForm());
+  }
+
+  async _joinFromForm() {
+    const roomId = this.elGuestRoomId.value.trim();
+    if (!roomId) {
+      this.setGuestStatus('招待ルームIDを入力してください', true);
+      return;
+    }
+    const btn = document.getElementById('btnJoinGuestRoom');
+    btn.disabled = true;
+    this.setGuestStatus('ホストへ接続中...', false);
+    try {
+      await this.app.joinGuestRoom({
+        roomId,
+        displayName: this.elGuestName.value.trim() || 'ゲスト',
+        passcode: this.elGuestPasscode.value,
+      });
+    } catch (err) {
+      this.setGuestStatus(err?.message || '接続に失敗しました', true);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /** Rejoins the room this tab last joined; the saved seat token brings back the same seat. */
+  rejoinLastRoom() {
+    const last = this.app.getLastGuestJoin();
+    if (!last) return;
+    this.show();
+    this.selectTab('guest');
+    this.elGuestRoomId.value = last.roomId;
+    this.elGuestName.value = last.displayName;
+    this._joinFromForm();
   }
 
   _subscribeApp() {

@@ -6,7 +6,9 @@ import { MSG, computeChallengeHash } from './protocol.js';
 import { HOST_TRANSFER_TYPES, sanitizeHostMessage } from './hostMessageGuard.js';
 import { decodeBase64ToCanvas } from './imageTransfer.js';
 import { REALTIME_HANDLERS, isRollbackFor } from './guestSyncHandlers.js';
+import { PeerLiveness } from './heartbeat.js';
 
+const HOST_LOST_REASON = 'ホストからの応答が途絶えたため切断しました';
 const IMAGE_REJECTED_REASON = 'ホストから受信した画像が不正なため切断しました';
 const FULL_STATE_REJECTED_REASON = 'ホストの盤面データが不正なため切断しました';
 const FULL_STATE_TYPES = new Set([MSG.FULL_STATE, MSG.FULL_STATE_CHUNK]);
@@ -22,6 +24,8 @@ const SESSION_HANDLERS = new Map([
     (session) => session.room.cb.onGuestStatus('ホストの入室承認を待っています...'),
   ],
   [MSG.WELCOME, (session, msg) => session._handleWelcome(msg)],
+  [MSG.PING, (session) => session.room.transport?.sendToHost({ type: MSG.PONG })],
+  [MSG.PONG, () => {}],
   [MSG.IMAGE_START, (session, msg) => session._handleImageStart(msg)],
   [
     MSG.IMAGE_CHUNK,
@@ -43,9 +47,28 @@ export class GuestSession {
     this.guestDisplayName = '';
     this.localOpSeq = 0;
     this.pendingGroupOpSeq = new Map();
+    // A host that stops answering pings is treated as gone.
+    this.liveness = new PeerLiveness({
+      ping: () => this.room.transport?.sendToHost({ type: MSG.PING }),
+      onLost: () => this._onHostLost(),
+      listPeers: () => (this.room.role === 'guest' && this.room.transport ? ['host'] : []),
+    });
+  }
+
+  startHeartbeat() {
+    this.liveness.start();
+  }
+
+  _onHostLost() {
+    const room = this.room;
+    if (room.role !== 'guest') return;
+    recordDiagnostic('p2p', 'host_timed_out', { reason: 'no_heartbeat' }, 'warn');
+    room.close();
+    room.cb.onDisconnected(HOST_LOST_REASON);
   }
 
   reset() {
+    this.liveness.stop();
     this.optimisticRollback = null;
     this.incomingImage = null;
     this.pendingFullState = null;
@@ -67,6 +90,7 @@ export class GuestSession {
 
   /** Every host message passes the guard first; handlers only ever see the sanitized copy. */
   async onMessage(msg) {
+    this.liveness.seen('host');
     const clean = sanitizeHostMessage(msg);
     if (!clean) {
       if (HOST_TRANSFER_TYPES.has(msg?.type)) this._failTransfer(msg.type, 'invalid_message');
@@ -119,7 +143,7 @@ export class GuestSession {
     const reason = msg.reason || '接続が拒否されました';
     recordDiagnostic('p2p', 'guest_rejected', { type: msg.type, reason }, 'warn');
     room.close();
-    room.cb.onAuthRejected(reason);
+    room.cb.onAuthRejected(reason, { kicked: msg.type === MSG.KICKED });
   }
 
   _handleImageStart(msg) {
@@ -315,6 +339,10 @@ export class GuestSession {
   submitSuperchatHit() {
     this.room.transport?.sendToHost({ type: MSG.SUPERCHAT_HIT });
     return null;
+  }
+
+  hasSavedSession(roomId) {
+    return Boolean(this._readSession(roomId)?.reconnectToken);
   }
 
   _readSession(roomId) {

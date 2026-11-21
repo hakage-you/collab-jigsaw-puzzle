@@ -116,6 +116,16 @@ export const MULTIPLAYER_CONFIG = {
   AUTO_BACKUP_DEBOUNCE_MS: 2000,
   SUPERCHAT_BASE_HP: 15,
   SUPERCHAT_HP_PER_GUEST: 8,
+  // Recruiting (staying registered on the signaling server). With no guest online for this long
+  // the host is asked whether to keep recruiting; without an answer recruiting stops.
+  RECRUIT_IDLE_PROMPT_MS: 10 * 60 * 1000,
+  RECRUIT_IDLE_GRACE_MS: 60 * 1000,
+  // Delays between attempts to re-register on the signaling server after an unexpected drop.
+  SIGNALING_RETRY_DELAYS_MS: [1000, 3000, 10000, 30000, 60000],
+  // Liveness check between host and guests: ping every interval, give up on a peer that has not
+  // answered a ping for the timeout (a vanished peer may never close its connection cleanly).
+  HEARTBEAT_INTERVAL_MS: 5000,
+  HEARTBEAT_TIMEOUT_MS: 20000,
 };
 
 /**
