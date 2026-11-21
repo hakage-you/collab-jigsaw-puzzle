@@ -391,15 +391,20 @@ export class RoomController {
     }
   }
 
+  /**
+   * Eases remote cursors and remotely dragged pieces toward their latest positions.
+   * Returns which moved, so the renderer redraws only the layer that changed.
+   */
   stepInterpolation() {
-    let moved = false;
+    let cursorsMoved = false;
+    let piecesMoved = false;
     for (const cur of this.remoteCursors.values()) {
       const dx = cur.targetX - cur.x;
       const dy = cur.targetY - cur.y;
       if (Math.abs(dx) > 0.2 || Math.abs(dy) > 0.2) {
         cur.x += dx * 0.32;
         cur.y += dy * 0.32;
-        moved = true;
+        cursorsMoved = true;
       } else {
         cur.x = cur.targetX;
         cur.y = cur.targetY;
@@ -415,14 +420,14 @@ export class RoomController {
         if (Math.abs(dx) > 0.2 || Math.abs(dy) > 0.2) {
           p.x += dx * 0.4;
           p.y += dy * 0.4;
-          moved = true;
+          piecesMoved = true;
         } else {
           p.x = tgt.x;
           p.y = tgt.y;
         }
       }
     }
-    return moved;
+    return { cursorsMoved, piecesMoved };
   }
 
   resetContributions() {

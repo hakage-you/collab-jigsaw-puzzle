@@ -20,7 +20,7 @@ export class SortFilterUI {
       btn.type = 'button';
       btn.className = 'color-chip-btn';
       btn.dataset.filter = `color:${b.id}`;
-      if (this.renderer.highlightFilter === btn.dataset.filter) {
+      if (this.renderer.viewState.highlightFilter === btn.dataset.filter) {
         btn.classList.add('active');
       }
 
@@ -40,7 +40,7 @@ export class SortFilterUI {
   }
 
   applyFilterMode(mode) {
-    this.renderer.highlightFilter = mode;
+    this.renderer.viewState.setHighlightFilter(mode);
     document.querySelectorAll('#highlightModeGroup .btn-seg').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.filter === mode);
     });
@@ -62,21 +62,21 @@ export class SortFilterUI {
     document.getElementById('btnSortEdges').addEventListener('click', () => {
       const res = this.app.sortEdges();
       this.fitViewAndSync();
-      this.renderer.afterNextRender(() => this.showToast(res.toastMessage));
+      this.renderer.viewState.afterNextRender(() => this.showToast(res.toastMessage));
     });
     document.getElementById('btnSortColors').addEventListener('click', () => {
       const res = this.app.sortByColor();
       this.fitViewAndSync();
-      this.renderer.afterNextRender(() => this.showToast(res.toastMessage));
+      this.renderer.viewState.afterNextRender(() => this.showToast(res.toastMessage));
     });
     document.getElementById('btnSortQuadrants').addEventListener('click', () => {
       const res = this.app.sortByQuadrant();
       this.fitViewAndSync();
-      this.renderer.afterNextRender(() => this.showToast(res.toastMessage));
+      this.renderer.viewState.afterNextRender(() => this.showToast(res.toastMessage));
     });
     document.getElementById('btnAlignAllUpright').addEventListener('click', () => {
       const res = this.app.alignAllUpright();
-      this.renderer.afterNextRender(() => this.showToast(res.toastMessage));
+      this.renderer.viewState.afterNextRender(() => this.showToast(res.toastMessage));
     });
 
     document.querySelectorAll('#highlightModeGroup .btn-seg').forEach((btn) => {

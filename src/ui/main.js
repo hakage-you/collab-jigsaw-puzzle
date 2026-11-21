@@ -61,7 +61,7 @@ function boot() {
     app,
     updateHUD: () => topbarUI.updateHUD(),
     requestRender: () => renderer.requestRender(),
-    setGhostPiecesActive: (active) => renderer.setGhostPiecesActive(active),
+    setGhostPiecesActive: (active) => renderer.viewState.setGhostPiecesActive(active),
     showToast,
   });
 
@@ -96,13 +96,13 @@ function boot() {
       clear: () => diagnosticsUI.clearLogs(),
       record: (cat, msg, meta, lvl) => app.recordDiagnostic(cat, msg, meta, lvl),
     },
-    view: renderer.view,
-    refSheet: renderer.refSheet,
+    view: renderer.viewState.camera,
+    refSheet: renderer.viewState.refSheet,
     getSettings: () => app.getSettings(),
     setCustomImage: (canvas, name) => app.setCustomImage(canvas, name),
     useSampleImage: () => app.useSampleImage(),
     fitView: () => setupDrawerUI.fitViewAndSync(),
-    screenToWorld: (sx, sy) => renderer.screenToWorld(sx, sy),
+    screenToWorld: (sx, sy) => renderer.viewState.screenToWorld(sx, sy),
   };
 
   app.startNewPuzzle();

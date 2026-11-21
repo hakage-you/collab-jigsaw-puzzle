@@ -99,7 +99,7 @@ function createPieceLayer(mode, { app, stage, pieceCanvas }) {
     return {
       view,
       setDragging: (gid) => {
-        fitter.draggingGroupId = gid;
+        fitter.viewState.setDraggingGroup(gid);
       },
       render: (now) => {
         fitter.requestRender();
@@ -164,6 +164,7 @@ async function runScene(scene, ctx) {
     last = now;
     if (frame >= WARMUP_FRAMES && now - start > MEASURE_MS) break;
   }
+  scene.teardown?.(s);
   overlay.clear();
   ctx.pieceCanvas.classList.remove('sabotage-hue');
   return {

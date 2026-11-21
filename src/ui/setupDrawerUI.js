@@ -48,7 +48,7 @@ export class SetupDrawerUI {
   }
 
   updateZoomReadout() {
-    this.elZoomReadout.textContent = `${Math.round(this.renderer.view.scale * 100)}%`;
+    this.elZoomReadout.textContent = `${Math.round(this.renderer.viewState.camera.scale * 100)}%`;
   }
 
   fitViewAndSync() {
