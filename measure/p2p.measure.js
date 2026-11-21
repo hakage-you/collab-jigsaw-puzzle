@@ -233,6 +233,21 @@ async function scenarioLateJoin(label, cols, rows, pieceCount) {
   closeAllSessions();
 }
 
+/** Physical interference on the host (pieces knocked off the board), host + 2 guests. */
+async function scenarioPhysicalOjama(label, cols, rows) {
+  const host = await startHost({ cols, rows });
+  await joinGuest(host, 'ゲストA');
+  await joinGuest(host, 'ゲストB');
+  snapFirstPieces(host, 10);
+  await sleep(SETTLE_MS * 2);
+  results[label] = await measureOp(() => {
+    const dropped = host.engine.dropLockedPieces(3, false);
+    host.room.broadcastPhysicalOjama('measure', dropped);
+    return { grid: `${cols}x${rows}`, pieces: host.engine.pieces.length, dropped: dropped.length };
+  });
+  closeAllSessions();
+}
+
 /** 4 players (host + 3 guests), each picks a random loose piece every second and drags it 10 steps. */
 async function playerLoop(app, index, { seconds, t0, stats }) {
   const rng = seededRandom(7000 + index);
@@ -314,6 +329,12 @@ function buildSummary() {
       );
     }
   }
+  const f = results.f_3000;
+  if (f) {
+    lines.push(
+      `drop ojama (${f.dropped} pcs) on ~3000 pieces, host + 2 guests: ${f.messages} msgs, ${kib(f.bytes)} sent by the host in total`,
+    );
+  }
   const top = e.topTypes.map((t) => `${t.type} ${t.share}%`).join(', ');
   lines.push(
     `4 players, ${e.seconds} s: ${kib(e.bytes)} total, ${kib(e.bytesPerPlayerPerMinute)}/player/min; top types by bytes: ${top}`,
@@ -377,6 +398,12 @@ it(
 );
 
 it(
+  'physical interference volume, ~3000 pieces',
+  () => withCounter(() => scenarioPhysicalOjama('f_3000', GRID_3000.cols, GRID_3000.rows)),
+  SCENARIO_TIMEOUT_MS,
+);
+
+it(
   '4 players for 60 s, each dragging a random loose piece every second',
   async () => {
     globalThis.BroadcastChannel.prototype.postMessage = countingPostMessage;
@@ -397,6 +424,7 @@ it(
           rotation: results.b,
           cursor1s: results.c,
           lateJoin: { d_small: results.d_small, d_500: results.d_500, d_3000: results.d_3000 },
+          physicalOjama3000: results.f_3000,
           fourPlayers60s: results.e,
         },
       },

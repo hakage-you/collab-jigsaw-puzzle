@@ -445,6 +445,7 @@ export class PuzzleEngine {
     return alignAllUprightPieces(this, excludedGroupIds);
   }
 
+  /** Returns the pieces that were knocked off the board (empty when none were locked). */
   dropLockedPieces(count, allowRotation = false) {
     return dropLockedPiecesOp(this, count, allowRotation);
   }
@@ -500,6 +501,7 @@ export class PuzzleEngine {
     syncFakePiecesFromSpecsOp(this, specs);
   }
 
+  /** Returns every piece that was rotated, flipped or moved (empty when nothing could be). */
   prankLoosePieces(count, excludedGroupIds = null) {
     return prankLoosePiecesOp(this, count, excludedGroupIds);
   }

@@ -375,8 +375,9 @@ export class RoomController {
     return this.hostSession.handleSuperchatHit();
   }
 
-  broadcastPhysicalOjama(noticeText) {
-    if (this.role === 'host') this.hostSession.broadcastPhysicalOjama(noticeText);
+  /** Sends the pieces a physical interference changed (not the whole board) plus its notice. */
+  broadcastPhysicalOjama(noticeText, changedPieces) {
+    if (this.role === 'host') this.hostSession.broadcastPhysicalOjama(noticeText, changedPieces);
   }
 
   broadcastSortResult() {

@@ -288,16 +288,16 @@ export class OjamaController {
       Number(this.elOjamaDropCount.value) || OJAMA_CONFIG.DEFAULT_DROP_COUNT,
     );
     const dropped = this.engine.dropLockedPieces(count, this.app.getAllowRotation());
-    if (dropped === 0) {
+    if (dropped.length === 0) {
       this.showToast('台紙にはまっているピースがまだありません', 'info');
       return false;
     }
     sound.playOjama();
     this.updateHUD();
     this.requestRender();
-    const msg = `お邪魔発動：${dropped}個のピースが台紙から落ちました`;
+    const msg = `お邪魔発動：${dropped.length}個のピースが台紙から落ちました`;
     this.showToast(msg, 'ojama');
-    this.room.broadcastPhysicalOjama(msg);
+    this.room.broadcastPhysicalOjama(msg, dropped);
     return true;
   }
 
@@ -439,17 +439,17 @@ export class OjamaController {
   triggerPrankOjama() {
     if (this.guardIfCompleted()) return false;
     const excluded = this.room.getLockedGroupIds();
-    const affected = this.engine.prankLoosePieces(OJAMA_CONFIG.PRANK_DEFAULT_COUNT, excluded);
-    if (affected === 0) {
+    const changed = this.engine.prankLoosePieces(OJAMA_CONFIG.PRANK_DEFAULT_COUNT, excluded);
+    if (changed.length === 0) {
       this.showToast('動かせる未配置ピースがありません', 'info');
       return false;
     }
     sound.playOjama();
     this.updateHUD();
     this.requestRender();
-    const msg = `お邪魔発動：未配置ピース ${affected}個が回転・裏返りました`;
+    const msg = `お邪魔発動：未配置ピース ${changed.length}個が回転・裏返りました`;
     this.showToast(msg, 'ojama');
-    this.room.broadcastPhysicalOjama(msg);
+    this.room.broadcastPhysicalOjama(msg, changed);
     return true;
   }
 

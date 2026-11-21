@@ -44,7 +44,7 @@ describe('dropLockedPieces', () => {
     const lockedBefore = before.filter((r) => r.isLocked).map((r) => r.id);
     const looseBefore = before.filter((r) => !r.isLocked);
 
-    const returned = engine.dropLockedPieces(2, false);
+    const returned = engine.dropLockedPieces(2, false).length;
 
     const after = boardState(engine);
     const unlockedNow = after.filter((r) => !r.isLocked).map((r) => r.id);
@@ -76,7 +76,7 @@ describe('dropLockedPieces', () => {
     const engine = createEngine();
     const locked = lockPieces(engine, 3);
 
-    const returned = engine.dropLockedPieces(10, false);
+    const returned = engine.dropLockedPieces(10, false).length;
 
     expect(returned).toBe(locked);
     expect(engine.getLockedCount()).toBe(0);
@@ -125,7 +125,7 @@ describe('dropLockedPieces', () => {
     expect(engine.getLockedCount()).toBe(0);
     const before = boardState(engine);
 
-    const returned = engine.dropLockedPieces(3, false);
+    const returned = engine.dropLockedPieces(3, false).length;
 
     expect(returned).toBe(0);
     expect(boardState(engine)).toEqual(before);
@@ -270,7 +270,7 @@ describe('prankLoosePieces', () => {
     const total = engine.pieces.length;
     const before = boardState(engine);
 
-    const returned = engine.prankLoosePieces(3);
+    const returned = engine.prankLoosePieces(3).length;
 
     expect(returned).toBeGreaterThan(0);
     expect(returned).toBeLessThanOrEqual(3);
@@ -283,10 +283,29 @@ describe('prankLoosePieces', () => {
     solveAll(engine);
     const before = boardState(engine);
 
-    const returned = engine.prankLoosePieces(3);
+    const returned = engine.prankLoosePieces(3).length;
 
     expect(returned).toBe(0);
     expect(boardState(engine)).toEqual(before);
+  });
+});
+
+describe('physical interference reports what it changed', () => {
+  it('dropLockedPieces returns exactly the pieces that changed', () => {
+    const engine = createEngine();
+    lockPieces(engine, 6);
+    const before = boardState(engine);
+    const changed = engine.dropLockedPieces(3, true);
+    expect(changed.map((p) => p.id).sort()).toEqual(changedIds(before, boardState(engine)).sort());
+  });
+
+  it('prankLoosePieces returns exactly the pieces that changed', () => {
+    const engine = createEngine();
+    lockPieces(engine, 2);
+    const before = boardState(engine);
+    const changed = engine.prankLoosePieces(3);
+    expect(changed.length).toBeGreaterThan(0);
+    expect(changed.map((p) => p.id).sort()).toEqual(changedIds(before, boardState(engine)).sort());
   });
 });
 
