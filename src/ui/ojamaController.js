@@ -275,7 +275,7 @@ export class OjamaController {
     if (this.guardIfCompleted()) return false;
     const sampleMsgs = [
       '完成させるな！中央をブロック中',
-      '赤スパで視界ジャック！クリック連打で退治してね',
+      '赤スパで視界ジャック！連打で退治してね',
       'そろそろピース外れちゃうかもよ？',
     ];
     const author = customAuthor || 'リスナー（お邪魔枠）';
