@@ -438,8 +438,8 @@ export class HostSession {
     return room.sharedSuperchatHp;
   }
 
-  broadcastPhysicalOjama(noticeText) {
-    this._broadcastPiecesPatch(this.room.engine.pieces, { type: 'ojama' }, 'host');
+  broadcastPhysicalOjama(noticeText, changedPieces) {
+    this._broadcastPiecesPatch(changedPieces, { type: 'ojama' }, 'host');
     this.room.transport?.broadcast({ type: MSG.OJAMA_NOTICE, text: noticeText });
     this.scheduleAutoBackup();
   }

@@ -7,13 +7,14 @@ const FAKE_SLOT_COLS = 4;
 const FAKE_SLOT_STEP = FAKE_ATLAS_SIZE / FAKE_SLOT_COLS; // 256px, 16 slots = 4MB fixed
 const FAKE_MAX_SLOTS = FAKE_SLOT_COLS * FAKE_SLOT_COLS;
 
+/** Unlocks up to `count` locked pieces and scatters them. Returns the pieces it changed. */
 export function dropLockedPiecesOp(
   engine,
   count = OJAMA_CONFIG.DEFAULT_DROP_COUNT,
   allowRotation = false,
 ) {
   const locked = engine.pieces.filter((p) => p.isLocked);
-  if (locked.length === 0) return 0;
+  if (locked.length === 0) return [];
 
   const actual = Math.min(count, locked.length);
   const chosen = [];
@@ -44,7 +45,7 @@ export function dropLockedPiecesOp(
   engine.stats.ojamaBreakdown.drop += 1;
   engine.bumpLockedVersion();
   engine.bumpZVersion();
-  return actual;
+  return chosen;
 }
 
 function ensureFakeAtlas(engine) {
@@ -246,6 +247,10 @@ export function syncFakePiecesFromSpecsOp(engine, specs) {
   engine.bumpZVersion();
 }
 
+/**
+ * Rotates or flips up to `count` loose pieces (a rotation turns the whole group).
+ * Returns every piece it changed, including the rest of each turned group.
+ */
 export function prankLoosePiecesOp(
   engine,
   count = OJAMA_CONFIG.PRANK_DEFAULT_COUNT,
@@ -258,9 +263,10 @@ export function prankLoosePiecesOp(
       (p) => !p.isLocked && (!excludedGroupIds || !excludedGroupIds.has(p.groupId)),
     );
   }
-  if (targets.length === 0) return 0;
+  if (targets.length === 0) return [];
 
   const pool = [...targets];
+  const changed = new Set();
   const actual = Math.min(count, pool.length);
   const groupCounts = engine.getGroupCounts();
 
@@ -290,9 +296,10 @@ export function prankLoosePiecesOp(
       }
     }
     engine.bringGroupToFront(p.groupId);
+    for (const gp of engine.getGroupPieces(p.groupId)) changed.add(gp);
   }
 
   engine.stats.ojamaTotal += 1;
   engine.stats.ojamaBreakdown.prank += 1;
-  return actual;
+  return [...changed];
 }
