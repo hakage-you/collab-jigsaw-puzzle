@@ -329,28 +329,44 @@ function buildCanonicalEdgeSegments(pA, pB, { nx, ny, edge, tabSize }) {
 }
 
 /**
- * Appends the edge from pA to pB onto `path`, reversed when `reverse` is true.
- * @param {Path2D} path target path
+ * Appends the edge from pA to pB to `commands`, reversed when `reverse` is true.
+ * @param {object[]} commands outline commands (see buildPieceOutline)
  * @param {{x: number, y: number}} pA start point
  * @param {{x: number, y: number}} pB end point
  * @param {{nx: number, ny: number, edge: object|null, tabSize: number, reverse: boolean}} options
  */
-function appendEdgeSegments(path, pA, pB, { nx, ny, edge, tabSize, reverse }) {
+function appendEdgeSegments(commands, pA, pB, { nx, ny, edge, tabSize, reverse }) {
   if (!edge) {
-    path.lineTo(reverse ? pA.x : pB.x, reverse ? pA.y : pB.y);
+    commands.push({ op: 'L', x: reverse ? pA.x : pB.x, y: reverse ? pA.y : pB.y });
     return;
   }
 
   const segs = buildCanonicalEdgeSegments(pA, pB, { nx, ny, edge, tabSize });
   if (!reverse) {
-    for (const s of segs) {
-      path.bezierCurveTo(s.cp1.x, s.cp1.y, s.cp2.x, s.cp2.y, s.end.x, s.end.y);
+    for (const sg of segs) {
+      commands.push({
+        op: 'C',
+        x1: sg.cp1.x,
+        y1: sg.cp1.y,
+        x2: sg.cp2.x,
+        y2: sg.cp2.y,
+        x: sg.end.x,
+        y: sg.end.y,
+      });
     }
   } else {
     for (let i = segs.length - 1; i >= 0; i--) {
-      const s = segs[i];
+      const sg = segs[i];
       const prevPt = i === 0 ? pA : segs[i - 1].end;
-      path.bezierCurveTo(s.cp2.x, s.cp2.y, s.cp1.x, s.cp1.y, prevPt.x, prevPt.y);
+      commands.push({
+        op: 'C',
+        x1: sg.cp2.x,
+        y1: sg.cp2.y,
+        x2: sg.cp1.x,
+        y2: sg.cp1.y,
+        x: prevPt.x,
+        y: prevPt.y,
+      });
     }
   }
 }
@@ -366,7 +382,11 @@ function unitRightNormal(pA, pB, clockwise90 = true) {
 }
 
 /**
- * Builds a Path2D centered at piece's nominal center (targetX, targetY).
+ * Builds the outline of one piece as plain data, centered at the piece's nominal center
+ * (targetX, targetY). The outline is a closed path: `{ commands }` where the first command is
+ * `{ op: 'M', x, y }` and the rest are `{ op: 'L', x, y }` or
+ * `{ op: 'C', x1, y1, x2, y2, x, y }` (cubic Bezier). The render layer turns it into a Path2D;
+ * core uses it for hit testing.
  * @param {object} options
  * @param {number} options.row piece row
  * @param {number} options.col piece column
@@ -377,7 +397,7 @@ function unitRightNormal(pA, pB, clockwise90 = true) {
  * @param {object} options.layout layout returned by generateCutLayout
  * @param {number} options.tabSize tab amplitude
  */
-export function buildPiecePath({ row, col, cols, rows, targetX, targetY, layout, tabSize }) {
+export function buildPieceOutline({ row, col, cols, rows, targetX, targetY, layout, tabSize }) {
   const toLocal = (v) => ({ x: v.x - targetX, y: v.y - targetY });
 
   const tl = toLocal(layout.grid[row][col]);
@@ -390,56 +410,24 @@ export function buildPiecePath({ row, col, cols, rows, targetX, targetY, layout,
   const bottomEdge = row === rows - 1 ? null : layout.hEdges[row][col];
   const leftEdge = col === 0 ? null : layout.vEdges[row][col - 1];
 
-  const path = new Path2D();
-  path.moveTo(tl.x, tl.y);
+  const commands = [{ op: 'M', x: tl.x, y: tl.y }];
 
   {
     const { nx, ny } = unitRightNormal(tl, tr, true);
-    appendEdgeSegments(path, tl, tr, { nx, ny, edge: topEdge, tabSize, reverse: false });
+    appendEdgeSegments(commands, tl, tr, { nx, ny, edge: topEdge, tabSize, reverse: false });
   }
   {
     const { nx, ny } = unitRightNormal(tr, br, false);
-    appendEdgeSegments(path, tr, br, { nx, ny, edge: rightEdge, tabSize, reverse: false });
+    appendEdgeSegments(commands, tr, br, { nx, ny, edge: rightEdge, tabSize, reverse: false });
   }
   {
     const { nx, ny } = unitRightNormal(bl, br, true);
-    appendEdgeSegments(path, bl, br, { nx, ny, edge: bottomEdge, tabSize, reverse: true });
+    appendEdgeSegments(commands, bl, br, { nx, ny, edge: bottomEdge, tabSize, reverse: true });
   }
   {
     const { nx, ny } = unitRightNormal(tl, bl, false);
-    appendEdgeSegments(path, tl, bl, { nx, ny, edge: leftEdge, tabSize, reverse: true });
+    appendEdgeSegments(commands, tl, bl, { nx, ny, edge: leftEdge, tabSize, reverse: true });
   }
 
-  path.closePath();
-  return path;
-}
-
-/**
- * Creates a reusable cardboard-like backside pattern canvas for flipped pieces.
- */
-export function createBacksidePatternCanvas() {
-  const size = PUZZLE_CONFIG.BACKSIDE_PATTERN_SIZE;
-  const pCanvas = document.createElement('canvas');
-  pCanvas.width = size;
-  pCanvas.height = size;
-  const ctx = pCanvas.getContext('2d');
-
-  ctx.fillStyle = '#334155';
-  ctx.fillRect(0, 0, size, size);
-
-  ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  for (let i = -size; i <= size * 2; i += 16) {
-    ctx.moveTo(i, 0);
-    ctx.lineTo(i + size, size);
-  }
-  ctx.stroke();
-
-  ctx.fillStyle = 'rgba(226, 232, 240, 0.22)';
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, 3, 0, Math.PI * 2);
-  ctx.fill();
-
-  return pCanvas;
+  return { commands };
 }

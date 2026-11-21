@@ -1,6 +1,10 @@
 import { PUZZLE_CONFIG } from '../config/constants.js';
-import { buildPiecePath } from './jigsawPath.js';
-import { renderPieceBackSprite, renderPieceSprites } from './pieceSpriteBuilder.js';
+import { buildPieceOutline } from './jigsawPath.js';
+import {
+  outlineToPath2D,
+  renderPieceBackSprite,
+  renderPieceSprites,
+} from './pieceSpriteBuilder.js';
 
 /**
  * Scatters `count` piece positions around the board perimeter and shuffles them.
@@ -87,7 +91,7 @@ function createPiece(engine, state, r, c) {
   const { opts } = state;
   const id = r * engine.cols + c;
   const { targetX, targetY } = targetCenter(engine, r, c);
-  const path = buildPiecePath({
+  const outline = buildPieceOutline({
     row: r,
     col: c,
     cols: engine.cols,
@@ -120,7 +124,8 @@ function createPiece(engine, state, r, c) {
     isLocked,
     zOrder,
     colorInfo: opts.colorInfos[id],
-    path,
+    outline,
+    path: outlineToPath2D(outline),
     frontSprite: null,
     backSprite: null,
     spriteHalfW: engine.pieceW / 2 + engine.spritePad,
