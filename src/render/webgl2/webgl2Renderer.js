@@ -4,6 +4,7 @@ import {
   drawDeskStage,
   drawLockBadgeStage,
   drawOutlinesStage,
+  drawnAt,
   enterWorld,
   leaveWorld,
   pieceAlpha,
@@ -105,6 +106,7 @@ export class WebGL2Renderer extends TableRendererBase {
       dpr: window.devicePixelRatio || 1,
       highlightFilter: vs.highlightFilter,
       ghostPiecesActive: vs.ghostPiecesActive,
+      motionOffsets: vs.motion.offsets,
       draggingGroupId: vs.draggingGroupId,
       hoveredPiece: vs.hoveredPiece,
       sprites: this.sprites,
@@ -121,7 +123,7 @@ export class WebGL2Renderer extends TableRendererBase {
     return list;
   }
 
-  _fillInstances(list) {
+  _fillInstances(frame, list) {
     if (this.data.length < list.length * FLOATS_PER_INSTANCE) {
       this.data = new Float32Array(list.length * 2 * FLOATS_PER_INSTANCE);
     }
@@ -132,8 +134,9 @@ export class WebGL2Renderer extends TableRendererBase {
       const loc = this.textures.locate(sprite.canvas);
       if (!loc) continue;
       const o = n * FLOATS_PER_INSTANCE;
-      d[o] = piece.x;
-      d[o + 1] = piece.y;
+      const at = drawnAt(frame, piece);
+      d[o] = at.x;
+      d[o + 1] = at.y;
       d[o + 2] = piece.rotation;
       d[o + 3] = piece.isFlipped ? -1 : 1;
       d[o + 4] = -m.halfW;
@@ -156,7 +159,7 @@ export class WebGL2Renderer extends TableRendererBase {
   _drawGpuPieces(frame, list) {
     const { gl } = this;
     this.textures.update(this.sprites);
-    const count = this._fillInstances(list);
+    const count = this._fillInstances(frame, list);
     gl.viewport(0, 0, this.piecesCanvas.width, this.piecesCanvas.height);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);

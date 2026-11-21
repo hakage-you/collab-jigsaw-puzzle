@@ -21,7 +21,7 @@ export class ResultModalUI {
 
     const bd = payload.ojamaBreakdown;
     document.getElementById('resultOjamaBreakdown').textContent =
-      `内訳 — 落下: ${bd.drop} / 視覚: ${bd.visual} / スパチャ: ${bd.superchat} / いたずら: ${bd.prank} / 偽: ${bd.fake || 0}`;
+      `内訳 — 落下: ${bd.drop} / 視覚: ${bd.visual} / スパチャ: ${bd.superchat} / いたずら: ${bd.prank} / 偽: ${bd.fake || 0} / 重い: ${bd.heavy || 0} / 逃げる: ${bd.runaway || 0}`;
 
     this.elRankingList.replaceChildren();
     if (payload.isMultiplayer && payload.roster.length > 0) {

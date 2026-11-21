@@ -28,9 +28,31 @@ const DEFAULT_SETTINGS = {
     fakeDuration: OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC,
     fakeMaxCount: OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT,
     superchatDuration: OJAMA_CONFIG.DEFAULT_SUPERCHAT_DURATION_SEC,
-    triggerWords: '!drop, !color, !spin, !ghost, !fake, お邪魔',
+    heavyLevel: OJAMA_CONFIG.DEFAULT_HEAVY_LEVEL,
+    heavyDuration: OJAMA_CONFIG.DEFAULT_HEAVY_DURATION_SEC,
+    heavyReduceSec: OJAMA_CONFIG.DEFAULT_HEAVY_REDUCE_SEC,
+    runawayChance: OJAMA_CONFIG.DEFAULT_RUNAWAY_CHANCE,
+    runawayDuration: OJAMA_CONFIG.DEFAULT_RUNAWAY_DURATION_SEC,
+    runawayReduceSec: OJAMA_CONFIG.DEFAULT_RUNAWAY_REDUCE_SEC,
+    runawayGripMinSec: OJAMA_CONFIG.DEFAULT_RUNAWAY_GRIP_MIN_SEC,
+    runawayGripMaxSec: OJAMA_CONFIG.DEFAULT_RUNAWAY_GRIP_MAX_SEC,
+    triggers: { ...OJAMA_CONFIG.DEFAULT_TRIGGERS },
   },
 };
+
+/**
+ * Saved ojama settings over the defaults; trigger words merge per type, so a type added later
+ * gets its default words. (The old single `triggerWords` list is dropped.)
+ */
+function mergeOjama(saved) {
+  const rest = { ...saved };
+  delete rest.triggerWords;
+  return {
+    ...DEFAULT_SETTINGS.ojama,
+    ...rest,
+    triggers: { ...DEFAULT_SETTINGS.ojama.triggers, ...(rest.triggers || {}) },
+  };
+}
 
 export function loadSavedSettings() {
   try {
@@ -41,10 +63,7 @@ export function loadSavedSettings() {
       ...DEFAULT_SETTINGS,
       ...parsed,
       cutComplexity: normalizeCutComplexity(parsed.cutComplexity),
-      ojama: {
-        ...DEFAULT_SETTINGS.ojama,
-        ...(parsed.ojama || {}),
-      },
+      ojama: mergeOjama(parsed.ojama),
     };
   } catch {
     return structuredClone(DEFAULT_SETTINGS);

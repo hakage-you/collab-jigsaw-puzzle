@@ -608,6 +608,11 @@
   font-size: var(--font-size-sm);
 }
 
+/* Heavy / runaway pieces: under the visual sabotage banner, so both can show at once. */
+.timed-ojama-banner {
+  top: calc(var(--space-4) + 48px);
+}
+
 /* While a new puzzle is prepared: above everything, painted before the work starts. */
 .puzzle-loading {
   position: fixed;

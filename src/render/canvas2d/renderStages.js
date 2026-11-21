@@ -115,7 +115,8 @@ export function drawOutlinesStage(f, visibleLoose) {
     const o = outlineOf(piece);
     if (!(o.remoteLockMeta || o.isActiveGroup || o.isHoverGroup)) continue;
     ctx.save();
-    ctx.translate(piece.x, piece.y);
+    const at = drawnAt(f, piece);
+    ctx.translate(at.x, at.y);
     ctx.rotate((piece.rotation * Math.PI) / 2);
     if (piece.isFlipped) ctx.scale(-1, 1);
     ctx.globalAlpha = pieceAlpha(f, piece);
@@ -144,6 +145,12 @@ export function drawPieceStage(f, { visibleLocked, visibleLoose }) {
 
 export function drawLockBadgeStage(f) {
   drawRemoteLockBadges(f.ctx, { room: f.room, engine: f.engine, scale: f.view.scale, pal: f.pal });
+}
+
+/** Where a piece is drawn: its position, moved along a runaway hop while one plays. */
+export function drawnAt(f, piece) {
+  const o = f.motionOffsets?.get(piece.id);
+  return o ? { x: piece.x + o.dx, y: piece.y + o.dy } : piece;
 }
 
 /** Opacity of a piece under the highlight filter and the ghost interference. */
@@ -221,7 +228,8 @@ function drawPiece(
   const { ctx } = f;
 
   ctx.save();
-  ctx.translate(piece.x, piece.y);
+  const at = drawnAt(f, piece);
+  ctx.translate(at.x, at.y);
   ctx.rotate((piece.rotation * Math.PI) / 2);
   if (piece.isFlipped) {
     ctx.scale(-1, 1);

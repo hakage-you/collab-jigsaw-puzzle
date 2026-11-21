@@ -109,6 +109,8 @@ function ojamaCallbacks(session) {
     onRemoteSuperchatState: (hp, maxHp) => session.emit('remoteSuperchatHp', { hp, maxHp }),
     onLocalSuperchatHp: (hp, maxHp) => session.emit('remoteSuperchatHp', { hp, maxHp }),
     onRemoteSuperchatDismiss: () => session.emit('remoteSuperchatDismiss'),
+    onRemoteTimedOjama: (msg) => session.emit('remoteTimedOjama', msg),
+    onPieceHop: (hop) => session.emit('pieceHop', hop),
   };
 }
 

@@ -88,7 +88,11 @@ export class GameSession {
 
   patchSettings(partial) {
     const nextOjama = partial.ojama
-      ? { ...this.settings.ojama, ...partial.ojama }
+      ? {
+          ...this.settings.ojama,
+          ...partial.ojama,
+          triggers: { ...this.settings.ojama.triggers, ...partial.ojama.triggers },
+        }
       : this.settings.ojama;
     const clampedGrid = clampGridDimensions(
       partial.cols ?? this.settings.cols,
@@ -333,9 +337,10 @@ export class GameSession {
     this.engine.moveGroup(groupId, dx, dy);
   }
 
-  requestLock(groupId) {
-    const res = this.room.requestLock(groupId);
-    if (!res.allowed) {
+  /** Asks to drag a group grabbed at world point `from` (runaway pieces hop away from it). */
+  requestLock(groupId, from = null) {
+    const res = this.room.requestLock(groupId, from);
+    if (!res.allowed && !res.hopped) {
       this.emit('toast', {
         message: `${res.ownerName || '他の参加者'} が操作中です`,
         kind: 'ojama',

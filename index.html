@@ -181,6 +181,13 @@
             <span id="visualSabotageTimer" class="sabotage-timer">8.0s</span>
           </div>
 
+          <!-- Heavy / runaway pieces: what is on and how long it has left (timedOjamaController.js) -->
+          <div
+            id="timedOjamaBanner"
+            class="sabotage-banner timed-ojama-banner hidden"
+            role="status"
+          ></div>
+
           <!-- Spotlight Layer -->
           <div id="spotlightOverlay" class="spotlight-overlay hidden"></div>
 
@@ -328,6 +335,14 @@
                 <button type="button" class="btn btn-ojama" id="btnTestFake">
                   <span>偽ピース追加</span>
                   <small>ダミーを混ぜて攪乱</small>
+                </button>
+                <button type="button" class="btn btn-ojama" id="btnTestHeavy">
+                  <span>重い</span>
+                  <small>ピースが遅れてついてくる</small>
+                </button>
+                <button type="button" class="btn btn-ojama" id="btnTestRunaway">
+                  <span>逃げる</span>
+                  <small>つかむと跳ねて逃げる</small>
                 </button>
               </div>
               <div class="input-with-btn mt-2">
@@ -608,13 +623,94 @@
                     <option value="ghost">ピース透明化（90%透過）</option>
                   </select>
                 </label>
-                <label class="field mt-2">
-                  <span>特定トリガーワード（カンマ区切り）</span>
-                  <input
-                    type="text"
-                    id="ojamaTriggerWords"
-                    value="!drop, !color, !spin, !ghost, !fake, お邪魔"
-                  />
+                <h3 class="mt-2">重い</h3>
+                <label class="field">
+                  <span>重さ</span>
+                  <select id="ojamaHeavyLevel">
+                    <option value="strong">強め（約1秒で追いつく）</option>
+                    <option value="heavier">とても重い（約2秒）</option>
+                    <option value="heaviest" selected>激重（約3.5秒）</option>
+                  </select>
+                </label>
+                <div class="form-row-2">
+                  <label class="field">
+                    <span>続く時間(秒)</span>
+                    <input type="number" id="ojamaHeavyDuration" min="5" max="300" value="30" />
+                  </label>
+                  <label class="field">
+                    <span>1個はめると減る(秒)</span>
+                    <input type="number" id="ojamaHeavyReduceSec" min="0" max="60" value="3" />
+                  </label>
+                </div>
+                <h3 class="mt-2">逃げる</h3>
+                <div class="form-row-2">
+                  <label class="field">
+                    <span>逃げる確率(%)</span>
+                    <input type="number" id="ojamaRunawayChance" min="0" max="100" value="30" />
+                  </label>
+                  <label class="field">
+                    <span>続く時間(秒)</span>
+                    <input type="number" id="ojamaRunawayDuration" min="5" max="300" value="30" />
+                  </label>
+                </div>
+                <div class="form-row-2">
+                  <label class="field">
+                    <span>手から逃げる 最短(秒)</span>
+                    <input type="number" id="ojamaRunawayGripMinSec" min="1" max="30" value="3" />
+                  </label>
+                  <label class="field">
+                    <span>手から逃げる 最長(秒)</span>
+                    <input type="number" id="ojamaRunawayGripMaxSec" min="1" max="30" value="6" />
+                  </label>
+                </div>
+                <label class="field">
+                  <span>1個はめると減る(秒)</span>
+                  <input type="number" id="ojamaRunawayReduceSec" min="0" max="60" value="3" />
+                </label>
+                <h3 class="mt-2">合言葉（カンマ区切り・どれかを含むコメントで発動）</h3>
+                <div class="form-row-2">
+                  <label class="field">
+                    <span>落下</span>
+                    <input type="text" id="ojamaTrigger-drop" value="!drop, 落と" />
+                  </label>
+                  <label class="field">
+                    <span>視覚妨害</span>
+                    <input type="text" id="ojamaTrigger-visual" value="!color, 色" />
+                  </label>
+                </div>
+                <div class="form-row-2">
+                  <label class="field">
+                    <span>透明化</span>
+                    <input type="text" id="ojamaTrigger-ghost" value="!ghost, 透明" />
+                  </label>
+                  <label class="field">
+                    <span>いたずら</span>
+                    <input type="text" id="ojamaTrigger-prank" value="!spin, 回" />
+                  </label>
+                </div>
+                <div class="form-row-2">
+                  <label class="field">
+                    <span>巨大スパチャ</span>
+                    <input type="text" id="ojamaTrigger-superchat" value="!sp, スパ" />
+                  </label>
+                  <label class="field">
+                    <span>偽ピース</span>
+                    <input type="text" id="ojamaTrigger-fake" value="!fake, 偽" />
+                  </label>
+                </div>
+                <div class="form-row-2">
+                  <label class="field">
+                    <span>重い</span>
+                    <input type="text" id="ojamaTrigger-heavy" value="!heavy, 重" />
+                  </label>
+                  <label class="field">
+                    <span>逃げる</span>
+                    <input type="text" id="ojamaTrigger-runaway" value="!run, 逃" />
+                  </label>
+                </div>
+                <label class="field">
+                  <span>ランダム</span>
+                  <input type="text" id="ojamaTrigger-random" value="お邪魔" />
                 </label>
               </div>
             </div>

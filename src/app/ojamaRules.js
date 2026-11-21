@@ -1,31 +1,36 @@
 // Pure comment -> interference decision logic. No DOM, no timers, no side effects.
 // The UI layer (src/ui/ojamaController.js) executes the returned action.
+import { OJAMA_CONFIG } from '../config/constants.js';
 
 export const COMPLETED_NOTICE = 'パズル完成済みのためお邪魔は発動しません';
+
+/**
+ * Comment ojama types in tie-break order: when two trigger words of the same length match, the
+ * earlier type wins. Each type has its own editable list of trigger words (settings.ojama.triggers).
+ */
+export const TRIGGER_ACTIONS = Object.freeze(Object.keys(OJAMA_CONFIG.DEFAULT_TRIGGERS));
 
 // Trigger words: split on ',', trimmed, lowercased, empties dropped, longest first
 // so that '!spin' wins over '!sp'.
 export function parseTriggerWords(triggerWords) {
-  return triggerWords
+  return String(triggerWords ?? '')
     .split(',')
     .map((w) => w.trim().toLowerCase())
     .filter(Boolean)
     .sort((a, b) => b.length - a.length);
 }
 
-export function findMatchedWord(words, lowerText) {
-  return words.find((w) => lowerText.includes(w)) ?? null;
+/** Every { word, action } of the per-type trigger lists, longest word first (ties: type order). */
+export function buildTriggerTable(triggers = {}) {
+  const table = TRIGGER_ACTIONS.flatMap((action) =>
+    parseTriggerWords(triggers[action]).map((word) => ({ word, action })),
+  );
+  return table.sort((a, b) => b.word.length - a.word.length);
 }
 
-// Keyword branch: the matched trigger word and Japanese words in the comment both count.
-export function resolveKeywordAction(matchedWord, lowerText) {
-  if (matchedWord.includes('drop') || lowerText.includes('落と')) return 'drop';
-  if (matchedWord.includes('ghost') || lowerText.includes('透明')) return 'ghost';
-  if (matchedWord.includes('fake') || lowerText.includes('偽')) return 'fake';
-  if (matchedWord.includes('color') || lowerText.includes('色')) return 'visual';
-  if (matchedWord.includes('spin') || lowerText.includes('回')) return 'prank';
-  if (matchedWord.includes('sp') || lowerText.includes('スパ')) return 'superchat';
-  return 'random';
+/** The first (longest) trigger in `table` contained in the lowercased text, or null. */
+export function findTrigger(table, lowerText) {
+  return table.find((t) => lowerText.includes(t.word)) ?? null;
 }
 
 function completedResult(matchedWord, state) {
@@ -60,7 +65,8 @@ export function decideCommentOjama({ text, settings, now, state, isCompleted }) 
   const { commentThreshold, cooldownSec } = settings.ojama;
   const cooldownMs = cooldownSec * 1000;
   const lowerText = text.toLowerCase();
-  const matchedWord = findMatchedWord(parseTriggerWords(settings.ojama.triggerWords), lowerText);
+  const trigger = findTrigger(buildTriggerTable(settings.ojama.triggers), lowerText);
+  const matchedWord = trigger?.word ?? null;
 
   if (isCompleted) return completedResult(matchedWord, state);
 
@@ -69,7 +75,7 @@ export function decideCommentOjama({ text, settings, now, state, isCompleted }) 
 
   if (matchedWord && cooldownReady) {
     return {
-      action: resolveKeywordAction(matchedWord, lowerText),
+      action: trigger.action,
       matchedWord,
       nextState: { commentCounter, lastOjamaTime: now },
       notice: null,

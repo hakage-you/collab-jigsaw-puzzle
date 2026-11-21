@@ -77,6 +77,8 @@ export class PuzzleEngine {
         superchat: 0,
         prank: 0,
         fake: 0,
+        heavy: 0,
+        runaway: 0,
       },
     };
 
@@ -138,7 +140,7 @@ export class PuzzleEngine {
       elapsedMs: 0,
       placedCount: 0,
       ojamaTotal: 0,
-      ojamaBreakdown: { drop: 0, visual: 0, superchat: 0, prank: 0, fake: 0 },
+      ojamaBreakdown: { drop: 0, visual: 0, superchat: 0, prank: 0, fake: 0, heavy: 0, runaway: 0 },
     };
 
     this._buildPieces({ allowRotation, allowFlip, savedMap: null });
@@ -462,6 +464,12 @@ export class PuzzleEngine {
   recordSuperchatOjama() {
     this.stats.ojamaTotal += 1;
     this.stats.ojamaBreakdown.superchat += 1;
+  }
+
+  /** Counts a timed ojama ('heavy' or 'runaway') in the stats. */
+  recordTimedOjama(kind) {
+    this.stats.ojamaTotal += 1;
+    this.stats.ojamaBreakdown[kind] = (this.stats.ojamaBreakdown[kind] || 0) + 1;
   }
 
   applyPiecePatches(patches, options) {

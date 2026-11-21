@@ -53,8 +53,11 @@ function validateCursor(m) {
   return isCoord(m.x) && isCoord(m.y) ? { type: m.type, x: m.x, y: m.y } : null;
 }
 
+/** Lock request, with the world point the group was grabbed at when given (runaway hops away). */
 function validateLockRequest(m) {
-  return isId(m.groupId) ? { type: m.type, groupId: m.groupId } : null;
+  if (!isId(m.groupId)) return null;
+  if (m.x === undefined && m.y === undefined) return { type: m.type, groupId: m.groupId };
+  return isCoord(m.x) && isCoord(m.y) ? { type: m.type, groupId: m.groupId, x: m.x, y: m.y } : null;
 }
 
 /** Entry of a positions list: a piece id with finite, bounded world coordinates. */

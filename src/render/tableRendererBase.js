@@ -180,6 +180,7 @@ export class TableRendererBase {
       ? this.room.stepInterpolation()
       : { cursorsMoved: false, piecesMoved: false };
 
+    this._stepMotion(now, dt);
     const drawTable = vs.needsRender || moved.piecesMoved;
     // The table's last frame, so the effects layer can redraw its overlay on its own.
     if (drawTable) this._lastTableFrame = this._drawTable();
@@ -206,6 +207,14 @@ export class TableRendererBase {
         drawWorld: null,
       });
     }
+  }
+
+  /** Advances runaway hops; the table is redrawn while one plays and once after it lands. */
+  _stepMotion(now, dt) {
+    const vs = this.viewState;
+    const hopping = vs.motion.hops.size > 0;
+    vs.motion.step(now, this.engine, dt / 1000);
+    if (hopping) vs.needsRender = true;
   }
 
   /** World-space drawing on the effects layer, above the pieces. Default: nothing. */

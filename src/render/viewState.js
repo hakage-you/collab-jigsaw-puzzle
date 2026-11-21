@@ -1,5 +1,6 @@
 import { VIEWPORT_CONFIG } from '../config/constants.js';
 import { spawnEffect } from './effects/effectPlayer.js';
+import { PieceMotion } from './effects/pieceMotion.js';
 
 /**
  * What the player is looking at and doing on the table, separate from how it is drawn:
@@ -36,6 +37,10 @@ export class ViewState {
     this.overlayParticles = [];
     /** Effect strength: 'normal', 'reduced' or 'off' (effects/effectPlayer.js INTENSITY). */
     this.effectIntensity = 'normal';
+    /** Runaway hops and the heavy-piece tether, drawn over the pieces' real positions. */
+    this.motion = new PieceMotion();
+    /** Heavy pieces: the level ('strong' | 'heavier' | 'heaviest') while it lasts, else null. */
+    this.heavyLevel = null;
     /** Where each fake piece was last seen (fakeId -> {x, y}), to puff when one vanishes. */
     this.fakeSpots = new Map();
 
@@ -96,6 +101,7 @@ export class ViewState {
       this.snapFlashes = [];
       this.particles = [];
       this.overlayParticles = [];
+      this.motion.clear();
     }
     this.needsRender = true;
   }
@@ -281,7 +287,24 @@ export class ViewState {
     });
   }
 
+  /**
+   * A runaway group hopped (its pieces already stand where they landed; `from` holds where they
+   * were). With effects at normal everyone sees the hop; reduced shows it only to the player who
+   * grabbed it; off (and anyone else when reduced) sees the pieces simply move.
+   */
+  playHop({ groupId, from, byPlayerId }, myPlayerId) {
+    const mine = byPlayerId === myPlayerId;
+    const show = this.effectIntensity === 'normal' || (this.effectIntensity === 'reduced' && mine);
+    if (show) this.motion.playHop(this.engine.getGroupPieces(groupId), from, performance.now());
+    this.needsRender = true;
+  }
+
   get hasEffects() {
-    return this.snapFlashes.length > 0 || this.particles.length > 0;
+    return (
+      this.snapFlashes.length > 0 ||
+      this.particles.length > 0 ||
+      this.motion.active ||
+      this.motion.tether !== null
+    );
   }
 }

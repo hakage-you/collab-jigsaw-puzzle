@@ -68,6 +68,19 @@ function handleLockDenied(session, msg) {
   room.cb.onLockDenied(msg.groupId);
 }
 
+/** A runaway group hopped: it is nobody's any more, and lands at the host's positions. */
+function handlePieceHop(session, msg) {
+  const room = session.room;
+  room.groupLocks.delete(msg.groupId);
+  room.remoteDragTargets.delete(msg.groupId);
+  if (isRollbackFor(session, msg.groupId)) session.optimisticRollback = null;
+  const from = new Map(
+    room.engine.getGroupPieces(msg.groupId).map((p) => [p.id, { x: p.x, y: p.y }]),
+  );
+  room.applyPositionsOnly(msg.positions);
+  room.cb.onPieceHop({ groupId: msg.groupId, from, byPlayerId: msg.byPlayerId });
+}
+
 function handleLockRelease(session, msg) {
   const room = session.room;
   room.groupLocks.delete(msg.groupId);
@@ -160,4 +173,6 @@ export const REALTIME_HANDLERS = new Map([
   [MSG.SUPERCHAT_DISMISS, (s) => s.room.cb.onRemoteSuperchatDismiss()],
   [MSG.OJAMA_NOTICE, (s, msg) => s.room.cb.onToast(msg.text, 'ojama')],
   [MSG.PUZZLE_COMPLETED, (s) => s.room.cb.onRemoteCompleted()],
+  [MSG.OJAMA_TIMED, (s, msg) => s.room.cb.onRemoteTimedOjama(msg)],
+  [MSG.PIECE_HOP, handlePieceHop],
 ]);

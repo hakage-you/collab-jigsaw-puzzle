@@ -4,6 +4,7 @@ import { createTransport, getTransportModeFromUrl } from './transport.js';
 import { HostSession } from './hostSession.js';
 import { GuestSession } from './guestSession.js';
 import { Recruitment, RECRUIT_STATE } from './recruitment.js';
+import { RunawayHost } from './runawayHost.js';
 
 export class RoomController {
   constructor({ engine, getSettings, getSourceState, callbacks }) {
@@ -20,6 +21,8 @@ export class RoomController {
     this.myPlayerId = 'host';
     this.myColor = 'var(--accent)';
     this.groupLocks = new Map();
+    /** Runaway pieces, decided here on the host or in solo play. */
+    this.runaway = new RunawayHost(this);
     this.remoteCursors = new Map();
     this.remoteDragTargets = new Map();
     this.roster = [];
@@ -241,14 +244,23 @@ export class RoomController {
     return !owner || owner === this.myPlayerId;
   }
 
-  requestLock(groupId) {
-    if (this.role === 'solo') return { allowed: true };
-    const currentOwner = this.groupLocks.get(groupId);
+  /** Asks to drag a group grabbed at world point `from`; a runaway group may hop away instead. */
+  requestLock(groupId, from = null) {
+    const currentOwner = this.role === 'solo' ? null : this.groupLocks.get(groupId);
     if (currentOwner && currentOwner !== this.myPlayerId) {
       return { allowed: false, ownerName: this.getPlayerMeta(currentOwner).name };
     }
-    if (this.role === 'host') return this.hostSession.requestLock(groupId);
-    return this.guestSession.requestLock(groupId);
+    if (this.role === 'guest') return this.guestSession.requestLock(groupId, from);
+    if (this.runaway.onGrab(groupId, this.myPlayerId, from)) {
+      return { allowed: false, hopped: true };
+    }
+    if (this.role === 'solo') return { allowed: true };
+    return this.hostSession.requestLock(groupId);
+  }
+
+  /** Host or solo: runaway rules while it lasts (see RunawayHost), or null to end it. */
+  setRunaway(rules) {
+    this.runaway.set(rules);
   }
 
   sendCursorMove(wx, wy) {
@@ -299,6 +311,7 @@ export class RoomController {
   }
 
   submitDrop(groupId) {
+    if (this.role !== 'guest') this.runaway.onRelease(groupId);
     if (this.role === 'solo') {
       const res = this.engine.resolveDrop(groupId);
       if (res.type === 'snap' && this.savedHostContrib !== null) {
@@ -328,6 +341,18 @@ export class RoomController {
     if (this.role === 'host') {
       this.transport?.broadcast({ type: MSG.OJAMA_VISUAL, visualType, duration });
     }
+  }
+
+  /** Host: a timed ojama's state for the guests (remaining 0 ends it). */
+  broadcastTimedOjama(kind, remaining, level = null) {
+    if (this.role !== 'host') return;
+    const msg = {
+      type: MSG.OJAMA_TIMED,
+      kind,
+      remaining: Math.max(0, Math.round(remaining * 10) / 10),
+    };
+    if (level) msg.level = level;
+    this.transport?.broadcast(msg);
   }
 
   broadcastVisualClear() {

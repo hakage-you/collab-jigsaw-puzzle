@@ -285,14 +285,16 @@ export class GuestSession {
     }
   }
 
-  requestLock(groupId) {
+  requestLock(groupId, from = null) {
     const group = this.room.engine.getGroupPieces(groupId);
     this.optimisticRollback = {
       groupId,
       snapshot: group.map((p) => ({ id: p.id, x: p.x, y: p.y })),
     };
     this.room.groupLocks.set(groupId, this.room.myPlayerId);
-    this.room.transport?.sendToHost({ type: MSG.LOCK_REQUEST, groupId });
+    const msg = { type: MSG.LOCK_REQUEST, groupId };
+    if (from) Object.assign(msg, { x: from.x, y: from.y });
+    this.room.transport?.sendToHost(msg);
     return { allowed: true };
   }
 

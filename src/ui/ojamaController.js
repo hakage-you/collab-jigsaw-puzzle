@@ -1,7 +1,9 @@
 import { OJAMA_CONFIG, YOUTUBE_CONFIG } from '../config/constants.js';
 import { decideCommentOjama } from '../app/ojamaRules.js';
 import { sound } from '../services/sound.js';
+import { OjamaSettingsForm } from './ojamaSettingsForm.js';
 import { SuperchatCard } from './superchatCard.js';
+import { TimedOjamaController } from './timedOjamaController.js';
 
 export class OjamaController {
   constructor({ app, updateHUD, requestRender, setGhostPiecesActive = null, showToast }) {
@@ -10,7 +12,7 @@ export class OjamaController {
     this.room = app.room;
     this.canvas = document.getElementById('puzzleCanvas');
     this.getSettings = () => app.getSettings();
-    this.readSettingsFromUI = () => this._readOjamaInputsToApp();
+    this.readSettingsFromUI = () => this.form.read();
     this.updateHUD = updateHUD;
     this.requestRender = requestRender;
     this.setGhostPiecesActive = setGhostPiecesActive || (() => {});
@@ -29,16 +31,10 @@ export class OjamaController {
     this.elSpotlight = document.getElementById('spotlightOverlay');
 
     this.superchat = new SuperchatCard({ app, showToast });
+    /** Heavy and runaway pieces: they last a while and wear down as pieces are placed. */
+    this.timed = new TimedOjamaController({ app, showToast });
 
-    this.elOjamaCommentThreshold = document.getElementById('ojamaCommentThreshold');
-    this.elOjamaCooldownSec = document.getElementById('ojamaCooldownSec');
-    this.elOjamaDropCount = document.getElementById('ojamaDropCount');
-    this.elOjamaVisualDuration = document.getElementById('ojamaVisualDuration');
-    this.elOjamaVisualType = document.getElementById('ojamaVisualType');
-    this.elOjamaFakeDuration = document.getElementById('ojamaFakeDuration');
-    this.elOjamaFakeMaxCount = document.getElementById('ojamaFakeMaxCount');
-    this.elOjamaSuperchatDuration = document.getElementById('ojamaSuperchatDuration');
-    this.elOjamaTriggerWords = document.getElementById('ojamaTriggerWords');
+    this.form = new OjamaSettingsForm(app);
 
     this.elCommentTriggerCounter = document.getElementById('commentTriggerCounter');
     this.elMiniChatLog = document.getElementById('miniChatLog');
@@ -49,49 +45,7 @@ export class OjamaController {
     this.syncSettings(this.getSettings());
   }
 
-  _readOjamaInputsToApp() {
-    const rawFakeDur = Number(this.elOjamaFakeDuration?.value);
-    const fakeDuration = Number.isFinite(rawFakeDur)
-      ? Math.max(0, Math.min(600, Math.floor(rawFakeDur)))
-      : OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC;
-    const fakeMaxCount = Math.max(
-      1,
-      Math.min(16, Number(this.elOjamaFakeMaxCount?.value) || OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT),
-    );
-    this.app.patchSettings({
-      ojama: {
-        commentThreshold: Math.max(1, Number(this.elOjamaCommentThreshold.value) || 5),
-        cooldownSec: Math.max(0, Number(this.elOjamaCooldownSec.value) || 0),
-        dropCount: Math.max(1, Number(this.elOjamaDropCount.value) || 2),
-        visualDuration: Math.max(2, Number(this.elOjamaVisualDuration.value) || 8),
-        visualType: this.elOjamaVisualType.value || 'random',
-        fakeDuration,
-        fakeMaxCount,
-        superchatDuration: Math.max(
-          0,
-          Math.min(600, Math.floor(Number(this.elOjamaSuperchatDuration.value) || 0)),
-        ),
-        triggerWords: this.elOjamaTriggerWords.value || '',
-      },
-    });
-  }
-
-  syncSettings(settings) {
-    const o = settings.ojama;
-    this.elOjamaCommentThreshold.value = o.commentThreshold;
-    this.elOjamaCooldownSec.value = o.cooldownSec;
-    this.elOjamaDropCount.value = o.dropCount;
-    this.elOjamaVisualDuration.value = o.visualDuration;
-    this.elOjamaVisualType.value = o.visualType;
-    if (this.elOjamaFakeDuration) {
-      this.elOjamaFakeDuration.value = o.fakeDuration ?? OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC;
-    }
-    if (this.elOjamaFakeMaxCount) {
-      this.elOjamaFakeMaxCount.value = o.fakeMaxCount ?? OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT;
-    }
-    this.elOjamaSuperchatDuration.value =
-      o.superchatDuration ?? OJAMA_CONFIG.DEFAULT_SUPERCHAT_DURATION_SEC;
-    this.elOjamaTriggerWords.value = o.triggerWords;
+  syncSettings() {
     this.updateCommentProgressUI();
   }
 
@@ -106,20 +60,6 @@ export class OjamaController {
   }
 
   _bindEvents() {
-    [
-      this.elOjamaCommentThreshold,
-      this.elOjamaCooldownSec,
-      this.elOjamaDropCount,
-      this.elOjamaVisualDuration,
-      this.elOjamaVisualType,
-      this.elOjamaFakeDuration,
-      this.elOjamaFakeMaxCount,
-      this.elOjamaSuperchatDuration,
-      this.elOjamaTriggerWords,
-    ].forEach((el) => {
-      el?.addEventListener('change', () => this._readOjamaInputsToApp());
-    });
-
     document.getElementById('btnTestDrop').addEventListener('click', () => this.triggerDropOjama());
     document
       .getElementById('btnTestVisual')
@@ -133,6 +73,10 @@ export class OjamaController {
     document
       .getElementById('btnTestFake')
       ?.addEventListener('click', () => this.triggerFakePiecesOjama());
+    for (const kind of ['heavy', 'runaway']) {
+      const id = kind === 'heavy' ? 'btnTestHeavy' : 'btnTestRunaway';
+      document.getElementById(id)?.addEventListener('click', () => this.triggerTimedOjama(kind));
+    }
 
     document.getElementById('btnSendDummyComment').addEventListener('click', () => {
       const input = document.getElementById('dummyCommentInput');
@@ -255,7 +199,7 @@ export class OjamaController {
     if (this.guardIfCompleted()) return false;
     const count = Math.max(
       1,
-      Number(this.elOjamaDropCount.value) || OJAMA_CONFIG.DEFAULT_DROP_COUNT,
+      this.getSettings().ojama.dropCount || OJAMA_CONFIG.DEFAULT_DROP_COUNT,
     );
     const dropped = this.engine.dropLockedPieces(count, this.app.getAllowRotation());
     if (dropped.length === 0) {
@@ -417,12 +361,21 @@ export class OjamaController {
     return true;
   }
 
+  /** Heavy ('heavy') or runaway ('runaway') pieces for a while (host or solo). */
+  triggerTimedOjama(kind) {
+    if (this.guardIfCompleted()) return false;
+    this.timed.start(kind);
+    this.updateHUD();
+    return true;
+  }
+
   triggerRandomOjama() {
     const hasLocked = this.engine.getLockedCount() > 0;
-    const options = ['visual', 'superchat', 'prank', 'fake'];
+    const options = ['visual', 'superchat', 'prank', 'fake', 'heavy', 'runaway'];
     if (hasLocked) options.push('drop');
     const pick = options[Math.floor(Math.random() * options.length)];
-    if (pick === 'drop') this.triggerDropOjama();
+    if (pick === 'heavy' || pick === 'runaway') this.triggerTimedOjama(pick);
+    else if (pick === 'drop') this.triggerDropOjama();
     else if (pick === 'visual') this.triggerVisualOjama();
     else if (pick === 'superchat') this.triggerSuperchatOjama();
     else if (pick === 'fake') this.triggerFakePiecesOjama();
@@ -448,6 +401,10 @@ export class OjamaController {
         break;
       case 'superchat':
         this.triggerSuperchatOjama(text, author);
+        break;
+      case 'heavy':
+      case 'runaway':
+        this.triggerTimedOjama(action);
         break;
       case 'random':
         this.triggerRandomOjama();
