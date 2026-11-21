@@ -1,6 +1,16 @@
 import { EffectsLayer } from './canvas2d/effectsLayer.js';
+import { FX_COLOR_VARS } from './effects/effectPlayer.js';
 import { PieceSpriteStore } from './pieceSpriteStore.js';
 import { ViewState } from './viewState.js';
+
+/** Used when a --fx-* property is missing (styles/tokens.css defines them per theme). */
+const FX_FALLBACKS = {
+  quiet: '#8db4e8',
+  smoke: '#a3adbb',
+  gold: '#f5b301',
+  paper: '#fffdf7',
+  shadow: 'rgb(15 23 42 / 30%)',
+};
 
 /** Theme colours read from CSS custom properties. */
 function readThemePalette() {
@@ -20,6 +30,9 @@ function readThemePalette() {
     cellGrid: read('--canvas-cell-grid', 'rgb(15 23 42 / 12%)'),
     sheetBg: read('--canvas-sheet-bg', '#f8fafc'),
     sheetText: read('--canvas-sheet-text', '#1e293b'),
+    fx: Object.fromEntries(
+      Object.entries(FX_COLOR_VARS).map(([role, name]) => [role, read(name, FX_FALLBACKS[role])]),
+    ),
   };
 }
 
@@ -147,6 +160,7 @@ export class TableRendererBase {
     if (this.engine.fakePieces.length > 0 && this.engine.pruneExpiredFakePieces()) {
       vs.requestRender();
     }
+    vs.trackFakePieces(this.engine.fakePieces);
     const moved = this.room
       ? this.room.stepInterpolation()
       : { cursorsMoved: false, piecesMoved: false };

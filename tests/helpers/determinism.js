@@ -3,16 +3,21 @@
  * Tests must not depend on real randomness or wall-clock time.
  */
 
-/** Replaces Math.random with a seeded mulberry32 sequence. Returns a restore function. */
-export function seedMathRandom(seed = 0x9e3779b9) {
-  const original = Math.random;
+/** A seeded mulberry32 random function (0 <= x < 1). */
+export function createRandom(seed = 0x9e3779b9) {
   let s = seed | 0;
-  Math.random = () => {
+  return () => {
     s = (s + 0x6d2b79f5) | 0;
     let t = Math.imul(s ^ (s >>> 15), 1 | s);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+/** Replaces Math.random with a seeded mulberry32 sequence. Returns a restore function. */
+export function seedMathRandom(seed = 0x9e3779b9) {
+  const original = Math.random;
+  Math.random = createRandom(seed);
   return () => {
     Math.random = original;
   };

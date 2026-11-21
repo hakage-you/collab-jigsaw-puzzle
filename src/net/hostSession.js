@@ -438,8 +438,9 @@ export class HostSession {
     return room.sharedSuperchatHp;
   }
 
-  broadcastPhysicalOjama(noticeText, changedPieces) {
-    this._broadcastPiecesPatch(changedPieces, { type: 'ojama' }, 'host');
+  /** `kind` tells guests what happened ('ojama_drop' plays the drop effect; others: 'ojama'). */
+  broadcastPhysicalOjama(noticeText, changedPieces, kind = 'ojama') {
+    this._broadcastPiecesPatch(changedPieces, { type: kind }, 'host');
     this.room.transport?.broadcast({ type: MSG.OJAMA_NOTICE, text: noticeText });
     this.scheduleAutoBackup();
   }

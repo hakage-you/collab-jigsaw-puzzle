@@ -81,6 +81,32 @@ function coreNoCanvas() {
   };
 }
 
+// Markup injection sinks: build DOM nodes and use textContent instead (XSS, security S1).
+const BASE_RESTRICTED_SYNTAX = [
+  ...['innerHTML', 'outerHTML'].map((name) => ({
+    selector: `MemberExpression[property.name='${name}']`,
+    message: `${name} is banned: create elements and set textContent instead.`,
+  })),
+  ...['insertAdjacentHTML', 'write', 'writeln', 'createContextualFragment'].map((name) => ({
+    selector: `CallExpression[callee.property.name='${name}']`,
+    message: `${name}() is banned: create elements and set textContent instead.`,
+  })),
+  {
+    selector:
+      "CallExpression[callee.name=/^(eval|Function)$/], NewExpression[callee.name='Function']",
+    message: 'Dynamic code evaluation is banned.',
+  },
+];
+
+// Effects take every colour from theme roles (styles/tokens.css --fx-*), so new effects keep
+// to the palette and follow the theme (_plan/20261121_1900_effects_stamp_plan.md).
+const COLOR_TEXT = '/#[0-9a-fA-F]{3}|(rgb|hsl|hwb|lab|lch|color)a?[(]/';
+const NO_COLOR_LITERALS = {
+  selector: `Literal[value=${COLOR_TEXT}], TemplateElement[value.raw=${COLOR_TEXT}]`,
+  message:
+    'src/render/effects must not write colours: use a colour role (effectRecipes.js FX_BODY_COLORS).',
+};
+
 export default [
   {
     files: ['src/**/*.js'],
@@ -94,23 +120,7 @@ export default [
       ...QUALITY_RULES,
       ...SIZE_RULES,
       'no-console': 'error',
-      // Markup injection sinks: build DOM nodes and use textContent instead (XSS, security S1).
-      'no-restricted-syntax': [
-        'error',
-        ...['innerHTML', 'outerHTML'].map((name) => ({
-          selector: `MemberExpression[property.name='${name}']`,
-          message: `${name} is banned: create elements and set textContent instead.`,
-        })),
-        ...['insertAdjacentHTML', 'write', 'writeln', 'createContextualFragment'].map((name) => ({
-          selector: `CallExpression[callee.property.name='${name}']`,
-          message: `${name}() is banned: create elements and set textContent instead.`,
-        })),
-        {
-          selector:
-            "CallExpression[callee.name=/^(eval|Function)$/], NewExpression[callee.name='Function']",
-          message: 'Dynamic code evaluation is banned.',
-        },
-      ],
+      'no-restricted-syntax': ['error', ...BASE_RESTRICTED_SYNTAX],
     },
   },
   {
@@ -172,6 +182,10 @@ export default [
   {
     files: ['src/render/**/*.js'],
     rules: noScreenDom('src/render', { allowDocumentGlobal: true }),
+  },
+  {
+    files: ['src/render/effects/**/*.js'],
+    rules: { 'no-restricted-syntax': ['error', ...BASE_RESTRICTED_SYNTAX, NO_COLOR_LITERALS] },
   },
   { files: ['src/app/**/*.js'], rules: noScreenDom('src/app') },
   {
