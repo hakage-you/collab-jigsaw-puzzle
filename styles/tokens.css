@@ -71,6 +71,8 @@ html[data-theme='light'] {
   --fx-quiet: #8db4e8;
   --fx-smoke: #a3adbb;
   --fx-gold: #f5b301;
+  --fx-rose: #f472b6;
+  --fx-mint: #34d399;
   --fx-paper: #fffdf7;
   --fx-shadow: rgb(15 23 42 / 30%);
 
@@ -182,6 +184,8 @@ html[data-theme='dark'] {
   --fx-quiet: #4a72ad;
   --fx-smoke: #7b8798;
   --fx-gold: #fcd34d;
+  --fx-rose: #f9a8d4;
+  --fx-mint: #6ee7b7;
   --fx-paper: #cbd5e1;
   --fx-shadow: rgb(0 0 0 / 55%);
 

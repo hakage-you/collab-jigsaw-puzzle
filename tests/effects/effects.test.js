@@ -100,11 +100,13 @@ function playFrames(name, { theme, fps, frames, size, dpr }) {
   const layer = new EffectsLayer(layerCanvas);
   layer.resize(size, size, dpr);
   const particles = [];
-  spawnEffect(particles, name, 0, 0, { random: createRandom(7) });
+  spawnEffect(particles, name, 0, 0, {
+    random: createRandom(7),
+    area: { width: size, height: size },
+  });
   const vs = {
     camera: { x: 0, y: 0, scale: 1 },
     snapFlashes: [],
-    confetti: [],
     particles,
     get hasEffects() {
       return particles.length > 0;
@@ -155,20 +157,28 @@ describe(`effect recipes (${STYLE.name} style)`, () => {
 
     it('matches its review strip', async () => {
       const recipe = EFFECTS[name];
-      const fps = STYLE.tokens.framesPerSec;
-      const count = Math.ceil(STYLE.tokens.durations[recipe.duration] * fps) + 1;
-      const cell = 80;
-      // Frames wrap onto more lines so a long effect still fits the page (at 2x zoom).
+      // Played at 60 fps like a real screen; the style's steps show as repeated frames.
+      const fps = 60;
+      const playSec =
+        STYLE.tokens.durations[recipe.duration] +
+        ((recipe.waves ?? 1) - 1) * (recipe.waveGapSec ?? 0);
+      const total = Math.ceil(playSec * fps) + 1;
+      // Keep one frame per style step, and fewer for long effects (at most 14 frames).
+      const step = fps / STYLE.tokens.framesPerSec;
+      const every = Math.max(step, Math.ceil(total / 14 / step) * step);
+      const count = Math.ceil(total / every);
+      // Screen-wide effects get a bigger cell at 1x; point effects a small cell at 2x.
+      const [cell, zoom] = recipe.motion === 'rain' ? [160, 1] : [80, 2];
       const perLine = 7;
       const lines = Math.ceil(count / perLine);
       const rows = THEMES.map((theme) => {
-        const frames = playFrames(name, { theme, fps, frames: count, size: cell, dpr: 2 });
+        const all = playFrames(name, { theme, fps, frames: total, size: cell, dpr: zoom });
+        const frames = all.filter((_, i) => i % every === 0);
         const bg = useTheme(theme).table.css;
-        const row = newCanvas(cell * 2 * Math.min(count, perLine), cell * 2 * lines, bg);
+        const side = cell * zoom;
+        const row = newCanvas(side * Math.min(count, perLine), side * lines, bg);
         frames.forEach((f, i) => {
-          const x = (i % perLine) * cell * 2;
-          const y = Math.floor(i / perLine) * cell * 2;
-          row.getContext('2d').drawImage(f, x, y);
+          row.getContext('2d').drawImage(f, (i % perLine) * side, Math.floor(i / perLine) * side);
         });
         return row;
       });
@@ -184,7 +194,7 @@ describe(`effect stamps (${STYLE.name} style)`, () => {
   describe.each(variants)('$shape in $color', ({ shape, color }) => {
     it.each(THEMES)('passes the shared and style checks (%s theme)', (theme) => {
       const { fx, table } = useTheme(theme);
-      const colors = stampColors({ color }, fx);
+      const colors = stampColors(color, fx);
       const image = pixels(STYLE.finish(SHAPES[shape], colors));
       const label = `${shape}/${color}/${theme}`;
       expect([
@@ -196,7 +206,7 @@ describe(`effect stamps (${STYLE.name} style)`, () => {
 
     it('draws the same stamp every time', () => {
       const { fx } = useTheme('light');
-      const colors = stampColors({ color }, fx);
+      const colors = stampColors(color, fx);
       const a = pixels(STYLE.finish(SHAPES[shape], colors)).data;
       const b = pixels(STYLE.finish(SHAPES[shape], colors)).data;
       expect(a.every((v, i) => v === b[i])).toBe(true);
@@ -216,7 +226,7 @@ describe(`effect stamps (${STYLE.name} style)`, () => {
         const { fx } = useTheme(theme);
         row
           .getContext('2d')
-          .drawImage(STYLE.finish(SHAPES[v.shape], stampColors(v, fx)), i * px, 0);
+          .drawImage(STYLE.finish(SHAPES[v.shape], stampColors(v.color, fx)), i * px, 0);
       });
       return row;
     });
@@ -228,7 +238,7 @@ describe(`effect stamps (${STYLE.name} style)`, () => {
 function stampRow(shape, color, theme) {
   const { fx, table } = useTheme(theme);
   const px = STYLE.tokens.stampPx;
-  const stamp = STYLE.finish(SHAPES[shape], stampColors({ color }, fx));
+  const stamp = STYLE.finish(SHAPES[shape], stampColors(color, fx));
   const row = newCanvas(px + 80, px, table.css);
   const ctx = row.getContext('2d');
   ctx.drawImage(stamp, 0, 0);

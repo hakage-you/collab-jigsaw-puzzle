@@ -36,8 +36,21 @@ function puffOutline(bumps, inner) {
   return { commands };
 }
 
+/** A strip of paper, gently bent (confetti). */
+function stripOutline() {
+  return {
+    commands: [
+      { op: 'M', x: -1, y: -0.32 },
+      { op: 'C', x1: -0.35, y1: -0.52, x2: 0.35, y2: -0.12, x: 1, y: -0.32 },
+      { op: 'L', x: 1, y: 0.32 },
+      { op: 'C', x1: 0.35, y1: 0.12, x2: -0.35, y2: 0.52, x: -1, y: 0.32 },
+    ],
+  };
+}
+
 export const SHAPES = Object.freeze({
   star: starOutline(5, 0.5),
+  strip: stripOutline(),
   puff: puffOutline(
     [
       [1.3, 1.2],

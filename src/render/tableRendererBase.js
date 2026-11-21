@@ -8,6 +8,8 @@ const FX_FALLBACKS = {
   quiet: '#8db4e8',
   smoke: '#a3adbb',
   gold: '#f5b301',
+  rose: '#f472b6',
+  mint: '#34d399',
   paper: '#fffdf7',
   shadow: 'rgb(15 23 42 / 30%)',
 };
@@ -102,16 +104,9 @@ export class TableRendererBase {
     return this._paletteCache.palette;
   }
 
-  /** Confetti in the theme's colours (the result screen calls this on completion). */
+  /** Confetti across the stage (the result screen calls this on completion). */
   launchConfetti() {
-    const pal = this._getThemePalette();
-    this.viewState.launchConfetti([
-      pal.accent,
-      pal.secondary,
-      pal.success,
-      pal.warning,
-      pal.danger,
-    ]);
+    this.viewState.launchConfetti();
   }
 
   /** Matches every layer's backing store to the stage size and device pixel ratio. */
