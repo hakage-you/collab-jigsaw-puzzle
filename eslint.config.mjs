@@ -56,6 +56,43 @@ function noScreenDom(layer, { allowDocumentGlobal = false } = {}) {
   };
 }
 
+// core must not draw or read pixels: no canvas, Path2D or document (render separation plan,
+// _plan/20261121_1014_render_separation_plan.md). Files listed here still do and are being moved
+// out stage by stage. This list must only shrink; do not add to it.
+const CORE_CANVAS_EXEMPT = [
+  'src/core/colorAnalysis.js',
+  'src/core/jigsawPath.js',
+  'src/core/pieceLodCache.js',
+  'src/core/pieceOjamaOps.js',
+  'src/core/pieceSpriteBuilder.js',
+  'src/core/prng.js',
+  'src/core/puzzleEngine.js',
+  'src/core/sampleImage.js',
+];
+
+const CANVAS_GLOBALS = [
+  'Path2D',
+  'OffscreenCanvas',
+  'ImageData',
+  'ImageBitmap',
+  'createImageBitmap',
+  'HTMLCanvasElement',
+  'CanvasRenderingContext2D',
+];
+
+/** No screen DOM, no document at all, and no canvas or pixel APIs. */
+function coreNoCanvas() {
+  const rules = noScreenDom('src/core');
+  const message = 'src/core must not draw or read pixels: put it in the render layer or services.';
+  return {
+    ...rules,
+    'no-restricted-globals': [
+      ...rules['no-restricted-globals'],
+      ...CANVAS_GLOBALS.map((name) => ({ name, message })),
+    ],
+  };
+}
+
 export default [
   {
     files: ['src/**/*.js'],
@@ -135,9 +172,10 @@ export default [
   },
 
   // Per-layer DOM restrictions (import boundaries live in dependency-cruiser).
-  // core / services may create offscreen canvases via document.createElement, so `document` itself is allowed.
+  // services / net may create offscreen canvases via document.createElement, so `document` itself is allowed.
   { files: ['src/config/**/*.js'], rules: noScreenDom('src/config') },
-  { files: ['src/core/**/*.js'], rules: noScreenDom('src/core', { allowDocumentGlobal: true }) },
+  { files: ['src/core/**/*.js'], ignores: CORE_CANVAS_EXEMPT, rules: coreNoCanvas() },
+  { files: CORE_CANVAS_EXEMPT, rules: noScreenDom('src/core', { allowDocumentGlobal: true }) },
   {
     files: ['src/services/**/*.js'],
     rules: noScreenDom('src/services', { allowDocumentGlobal: true }),
