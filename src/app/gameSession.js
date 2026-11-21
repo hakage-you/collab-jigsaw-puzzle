@@ -18,6 +18,7 @@ import { validateSaveData } from '../core/saveValidation.js';
 import {
   clearAutoBackup,
   loadSavedSettings,
+  mergeOjama,
   resetSavedSettings,
   saveSettings,
 } from '../services/storage.js';
@@ -88,11 +89,7 @@ export class GameSession {
 
   patchSettings(partial) {
     const nextOjama = partial.ojama
-      ? {
-          ...this.settings.ojama,
-          ...partial.ojama,
-          triggers: { ...this.settings.ojama.triggers, ...partial.ojama.triggers },
-        }
+      ? mergeOjama(partial.ojama, this.settings.ojama)
       : this.settings.ojama;
     const clampedGrid = clampGridDimensions(
       partial.cols ?? this.settings.cols,

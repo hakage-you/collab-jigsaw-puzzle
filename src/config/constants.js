@@ -89,21 +89,46 @@ export const OJAMA_CONFIG = {
   DEFAULT_COOLDOWN_SEC: 3,
   DEFAULT_DROP_COUNT: 2,
   DEFAULT_VISUAL_DURATION_SEC: 8,
+  /** Every ojama type, in the order the settings list them. */
+  TYPES: Object.freeze([
+    'drop',
+    'visual',
+    'ghost',
+    'prank',
+    'superchat',
+    'fake',
+    'heavy',
+    'runaway',
+  ]),
   /**
-   * Default trigger words per comment ojama type (comma separated; editable in the settings).
-   * The key order is the tie-break order when two words of the same length match.
+   * Default keywords per comment ojama type (comma separated; editable in the settings), plus
+   * `random` (a random ojama). The giant superchat has none: only a real superchat brings it.
+   * The key order is the tie-break order when two keywords of the same length match.
    */
   DEFAULT_TRIGGERS: Object.freeze({
-    drop: '!drop, 落と',
+    drop: '!drop, 落',
     visual: '!color, 色',
     ghost: '!ghost, 透明',
     prank: '!spin, 回',
-    superchat: '!sp, スパ',
     fake: '!fake, 偽',
     heavy: '!heavy, 重',
     runaway: '!run, 逃',
-    random: 'お邪魔',
+    random: 'ランダム',
   }),
+  /** Types a random ojama may pick by default. The giant superchat is special: off. */
+  DEFAULT_RANDOM_POOL: Object.freeze({
+    drop: true,
+    visual: true,
+    ghost: true,
+    prank: true,
+    superchat: false,
+    fake: true,
+    heavy: true,
+    runaway: true,
+  }),
+  /** How a keyword must appear in a comment: 'any' (anywhere), 'start' or 'whole'. */
+  DEFAULT_MATCH_MODE: 'any',
+  MATCH_MODES: Object.freeze(['any', 'start', 'whole']),
   /** Heavy pieces: seconds a dragged piece takes to close about 63% of the gap to the cursor. */
   HEAVY_LEVELS: Object.freeze({ strong: 0.35, heavier: 0.7, heaviest: 1.2 }),
   DEFAULT_HEAVY_LEVEL: 'heaviest',

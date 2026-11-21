@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="styles/tokens.css" />
     <link rel="stylesheet" href="styles/base.css" />
     <link rel="stylesheet" href="styles/app.css" />
+    <link rel="stylesheet" href="styles/ojamaRules.css" />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -317,50 +318,68 @@
           <section
             id="ojamaTestPalette"
             class="test-palette host-only hidden"
-            aria-label="お邪魔テスト用パレット"
+            aria-label="動作確認（お邪魔のテスト）"
           >
             <div class="test-palette-header" id="testPaletteHandle">
-              <span>お邪魔テスト</span>
-              <button type="button" class="btn btn-xs btn-ghost" id="btnCloseTestPalette">
-                閉じる
-              </button>
+              <span>動作確認</span>
+              <span class="test-palette-actions">
+                <button type="button" class="btn btn-xs btn-secondary" id="btnTestPaletteBack">
+                  設定に戻る
+                </button>
+                <button type="button" class="btn btn-xs btn-ghost" id="btnCloseTestPalette">
+                  閉じる
+                </button>
+              </span>
             </div>
             <div class="test-palette-body">
+              <p class="test-palette-hint">配信には送られません</p>
               <div class="ojama-btn-grid">
-                <button type="button" class="btn btn-ojama" id="btnTestDrop">
-                  <span>ピース落下</span>
-                  <small>台紙から外れて落ちる</small>
+                <button type="button" class="btn btn-ojama" data-ojama-test="drop">
+                  <span>落下</span>
+                  <small>はまったピースが外れる</small>
                 </button>
-                <button type="button" class="btn btn-ojama" id="btnTestVisual">
+                <button type="button" class="btn btn-ojama" data-ojama-test="visual">
                   <span>視覚妨害</span>
-                  <small>色変更・暗闇スポット</small>
+                  <small>色や明るさが変わる</small>
                 </button>
-                <button type="button" class="btn btn-ojama" id="btnTestSuperchat">
+                <button type="button" class="btn btn-ojama" data-ojama-test="ghost">
+                  <span>透明化</span>
+                  <small>ピースが透ける</small>
+                </button>
+                <button type="button" class="btn btn-ojama" data-ojama-test="prank">
+                  <span>いたずら</span>
+                  <small>回ったり裏返ったり</small>
+                </button>
+                <button type="button" class="btn btn-ojama" data-ojama-test="superchat">
                   <span>巨大スパチャ</span>
-                  <small>画面中央を隠す</small>
+                  <small>盤面をふさぐ</small>
                 </button>
-                <button type="button" class="btn btn-ojama" id="btnTestPrank">
-                  <span>いたずら回転/裏</span>
-                  <small>未配置ピースを攪乱</small>
+                <button type="button" class="btn btn-ojama" data-ojama-test="fake">
+                  <span>偽ピース</span>
+                  <small>はまらないピース</small>
                 </button>
-                <button type="button" class="btn btn-ojama" id="btnTestFake">
-                  <span>偽ピース追加</span>
-                  <small>ダミーを混ぜて攪乱</small>
-                </button>
-                <button type="button" class="btn btn-ojama" id="btnTestHeavy">
+                <button type="button" class="btn btn-ojama" data-ojama-test="heavy">
                   <span>重い</span>
-                  <small>ピースが遅れてついてくる</small>
+                  <small>ゆっくりついてくる</small>
                 </button>
-                <button type="button" class="btn btn-ojama" id="btnTestRunaway">
+                <button type="button" class="btn btn-ojama" data-ojama-test="runaway">
                   <span>逃げる</span>
-                  <small>つかむと跳ねて逃げる</small>
+                  <small>つかむと逃げる</small>
                 </button>
               </div>
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary test-palette-clear"
+                id="btnClearOjamaEffects"
+              >
+                出ているお邪魔をすべて消す
+              </button>
               <div class="input-with-btn mt-2">
                 <input
                   type="text"
                   id="dummyCommentInput"
-                  placeholder="例: !drop 落ちろ / 応援してるよ"
+                  placeholder="視聴者のコメントを試す（例: !drop 落ちろ）"
+                  aria-label="試すコメント"
                 />
                 <button type="button" class="btn btn-outline-accent" id="btnSendDummyComment">
                   送信
@@ -371,7 +390,7 @@
                   自動コメント開始
                 </button>
                 <span class="comment-counter-badge"
-                  >進捗: <b id="commentTriggerCounter">0 / 5</b></span
+                  >コメント: <b id="commentTriggerCounter">0 / 5</b></span
                 >
               </div>
               <div class="mini-chat-log" id="miniChatLog">
@@ -379,6 +398,14 @@
               </div>
             </div>
           </section>
+
+          <!-- Shown while the stream modal steps aside for "今すぐ出す" (src/ui/ojamaPeek.js) -->
+          <div class="ojama-peek-bar hidden" id="ojamaPeekBar" role="status">
+            <span id="ojamaPeekText"></span>
+            <button type="button" class="btn btn-xs btn-primary" id="btnOjamaPeekBack">
+              設定に戻る
+            </button>
+          </div>
 
           <!-- Toast Notifications -->
           <div id="toastContainer" class="toast-container" aria-live="polite"></div>
@@ -459,7 +486,7 @@
         aria-modal="true"
         aria-labelledby="streamModalTitle"
       >
-        <div class="app-modal-card">
+        <div class="app-modal-card app-modal-card-wide">
           <div class="terms-header">
             <h2 id="streamModalTitle">配信・お邪魔設定</h2>
             <button type="button" class="btn btn-xs btn-ghost" id="btnCloseStreamModal">
@@ -485,15 +512,6 @@
               aria-selected="false"
             >
               お邪魔ルール
-            </button>
-            <button
-              type="button"
-              class="modal-tab"
-              data-stream-tab="debug"
-              role="tab"
-              aria-selected="false"
-            >
-              テスト・デバッグ
             </button>
           </div>
 
@@ -582,22 +600,6 @@
                   </select>
                 </label>
 
-                <div class="switch-list">
-                  <label class="md-switch md-switch-row">
-                    <span class="md-switch-label">
-                      <span>スパチャ金額ランク連動</span>
-                      <span class="md-switch-sub">高額ほど撃退HPを増加</span>
-                    </span>
-                    <input
-                      type="checkbox"
-                      class="md-switch-input"
-                      id="ytScaleSuperchatTier"
-                      checked
-                    />
-                    <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
-                  </label>
-                </div>
-
                 <div class="btn-row">
                   <button type="button" class="btn btn-outline-accent btn-sm" id="btnYtVerify">
                     配信を確認（1ユニット）
@@ -623,155 +625,18 @@
               </div>
             </div>
 
-            <!-- Sub-tab 2: Ojama Rules -->
+            <!-- Sub-tab 2: Ojama Rules (built by src/ui/ojamaRulesPanel.js) -->
             <div class="modal-tab-panel" id="stream-tab-rules">
-              <div class="drawer-section">
-                <div class="form-row-2">
-                  <label class="field">
-                    <span>コメント数閾値</span>
-                    <input type="number" id="ojamaCommentThreshold" min="1" max="100" value="5" />
-                  </label>
-                  <label class="field">
-                    <span>クールタイム（秒）</span>
-                    <input type="number" id="ojamaCooldownSec" min="0" max="120" value="3" />
-                  </label>
-                </div>
-                <div class="form-row-2">
-                  <label class="field">
-                    <span>落下ピース数</span>
-                    <input type="number" id="ojamaDropCount" min="1" max="20" value="2" />
-                  </label>
-                  <label class="field">
-                    <span>視覚妨害時間（秒）</span>
-                    <input type="number" id="ojamaVisualDuration" min="2" max="30" value="8" />
-                  </label>
-                </div>
-                <div class="form-row-2">
-                  <label class="field">
-                    <span>偽ピース持続（秒/0で永続）</span>
-                    <input type="number" id="ojamaFakeDuration" min="0" max="600" value="60" />
-                  </label>
-                  <label class="field">
-                    <span>偽ピース上限個数</span>
-                    <input type="number" id="ojamaFakeMaxCount" min="1" max="16" value="12" />
-                  </label>
-                </div>
-                <label class="field">
-                  <span>巨大スパチャで消えるまで（秒/0で倒すまで残る）</span>
-                  <input type="number" id="ojamaSuperchatDuration" min="0" max="600" value="0" />
-                </label>
-                <label class="field">
-                  <span>視覚妨害の種類</span>
-                  <select id="ojamaVisualType">
-                    <option value="random">ランダム（毎回どれか）</option>
-                    <option value="grayscale">モノクロ（白黒）</option>
-                    <option value="sepia">セピア色</option>
-                    <option value="hue">色相シャッフル</option>
-                    <option value="spotlight">暗闇スポットライト</option>
-                    <option value="ghost">ピース透明化（90%透過）</option>
-                  </select>
-                </label>
-                <h3 class="mt-2">重い</h3>
-                <label class="field">
-                  <span>重さ</span>
-                  <select id="ojamaHeavyLevel">
-                    <option value="strong">強め（約1秒で追いつく）</option>
-                    <option value="heavier">とても重い（約2秒）</option>
-                    <option value="heaviest" selected>激重（約3.5秒）</option>
-                  </select>
-                </label>
-                <div class="form-row-2">
-                  <label class="field">
-                    <span>続く時間（秒）</span>
-                    <input type="number" id="ojamaHeavyDuration" min="5" max="300" value="30" />
-                  </label>
-                  <label class="field">
-                    <span>1個はめると減る（秒）</span>
-                    <input type="number" id="ojamaHeavyReduceSec" min="0" max="60" value="3" />
-                  </label>
-                </div>
-                <h3 class="mt-2">逃げる</h3>
-                <div class="form-row-2">
-                  <label class="field">
-                    <span>逃げる確率(%)</span>
-                    <input type="number" id="ojamaRunawayChance" min="0" max="100" value="30" />
-                  </label>
-                  <label class="field">
-                    <span>続く時間（秒）</span>
-                    <input type="number" id="ojamaRunawayDuration" min="5" max="300" value="30" />
-                  </label>
-                </div>
-                <div class="form-row-2">
-                  <label class="field">
-                    <span>手から逃げる 最短（秒）</span>
-                    <input type="number" id="ojamaRunawayGripMinSec" min="1" max="30" value="3" />
-                  </label>
-                  <label class="field">
-                    <span>手から逃げる 最長（秒）</span>
-                    <input type="number" id="ojamaRunawayGripMaxSec" min="1" max="30" value="6" />
-                  </label>
-                </div>
-                <label class="field">
-                  <span>1個はめると減る（秒）</span>
-                  <input type="number" id="ojamaRunawayReduceSec" min="0" max="60" value="3" />
-                </label>
-                <h3 class="mt-2">合言葉（カンマ区切り・どれかを含むコメントで発動）</h3>
-                <div class="form-row-2">
-                  <label class="field">
-                    <span>落下</span>
-                    <input type="text" id="ojamaTrigger-drop" value="!drop, 落と" />
-                  </label>
-                  <label class="field">
-                    <span>視覚妨害</span>
-                    <input type="text" id="ojamaTrigger-visual" value="!color, 色" />
-                  </label>
-                </div>
-                <div class="form-row-2">
-                  <label class="field">
-                    <span>透明化</span>
-                    <input type="text" id="ojamaTrigger-ghost" value="!ghost, 透明" />
-                  </label>
-                  <label class="field">
-                    <span>いたずら</span>
-                    <input type="text" id="ojamaTrigger-prank" value="!spin, 回" />
-                  </label>
-                </div>
-                <div class="form-row-2">
-                  <label class="field">
-                    <span>巨大スパチャ</span>
-                    <input type="text" id="ojamaTrigger-superchat" value="!sp, スパ" />
-                  </label>
-                  <label class="field">
-                    <span>偽ピース</span>
-                    <input type="text" id="ojamaTrigger-fake" value="!fake, 偽" />
-                  </label>
-                </div>
-                <div class="form-row-2">
-                  <label class="field">
-                    <span>重い</span>
-                    <input type="text" id="ojamaTrigger-heavy" value="!heavy, 重" />
-                  </label>
-                  <label class="field">
-                    <span>逃げる</span>
-                    <input type="text" id="ojamaTrigger-runaway" value="!run, 逃" />
-                  </label>
-                </div>
-                <label class="field">
-                  <span>ランダム</span>
-                  <input type="text" id="ojamaTrigger-random" value="お邪魔" />
-                </label>
-              </div>
-            </div>
-
-            <!-- Sub-tab 3: Test & Debug -->
-            <div class="modal-tab-panel" id="stream-tab-debug">
-              <div class="drawer-section">
-                <p class="hint-text">
-                  テスト用のボタンは、盤面の上に浮かぶパレットに出します。押した結果をそのまま見ながら試せます。
-                </p>
-                <button type="button" class="btn btn-secondary btn-block" id="btnOpenTestPalette">
-                  テスト用パレットを開く
-                </button>
+              <p class="rules-intro">
+                コメントのキーワード・コメントの数・スパチャで、盤面にお邪魔が出ます。変更はすぐに反映されます。
+              </p>
+              <div class="rules-split" id="ojamaRules">
+                <nav class="rules-list" id="ojamaRulesList" aria-label="お邪魔の一覧"></nav>
+                <section
+                  class="rules-detail"
+                  id="ojamaRulesDetail"
+                  aria-label="選んだ項目の設定"
+                ></section>
               </div>
             </div>
           </div>

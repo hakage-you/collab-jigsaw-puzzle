@@ -17,7 +17,6 @@ export class YouTubeUI {
     this.elKeyStorageHint = document.getElementById('ytKeyStorageHint');
     this.elVideoUrl = document.getElementById('ytVideoUrlInput');
     this.elPollInterval = document.getElementById('ytPollInterval');
-    this.elScaleTier = document.getElementById('ytScaleSuperchatTier');
     this.elBtnVerify = document.getElementById('btnYtVerify');
     this.elBtnTogglePoll = document.getElementById('btnYtTogglePoll');
     this.elPreview = document.getElementById('ytBroadcastPreview');
@@ -39,10 +38,7 @@ export class YouTubeUI {
         }
       },
       onSuperchat: (sc) => {
-        this.ojama.processYouTubeSuperchat({
-          ...sc,
-          scaleHpWithTier: Boolean(this.elScaleTier?.checked),
-        });
+        this.ojama.processYouTubeSuperchat(sc);
       },
       onStatusChange: ({ isPolling, message }) => {
         this._syncPollButton(isPolling);

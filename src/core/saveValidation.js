@@ -186,6 +186,11 @@ function readStats(src) {
  * a maximum string length (longer strings are truncated) and allowed values. A section spec
  * holds a nested schema.
  */
+/** One boolean per ojama type. */
+function perTypeBooleans() {
+  return Object.fromEntries(OJAMA_CONFIG.TYPES.map((t) => [t, { type: 'boolean' }]));
+}
+
 const OJAMA_SCHEMA = {
   commentThreshold: { type: 'number' },
   cooldownSec: { type: 'number' },
@@ -207,6 +212,15 @@ const OJAMA_SCHEMA = {
   runawayReduceSec: { type: 'number' },
   runawayGripMinSec: { type: 'number' },
   runawayGripMaxSec: { type: 'number' },
+  ghostDuration: { type: 'number' },
+  prankCount: { type: 'number' },
+  fakeAddCount: { type: 'number' },
+  superchatScaleByTier: { type: 'boolean' },
+  commentCountOn: { type: 'boolean' },
+  perViewerCooldownSec: { type: 'number' },
+  matchMode: { type: 'string', max: MAX_TEXT_LENGTH, values: OJAMA_CONFIG.MATCH_MODES },
+  enabled: { section: perTypeBooleans() },
+  randomPool: { section: perTypeBooleans() },
   triggers: {
     section: Object.fromEntries(
       Object.keys(OJAMA_CONFIG.DEFAULT_TRIGGERS).map((k) => [

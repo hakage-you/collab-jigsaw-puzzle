@@ -36,22 +36,36 @@ const DEFAULT_SETTINGS = {
     runawayReduceSec: OJAMA_CONFIG.DEFAULT_RUNAWAY_REDUCE_SEC,
     runawayGripMinSec: OJAMA_CONFIG.DEFAULT_RUNAWAY_GRIP_MIN_SEC,
     runawayGripMaxSec: OJAMA_CONFIG.DEFAULT_RUNAWAY_GRIP_MAX_SEC,
+    ghostDuration: OJAMA_CONFIG.DEFAULT_VISUAL_DURATION_SEC,
+    prankCount: OJAMA_CONFIG.PRANK_DEFAULT_COUNT,
+    fakeAddCount: OJAMA_CONFIG.FAKE_PIECE_ADD_COUNT,
+    superchatScaleByTier: true,
+    commentCountOn: true,
+    perViewerCooldownSec: 0,
+    matchMode: OJAMA_CONFIG.DEFAULT_MATCH_MODE,
     triggers: { ...OJAMA_CONFIG.DEFAULT_TRIGGERS },
+    /** Types in use (false: never fires, from keywords, random, superchats or test buttons). */
+    enabled: Object.fromEntries(OJAMA_CONFIG.TYPES.map((t) => [t, true])),
+    /** Types a random ojama may pick. */
+    randomPool: { ...OJAMA_CONFIG.DEFAULT_RANDOM_POOL },
   },
 };
 
+/** The ojama settings kept per type; they merge key by key over the defaults. */
+const OJAMA_PER_TYPE_KEYS = ['triggers', 'enabled', 'randomPool'];
+
 /**
- * Saved ojama settings over the defaults; trigger words merge per type, so a type added later
- * gets its default words. (The old single `triggerWords` list is dropped.)
+ * Saved ojama settings over the defaults; the per-type maps merge per type, so a type added later
+ * gets its defaults. (The old single `triggerWords` list and the giant superchat's keywords are
+ * dropped: a superchat only comes from a real one now.)
  */
-function mergeOjama(saved) {
+export function mergeOjama(saved, base = DEFAULT_SETTINGS.ojama) {
   const rest = { ...saved };
   delete rest.triggerWords;
-  return {
-    ...DEFAULT_SETTINGS.ojama,
-    ...rest,
-    triggers: { ...DEFAULT_SETTINGS.ojama.triggers, ...(rest.triggers || {}) },
-  };
+  const out = { ...base, ...rest };
+  for (const key of OJAMA_PER_TYPE_KEYS) out[key] = { ...base[key], ...(rest[key] || {}) };
+  delete out.triggers.superchat;
+  return out;
 }
 
 export function loadSavedSettings() {

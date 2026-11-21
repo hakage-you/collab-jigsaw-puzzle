@@ -14,7 +14,6 @@ function mountYouTubeDom() {
     <p id="ytKeyStorageHint"></p>
     <input type="text" id="ytVideoUrlInput" />
     <select id="ytPollInterval"><option value="10000">10s</option></select>
-    <input type="checkbox" id="ytScaleSuperchatTier" checked />
     <button type="button" id="btnYtVerify"></button>
     <button type="button" id="btnYtTogglePoll" disabled></button>
     <div id="ytBroadcastPreview" class="hidden"></div>

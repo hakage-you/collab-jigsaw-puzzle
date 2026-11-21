@@ -1,18 +1,32 @@
 /**
- * The ojama test palette: the test buttons, the test comment box and the comment log, floating
- * over the board so what a test does stays in view. It opens from the stream modal's test tab
- * (closing the modal), is moved by its header and stays inside the board area.
+ * The ojama test palette ("動作確認"): a button per ojama in use, "すべて消す", the test comment
+ * box and the comment log, floating over the board so what a test does stays in view. It opens
+ * from the ojama rules list (closing the modal) and closes whenever the stream modal opens again,
+ * by its "設定に戻る" or by the header's stream button; it is moved by its header and stays
+ * inside the board area.
  */
 export class TestPalette {
-  /** @param {object} deps @param {() => void} deps.closeStreamModal */
-  constructor({ closeStreamModal }) {
+  /**
+   * @param {object} deps
+   * @param {object} deps.app  GameSession (getSettings, on)
+   * @param {() => void} deps.closeStreamModal
+   * @param {() => void} deps.openRules  opens the stream modal on the ojama rules
+   */
+  constructor({ app, closeStreamModal, openRules }) {
+    this.app = app;
     this.closeStreamModal = closeStreamModal;
+    this.openRules = openRules;
     this.el = document.getElementById('ojamaTestPalette');
     this.elHandle = document.getElementById('testPaletteHandle');
     this.drag = null;
 
-    document.getElementById('btnOpenTestPalette').addEventListener('click', () => this.open());
     document.getElementById('btnCloseTestPalette').addEventListener('click', () => this.close());
+    document.getElementById('btnTestPaletteBack').addEventListener('click', () => {
+      this.close();
+      this.openRules();
+    });
+    this.app.on('settingsChange', (s) => this._showTypesInUse(s));
+    this._showTypesInUse(this.app.getSettings());
     this.elHandle.addEventListener('pointerdown', (e) => this._startDrag(e));
     this.elHandle.addEventListener('pointermove', (e) => this._moveDrag(e));
     this.elHandle.addEventListener('pointerup', () => this._endDrag());
@@ -28,6 +42,17 @@ export class TestPalette {
 
   close() {
     this.el.classList.add('hidden');
+  }
+
+  isOpen() {
+    return !this.el.classList.contains('hidden');
+  }
+
+  /** Only the ojama in use get a button. */
+  _showTypesInUse(settings) {
+    for (const btn of this.el.querySelectorAll('[data-ojama-test]')) {
+      btn.classList.toggle('hidden', settings.ojama.enabled?.[btn.dataset.ojamaTest] === false);
+    }
   }
 
   _startDrag(e) {

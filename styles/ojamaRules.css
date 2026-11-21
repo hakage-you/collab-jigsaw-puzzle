@@ -1,0 +1,531 @@
+/* ==========================================================================
+   Ojama rules (stream modal "お邪魔ルール" tab: src/ui/ojamaRulesPanel.js), the "今すぐ出す" bar
+   (src/ui/ojamaPeek.js) and the test palette's extra parts.
+   A list on the left, the picked item's settings on the right; one column when narrow.
+   ========================================================================== */
+
+.app-modal-card-wide {
+  width: min(820px, 94vw);
+}
+
+#stream-tab-rules {
+  container-type: inline-size;
+}
+
+.rules-intro {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.rules-split {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* --- List ---------------------------------------------------------------- */
+.rules-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.rules-list-head {
+  padding: var(--space-1) var(--space-3);
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.rules-list-head:first-child {
+  border-top: none;
+}
+
+.rules-list-use {
+  display: inline-block;
+  width: 46px;
+}
+
+.rules-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.rules-list-head + .rules-item,
+.rules-list-head + .rules-test {
+  border-top: none;
+}
+
+.rules-item:hover {
+  background: var(--surface-2);
+}
+
+.rules-item:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.rules-item.is-selected {
+  background: var(--accent-soft);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+
+.rules-item.is-selected::after {
+  content: '▶';
+  font-size: var(--font-size-xs);
+  color: var(--accent);
+}
+
+/* "動作確認" at the top of the list, in its own group: opens the test palette over the board. */
+.rules-test {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--touch);
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rules-test:hover {
+  background: var(--accent-soft);
+}
+
+.rules-test:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.rules-test-icon {
+  width: 38px;
+  color: var(--accent);
+  text-align: center;
+}
+
+.rules-item-icon {
+  width: 38px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.rules-item-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rules-item-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rules-item.is-off .rules-item-name {
+  color: var(--text-muted);
+}
+
+.rules-item-sub {
+  overflow: hidden;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rules-item-sub.is-warn {
+  color: var(--warning);
+}
+
+/* Small switch: the thumb still moves 16px (base.css), so the track is 4 + 16 + 12 + 4 wide. */
+.md-switch-small .md-switch-track {
+  width: 36px;
+  height: 20px;
+}
+
+.md-switch-small .md-switch-thumb {
+  width: 12px;
+  height: 12px;
+}
+
+/* --- Detail -------------------------------------------------------------- */
+.rules-detail {
+  min-width: 0;
+}
+
+.rules-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--accent);
+}
+
+.rules-detail-head h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.rules-detail-desc {
+  flex-basis: 100%;
+  order: 9;
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.rules-back {
+  display: none;
+  margin-left: auto;
+}
+
+.rules-detail-body > h4 {
+  margin: var(--space-3) 0 var(--space-1);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.rules-detail-body.is-off {
+  opacity: 0.55;
+}
+
+.rules-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  font-size: var(--font-size-sm);
+}
+
+.rules-row.is-top {
+  align-items: flex-start;
+}
+
+.rules-row-label {
+  display: flex;
+  flex-direction: column;
+}
+
+.rules-row-label small,
+.rules-radio small {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.rules-split input[type='number'],
+.rules-split select,
+.kw-input {
+  min-height: var(--touch-compact);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--font-size-input);
+}
+
+.rules-split input[type='number'] {
+  width: 76px;
+}
+
+.rules-split input:disabled {
+  opacity: 0.5;
+}
+
+.rules-range {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.rules-note {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.rules-warn {
+  font-size: var(--font-size-xs);
+  color: var(--warning);
+}
+
+.rules-try {
+  margin-top: var(--space-3);
+}
+
+/* --- Whole-screen settings -------------------------------------------------- */
+.rules-card {
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.rules-card h4 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size);
+}
+
+.rules-card h5 {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: var(--font-size-sm);
+}
+
+.rules-lead {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.rules-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin: var(--space-1) 0;
+  font-size: var(--font-size-sm);
+}
+
+.rules-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+}
+
+.rules-link,
+.kw-undo {
+  min-height: var(--touch-compact);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rules-radios {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rules-radio {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: start;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.rules-radio small {
+  display: block;
+}
+
+.rules-badge {
+  margin-left: var(--space-2);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-btn);
+  background: var(--success-soft);
+  font-size: var(--font-size-xs);
+  color: var(--success);
+}
+
+/* --- Keyword editor ------------------------------------------------------ */
+.kw-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.rules-row .kw-editor {
+  align-items: flex-end;
+  max-width: 72%;
+}
+
+.kw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.rules-row .kw-chips {
+  justify-content: flex-end;
+}
+
+.kw-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-size: var(--font-size-sm);
+}
+
+.kw-del {
+  width: var(--touch-compact);
+  height: var(--touch-compact);
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--font-size);
+  cursor: pointer;
+}
+
+.kw-del:hover {
+  background: var(--surface-3);
+  color: var(--danger);
+}
+
+.kw-add {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.kw-input {
+  width: 190px;
+  border-style: dashed;
+}
+
+.kw-msg {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.kw-msg.is-warn {
+  color: var(--warning);
+}
+
+.kw-undo {
+  min-height: 0;
+  margin-left: var(--space-2);
+}
+
+/* --- Narrow (phones, and a narrow window) -------------------------------- */
+@container (max-width: 560px) {
+  .rules-split {
+    grid-template-columns: 1fr;
+  }
+
+  .rules-back {
+    display: inline-flex;
+  }
+
+  .rules-row.is-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rules-row .kw-editor {
+    align-items: stretch;
+    max-width: 100%;
+  }
+
+  .rules-row .kw-chips {
+    justify-content: flex-start;
+  }
+
+  .rules-row .rules-range {
+    justify-content: flex-start;
+  }
+
+  .kw-input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+}
+
+/* --- "今すぐ出す" bar and the test palette --------------------------------- */
+.ojama-peek-bar {
+  position: absolute;
+  right: 0;
+  bottom: var(--space-5);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--space-4));
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  box-shadow: var(--shadow-lg);
+  color: var(--bg);
+  font-size: var(--font-size-sm);
+}
+
+.test-palette-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.test-palette-clear {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.test-palette-hint {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* Phones: keep the test palette small so the board stays in view (it can still be moved). */
+@media (max-width: 768px), (max-height: 500px) {
+  .test-palette {
+    width: min(320px, calc(100% - 2 * var(--space-2)));
+  }
+
+  .test-palette-body {
+    padding: var(--space-2);
+  }
+
+  .test-palette .ojama-btn-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-1);
+  }
+
+  .test-palette .btn-ojama {
+    min-height: var(--touch-compact);
+    padding: var(--space-1);
+    font-size: var(--font-size-xs);
+  }
+
+  .test-palette .btn-ojama small {
+    display: none;
+  }
+
+  .test-palette .mini-chat-log {
+    height: 64px;
+  }
+}

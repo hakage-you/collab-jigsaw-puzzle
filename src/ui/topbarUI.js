@@ -47,6 +47,8 @@ export class TopbarUI {
     this.elMenuModal = document.getElementById('menuModal');
 
     this._lastRole = null;
+    /** Set by main: called as the stream modal opens; may return the tab to show. */
+    this.onStreamModalOpen = null;
 
     this.elKnockBanner = document.getElementById('knockBanner');
     this.elKnockBannerText = document.getElementById('knockBannerText');
@@ -74,7 +76,9 @@ export class TopbarUI {
   }
 
   openStreamModal(tabName = null) {
-    if (tabName) this.selectStreamTab(tabName);
+    // Coming back from a test (palette or "今すぐ出す"): those close, on the ojama rules.
+    const tab = this.onStreamModalOpen?.() ?? tabName;
+    if (tab) this.selectStreamTab(tab);
     this.elStreamModal?.classList.remove('hidden');
   }
 

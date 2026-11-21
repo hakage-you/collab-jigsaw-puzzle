@@ -13,6 +13,8 @@ import { SaveLoadUI } from './saveLoadUI.js';
 import { SetupDrawerUI } from './setupDrawerUI.js';
 import { SortFilterUI } from './sortFilterUI.js';
 import { TestPalette } from './testPalette.js';
+import { OjamaRulesPanel } from './ojamaRulesPanel.js';
+import { OjamaPeek } from './ojamaPeek.js';
 import { TermsModal } from './termsModal.js';
 import { TopbarUI } from './topbarUI.js';
 import { YouTubeUI } from './youtubeUI.js';
@@ -34,6 +36,26 @@ function createRenderer(app, getTopbar) {
       getTopbar()?.updateRendererStatus();
     },
   });
+}
+
+/** The ojama rules tab, its "今すぐ出す" and the test palette ("動作確認"). */
+function setUpOjamaRules({ app, ojama, topbarUI }) {
+  const closeStreamModal = () => topbarUI.closeStreamModal();
+  const openRules = () => topbarUI.openStreamModal('rules');
+  const palette = new TestPalette({ app, closeStreamModal, openRules });
+  const peek = new OjamaPeek({ ojama, closeStreamModal, openRules });
+  new OjamaRulesPanel({
+    app,
+    tryNow: (type) => peek.show(type),
+    openTest: () => palette.open(),
+  });
+  // Whichever way the stream modal comes back during a test, the test ends the same way.
+  topbarUI.onStreamModalOpen = () => {
+    const testing = palette.isOpen() || peek.isShown();
+    palette.close();
+    peek.hide();
+    return testing ? 'rules' : null;
+  };
 }
 
 function boot() {
@@ -86,7 +108,7 @@ function boot() {
   });
 
   const youtubeUI = new YouTubeUI({ app, ojama, showToast });
-  new TestPalette({ closeStreamModal: () => topbarUI.closeStreamModal() });
+  setUpOjamaRules({ app, ojama, topbarUI });
 
   new SaveLoadUI({ app, showToast });
   const diagnosticsUI = new DiagnosticsUI({ app, showToast });

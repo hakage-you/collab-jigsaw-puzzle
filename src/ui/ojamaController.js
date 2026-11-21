@@ -1,7 +1,6 @@
 import { OJAMA_CONFIG, YOUTUBE_CONFIG } from '../config/constants.js';
-import { decideCommentOjama } from '../app/ojamaRules.js';
+import { decideCommentOjama, pickRandomOjama } from '../app/ojamaRules.js';
 import { sound } from '../services/sound.js';
-import { OjamaSettingsForm } from './ojamaSettingsForm.js';
 import { SuperchatCard } from './superchatCard.js';
 import { TimedOjamaController } from './timedOjamaController.js';
 
@@ -12,7 +11,6 @@ export class OjamaController {
     this.room = app.room;
     this.canvas = document.getElementById('puzzleCanvas');
     this.getSettings = () => app.getSettings();
-    this.readSettingsFromUI = () => this.form.read();
     this.updateHUD = updateHUD;
     this.requestRender = requestRender;
     this.setGhostPiecesActive = setGhostPiecesActive || (() => {});
@@ -23,6 +21,8 @@ export class OjamaController {
     this.fakeCleanupTimerId = null;
     this.lastOjamaTime = 0;
     this.commentCounter = 0;
+    /** author -> when their keyword last set off an ojama (for the per-viewer wait). */
+    this.viewerLastTimes = new Map();
     this.autoCommentInterval = null;
 
     this.elVisualBanner = document.getElementById('visualSabotageBanner');
@@ -33,8 +33,6 @@ export class OjamaController {
     this.superchat = new SuperchatCard({ app, showToast });
     /** Heavy and runaway pieces: they last a while and wear down as pieces are placed. */
     this.timed = new TimedOjamaController({ app, showToast });
-
-    this.form = new OjamaSettingsForm(app);
 
     this.elCommentTriggerCounter = document.getElementById('commentTriggerCounter');
     this.elMiniChatLog = document.getElementById('miniChatLog');
@@ -60,22 +58,12 @@ export class OjamaController {
   }
 
   _bindEvents() {
-    document.getElementById('btnTestDrop').addEventListener('click', () => this.triggerDropOjama());
     document
-      .getElementById('btnTestVisual')
-      .addEventListener('click', () => this.triggerVisualOjama());
-    document
-      .getElementById('btnTestSuperchat')
-      .addEventListener('click', () => this.triggerSuperchatOjama());
-    document
-      .getElementById('btnTestPrank')
-      .addEventListener('click', () => this.triggerPrankOjama());
-    document
-      .getElementById('btnTestFake')
-      ?.addEventListener('click', () => this.triggerFakePiecesOjama());
-    for (const kind of ['heavy', 'runaway']) {
-      const id = kind === 'heavy' ? 'btnTestHeavy' : 'btnTestRunaway';
-      document.getElementById(id)?.addEventListener('click', () => this.triggerTimedOjama(kind));
+      .getElementById('btnClearOjamaEffects')
+      ?.addEventListener('click', () => this.clearAllEffects());
+    // The test palette's ojama buttons (data-ojama-test="drop" etc.).
+    for (const btn of document.querySelectorAll('[data-ojama-test]')) {
+      btn.addEventListener('click', () => this.runOjama(btn.dataset.ojamaTest));
     }
 
     document.getElementById('btnSendDummyComment').addEventListener('click', () => {
@@ -130,7 +118,8 @@ export class OjamaController {
       1,
       settings.ojama.commentThreshold || OJAMA_CONFIG.DEFAULT_COMMENT_THRESHOLD,
     );
-    this.elCommentTriggerCounter.textContent = `${this.commentCounter} / ${threshold}`;
+    this.elCommentTriggerCounter.textContent =
+      settings.ojama.commentCountOn === false ? 'オフ' : `${this.commentCounter} / ${threshold}`;
   }
 
   stopAutoComments() {
@@ -175,6 +164,19 @@ export class OjamaController {
         this._stopFakeCleanupTimer();
       }
     }, 1000);
+  }
+
+  /** The test palette's "すべて消す": ends every ojama on the board now (also for the guests). */
+  clearAllEffects() {
+    this.clearVisualSabotage(true);
+    this.superchat.dismiss();
+    this.timed.stopAll();
+    this._stopFakeCleanupTimer();
+    if (this.engine.clearFakePieces()) {
+      this.requestRender();
+      if (this.room.role === 'host') this.room.broadcastFakePieces();
+    }
+    this.updateHUD();
   }
 
   clearAllOnComplete() {
@@ -261,16 +263,18 @@ export class OjamaController {
 
   triggerVisualOjama(forcedType = null) {
     if (this.guardIfCompleted()) return false;
-    this.readSettingsFromUI();
+    const o = this.getSettings().ojama;
+    // Ghost pieces are their own ojama now; the visual one picks among the colour/light kinds.
+    const types = ['grayscale', 'sepia', 'hue', 'spotlight'];
+    const wanted = forcedType || o.visualType;
+    const chosen =
+      wanted === 'ghost' && forcedType
+        ? 'ghost'
+        : types.includes(wanted)
+          ? wanted
+          : types[Math.floor(Math.random() * types.length)];
 
-    const settings = this.getSettings();
-    const types = ['grayscale', 'sepia', 'hue', 'spotlight', 'ghost'];
-    let chosen = forcedType || settings.ojama.visualType;
-    if (chosen === 'random' || !types.includes(chosen)) {
-      chosen = types[Math.floor(Math.random() * types.length)];
-    }
-
-    const duration = settings.ojama.visualDuration;
+    const duration = chosen === 'ghost' ? (o.ghostDuration ?? o.visualDuration) : o.visualDuration;
     this.engine.recordVisualOjama();
     this.updateHUD();
     this.applyVisualEffect(chosen, duration);
@@ -303,23 +307,27 @@ export class OjamaController {
     return true;
   }
 
-  processYouTubeSuperchat({ author, amountDisplay, message, tier, scaleHpWithTier }) {
+  processYouTubeSuperchat({ author, amountDisplay, message, tier }) {
+    const o = this.getSettings().ojama;
+    const on = o.enabled?.superchat !== false;
     const emptyEl = this.elMiniChatLog.querySelector('.chat-empty');
     if (emptyEl) emptyEl.remove();
 
     const line = document.createElement('div');
     line.className = 'chat-line triggered';
-    line.textContent = `[SC ${amountDisplay}] ${author}: ${message || 'スパチャ！'} [発動]`;
+    const mark = on ? ' [発動]' : '（巨大スパチャはオフ）';
+    line.textContent = `[SC ${amountDisplay}] ${author}: ${message || 'スパチャ！'}${mark}`;
     this.elMiniChatLog.appendChild(line);
     while (this.elMiniChatLog.children.length > 40) {
       this.elMiniChatLog.removeChild(this.elMiniChatLog.firstChild);
     }
     this.elMiniChatLog.scrollTop = this.elMiniChatLog.scrollHeight;
+    if (!on) return;
 
     this.triggerSuperchatOjama(message || `${amountDisplay} スパチャでブロック中！`, author, {
       amountDisplay,
       tier,
-      scaleHpWithTier,
+      scaleHpWithTier: o.superchatScaleByTier !== false,
     });
   }
 
@@ -327,7 +335,8 @@ export class OjamaController {
     if (this.guardIfCompleted()) return false;
     const excluded = this.room.getLockedGroupIds();
     const before = this.engine.turnStates();
-    const changed = this.engine.prankLoosePieces(OJAMA_CONFIG.PRANK_DEFAULT_COUNT, excluded);
+    const count = this.getSettings().ojama.prankCount ?? OJAMA_CONFIG.PRANK_DEFAULT_COUNT;
+    const changed = this.engine.prankLoosePieces(count, excluded);
     if (changed.length === 0) {
       this.showToast('動かせる未配置ピースがありません', 'info');
       return false;
@@ -348,7 +357,7 @@ export class OjamaController {
     const durationSec = o.fakeDuration ?? OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC;
     const maxCount = o.fakeMaxCount ?? OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT;
     const added = this.engine.addFakePieces(
-      OJAMA_CONFIG.FAKE_PIECE_ADD_COUNT,
+      o.fakeAddCount ?? OJAMA_CONFIG.FAKE_PIECE_ADD_COUNT,
       durationSec,
       this.app.getAllowRotation(),
       this.app.getAllowFlip(),
@@ -376,63 +385,58 @@ export class OjamaController {
     return true;
   }
 
+  /** A random ojama among the types in use and in the random pool (settings). */
   triggerRandomOjama() {
-    const hasLocked = this.engine.getLockedCount() > 0;
-    const options = ['visual', 'superchat', 'prank', 'fake', 'heavy', 'runaway'];
-    if (hasLocked) options.push('drop');
-    const pick = options[Math.floor(Math.random() * options.length)];
-    if (pick === 'heavy' || pick === 'runaway') this.triggerTimedOjama(pick);
-    else if (pick === 'drop') this.triggerDropOjama();
-    else if (pick === 'visual') this.triggerVisualOjama();
-    else if (pick === 'superchat') this.triggerSuperchatOjama();
-    else if (pick === 'fake') this.triggerFakePiecesOjama();
-    else this.triggerPrankOjama();
+    const pick = pickRandomOjama({
+      ojama: this.getSettings().ojama,
+      hasLocked: this.engine.getLockedCount() > 0,
+    });
+    if (!pick) {
+      this.showToast('ランダム発動の対象がありません', 'info');
+      return false;
+    }
+    return this.runOjama(pick);
   }
 
-  _runCommentOjama(action, author, text) {
+  /** Sets off one ojama type now (keywords, random, the test palette, "今すぐ出す"). */
+  runOjama(action, author = null, text = null) {
     switch (action) {
       case 'drop':
-        this.triggerDropOjama();
-        break;
+        return this.triggerDropOjama();
       case 'ghost':
-        this.triggerVisualOjama('ghost');
-        break;
+        return this.triggerVisualOjama('ghost');
       case 'fake':
-        this.triggerFakePiecesOjama();
-        break;
+        return this.triggerFakePiecesOjama();
       case 'visual':
-        this.triggerVisualOjama();
-        break;
+        return this.triggerVisualOjama();
       case 'prank':
-        this.triggerPrankOjama();
-        break;
+        return this.triggerPrankOjama();
       case 'superchat':
-        this.triggerSuperchatOjama(text, author);
-        break;
+        return this.triggerSuperchatOjama(text, author);
       case 'heavy':
       case 'runaway':
-        this.triggerTimedOjama(action);
-        break;
+        return this.triggerTimedOjama(action);
       case 'random':
-        this.triggerRandomOjama();
-        break;
+        return this.triggerRandomOjama();
       default:
-        break;
+        return false;
     }
   }
 
   processIncomingComment(author, text) {
-    this.readSettingsFromUI();
-    const { action, nextState, notice } = decideCommentOjama({
+    const now = Date.now();
+    const { action, nextState, notice, viewerFired } = decideCommentOjama({
       text,
       settings: this.getSettings(),
-      now: Date.now(),
+      now,
       state: { commentCounter: this.commentCounter, lastOjamaTime: this.lastOjamaTime },
       isCompleted: this.engine.isCompleted(),
+      viewerLastTime: this.viewerLastTimes.get(author) ?? null,
     });
     this.commentCounter = nextState.commentCounter;
     this.lastOjamaTime = nextState.lastOjamaTime;
-    if (action) this._runCommentOjama(action, author, text);
+    if (viewerFired) this.viewerLastTimes.set(author, now);
+    if (action) this.runOjama(action, author, text);
     if (notice) this.showToast(notice, 'info');
 
     this.updateCommentProgressUI();

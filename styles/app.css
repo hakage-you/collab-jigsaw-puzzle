@@ -1512,7 +1512,8 @@
 
 .modal-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
   gap: var(--space-1);
   background: var(--surface-2);
   padding: var(--space-1);
