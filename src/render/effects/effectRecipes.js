@@ -55,6 +55,19 @@ export const EFFECTS = Object.freeze({
     scale: 'pop',
     travel: 'out',
   }),
+  /** Dust kicked up under a heavy piece while it is dragged (a few every second). */
+  heavyDust: Object.freeze({
+    shape: 'puff',
+    colors: ['smoke'],
+    motion: 'spread',
+    count: 2,
+    sizePx: 12,
+    travelPx: 10,
+    spinTurns: 0.05,
+    duration: 'short',
+    scale: 'pop',
+    travel: 'out',
+  }),
   /** A curled arrow turning over a group that interference ("prank") turned round. */
   prankTurn: Object.freeze({
     shape: 'curl',

@@ -279,7 +279,7 @@ describe('sanitizeHostMessage: piece lists', () => {
       elapsedMs: 1,
       placedCount: 2,
       ojamaTotal: 0,
-      ojamaBreakdown: { drop: 0, visual: 0, superchat: 0, prank: 0, fake: 0 },
+      ojamaBreakdown: { drop: 0, visual: 0, superchat: 0, prank: 0, fake: 0, heavy: 0, runaway: 0 },
     };
     expect(sanitizeHostMessage(patch({ stats }))).toMatchObject({ stats });
     expect(sanitizeHostMessage(patch({ stats: { ...stats, placedCount: Number.NaN } }))).toBeNull();
@@ -364,6 +364,29 @@ describe('sanitizeHostMessage: ojama values', () => {
     expect(sanitizeHostMessage(superchat({ author: 5 }))).toBeNull();
     const clean = sanitizeHostMessage(superchat({ message: 'x'.repeat(10000) }));
     expect(clean.message).toHaveLength(NET_LIMITS.MAX_TEXT_LENGTH);
+  });
+
+  it('checks the timed ojama state and the runaway hop', () => {
+    const timed = { type: MSG.OJAMA_TIMED, kind: 'heavy', remaining: 12.5, level: 'heaviest' };
+    expect(sanitizeHostMessage(timed)).toEqual(timed);
+    expect(sanitizeHostMessage({ ...timed, kind: 'explode' })).toBeNull();
+    expect(sanitizeHostMessage({ ...timed, level: 'feather' })).toBeNull();
+    expect(sanitizeHostMessage({ ...timed, remaining: -1 })).toBeNull();
+    expect(
+      sanitizeHostMessage({ ...timed, remaining: NET_LIMITS.MAX_OJAMA_DURATION_SEC + 1 }),
+    ).toBeNull();
+
+    const hop = {
+      type: MSG.PIECE_HOP,
+      groupId: 4,
+      positions: [{ id: 4, x: 1, y: 2 }],
+      byPlayerId: 'host',
+    };
+    expect(sanitizeHostMessage(hop)).toEqual(hop);
+    expect(sanitizeHostMessage({ ...hop, byPlayerId: undefined })).toMatchObject({
+      byPlayerId: null,
+    });
+    expect(sanitizeHostMessage({ ...hop, positions: [{ id: 4, x: Number.NaN, y: 0 }] })).toBeNull();
   });
 
   it('bounds the superchat state and the notice text', () => {

@@ -46,6 +46,10 @@ export const MSG = {
   SUPERCHAT_STATE: 'superchat_state',
   SUPERCHAT_DISMISS: 'superchat_dismiss',
   OJAMA_NOTICE: 'ojama_notice',
+  /** A timed ojama (heavy, runaway) and its seconds left; 0 ends it. Resent while it lasts. */
+  OJAMA_TIMED: 'ojama_timed',
+  /** A runaway piece group hopped away (from a grab, or out of the hand): its new positions. */
+  PIECE_HOP: 'piece_hop',
   PUZZLE_COMPLETED: 'puzzle_completed',
 };
 

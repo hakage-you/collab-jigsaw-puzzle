@@ -34,6 +34,8 @@ export function computeCoordScale(engine, pInfo, sourceCanvas) {
   };
 }
 
+const BREAKDOWN_KEYS = ['drop', 'visual', 'superchat', 'prank', 'fake', 'heavy', 'runaway'];
+
 /** Normalises the saved stats block, defaulting every counter to 0. */
 export function restoreStats(saveStats) {
   const st = saveStats || {};
@@ -41,12 +43,8 @@ export function restoreStats(saveStats) {
     elapsedMs: Number(st.elapsedMs) || 0,
     placedCount: Number(st.placedCount) || 0,
     ojamaTotal: Number(st.ojamaTotal) || 0,
-    ojamaBreakdown: {
-      drop: Number(st.ojamaBreakdown?.drop) || 0,
-      visual: Number(st.ojamaBreakdown?.visual) || 0,
-      superchat: Number(st.ojamaBreakdown?.superchat) || 0,
-      prank: Number(st.ojamaBreakdown?.prank) || 0,
-      fake: Number(st.ojamaBreakdown?.fake) || 0,
-    },
+    ojamaBreakdown: Object.fromEntries(
+      BREAKDOWN_KEYS.map((key) => [key, Number(st.ojamaBreakdown?.[key]) || 0]),
+    ),
   };
 }

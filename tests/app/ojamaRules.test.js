@@ -1,16 +1,24 @@
 import { describe, expect, it } from 'vitest';
+import { OJAMA_CONFIG } from '../../src/config/constants.js';
 import {
   COMPLETED_NOTICE,
+  buildTriggerTable,
   decideCommentOjama,
-  findMatchedWord,
+  findTrigger,
   parseTriggerWords,
-  resolveKeywordAction,
 } from '../../src/app/ojamaRules.js';
 
-const KEYWORDS = '!drop,!ghost,!fake,!color,!spin,!sp';
+const KEYWORDS = {
+  drop: '!drop',
+  ghost: '!ghost',
+  fake: '!fake',
+  visual: '!color',
+  prank: '!spin',
+  superchat: '!sp',
+};
 
-function settings({ threshold = 5, cooldownSec = 0, triggerWords = KEYWORDS } = {}) {
-  return { ojama: { commentThreshold: threshold, cooldownSec, triggerWords } };
+function settings({ threshold = 5, cooldownSec = 0, triggers = KEYWORDS } = {}) {
+  return { ojama: { commentThreshold: threshold, cooldownSec, triggers } };
 }
 
 const NOW = 100000;
@@ -19,7 +27,7 @@ function decide(text, opts = {}) {
   const { words, threshold, cooldownSec, state, isCompleted = false, now = NOW } = opts;
   return decideCommentOjama({
     text,
-    settings: settings({ threshold, cooldownSec, triggerWords: words }),
+    settings: settings({ threshold, cooldownSec, triggers: words }),
     now,
     state: state ?? { commentCounter: 0, lastOjamaTime: 0 },
     isCompleted,
@@ -31,29 +39,28 @@ describe('parseTriggerWords', () => {
     expect(parseTriggerWords(' Sp , ,!SPIN,,drop ')).toEqual(['!spin', 'drop', 'sp']);
   });
 
-  it('returns an empty list for an empty setting', () => {
+  it('returns an empty list for an empty or missing setting', () => {
     expect(parseTriggerWords('')).toEqual([]);
     expect(parseTriggerWords(' , ')).toEqual([]);
+    expect(parseTriggerWords(undefined)).toEqual([]);
   });
 });
 
-describe('findMatchedWord', () => {
-  it('returns the first (longest) word contained in the lowercased text, else null', () => {
-    expect(findMatchedWord(['!spin', '!sp'], '!spin now')).toBe('!spin');
-    expect(findMatchedWord(['!sp'], '!sp')).toBe('!sp');
-    expect(findMatchedWord(['!drop'], 'nothing')).toBeNull();
+describe('trigger table', () => {
+  it('lists every word with its type, longest first', () => {
+    const table = buildTriggerTable({ prank: '!spin, 回', superchat: '!sp' });
+    expect(table).toEqual([
+      { word: '!spin', action: 'prank' },
+      { word: '!sp', action: 'superchat' },
+      { word: '回', action: 'prank' },
+    ]);
+    expect(findTrigger(table, 'go !spin')).toEqual({ word: '!spin', action: 'prank' });
+    expect(findTrigger(table, 'nothing')).toBeNull();
   });
-});
 
-describe('resolveKeywordAction', () => {
-  it('maps the trigger word to its action', () => {
-    expect(resolveKeywordAction('drop', 'x')).toBe('drop');
-    expect(resolveKeywordAction('ghost', 'x')).toBe('ghost');
-    expect(resolveKeywordAction('fake', 'x')).toBe('fake');
-    expect(resolveKeywordAction('color', 'x')).toBe('visual');
-    expect(resolveKeywordAction('spin', 'x')).toBe('prank');
-    expect(resolveKeywordAction('sp', 'x')).toBe('superchat');
-    expect(resolveKeywordAction('hello', 'x')).toBe('random');
+  it('breaks a tie between words of the same length by the type order', () => {
+    const table = buildTriggerTable({ runaway: 'ab', drop: 'cd' });
+    expect(findTrigger(table, 'ab cd').action).toBe('drop');
   });
 });
 
@@ -72,20 +79,24 @@ describe('decideCommentOjama: keyword actions', () => {
     expect(r.notice).toBeNull();
   });
 
-  it('falls back to random when the matched word has no specific keyword', () => {
-    expect(decide('hello', { words: 'hello' }).action).toBe('random');
+  it.each([
+    ['ピース落として', 'drop'],
+    ['色かえて', 'visual'],
+    ['透明にしよう', 'ghost'],
+    ['回れ', 'prank'],
+    ['スパチャ', 'superchat'],
+    ['偽物まぜて', 'fake'],
+    ['重くなれ', 'heavy'],
+    ['逃げろ', 'runaway'],
+    ['お邪魔します', 'random'],
+    ['!heavy', 'heavy'],
+    ['!run', 'runaway'],
+  ])('the default words fire on their own: %s -> %s', (text, action) => {
+    expect(decide(text, { words: OJAMA_CONFIG.DEFAULT_TRIGGERS }).action).toBe(action);
   });
 
-  it('a trigger word plus 落と in the text gives drop', () => {
-    expect(decide('!sp 落と', { words: KEYWORDS }).action).toBe('drop');
-  });
-
-  it('Japanese fallbacks apply to a generic trigger word', () => {
-    expect(decide('hello 透明', { words: 'hello' }).action).toBe('ghost');
-    expect(decide('hello 偽', { words: 'hello' }).action).toBe('fake');
-    expect(decide('hello 色', { words: 'hello' }).action).toBe('visual');
-    expect(decide('hello 回', { words: 'hello' }).action).toBe('prank');
-    expect(decide('hello スパ', { words: 'hello' }).action).toBe('superchat');
+  it('the longer word wins when a comment has two: !sp and 落と', () => {
+    expect(decide('!sp 落と', { words: OJAMA_CONFIG.DEFAULT_TRIGGERS }).action).toBe('superchat');
   });
 
   it('longest trigger word wins: !spin beats !sp', () => {
@@ -94,7 +105,7 @@ describe('decideCommentOjama: keyword actions', () => {
   });
 
   it('matching is case-insensitive', () => {
-    const r = decide('!DrOp please', { words: 'DROP' });
+    const r = decide('!DrOp please', { words: { drop: 'DROP' } });
     expect(r.action).toBe('drop');
     expect(r.matchedWord).toBe('drop');
   });
@@ -215,7 +226,7 @@ describe('decideCommentOjama: completed puzzle', () => {
 describe('decideCommentOjama: empty trigger words', () => {
   it('never matches a word, so only the threshold logic applies', () => {
     const r = decide('!drop', {
-      words: '',
+      words: {},
       threshold: 2,
       state: { commentCounter: 0, lastOjamaTime: 0 },
     });
@@ -225,7 +236,7 @@ describe('decideCommentOjama: empty trigger words', () => {
   });
 
   it('still fires random once the threshold is reached', () => {
-    const r = decide('!drop', { words: '', threshold: 1 });
+    const r = decide('!drop', { words: {}, threshold: 1 });
     expect(r.action).toBe('random');
   });
 });

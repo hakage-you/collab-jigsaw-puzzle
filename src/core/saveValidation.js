@@ -1,4 +1,4 @@
-import { PUZZLE_CONFIG } from '../config/constants.js';
+import { OJAMA_CONFIG, PUZZLE_CONFIG } from '../config/constants.js';
 import { normalizeCutComplexity } from './jigsawPath.js';
 
 /*
@@ -26,7 +26,7 @@ const COLOR_PATTERN = /^#[0-9a-fA-F]{3,8}$/;
 const ACCENT_COLOR = 'var(--accent)';
 const CUT_COMPLEXITY_VALUES = ['uniform', 'standard', 'complex', 'irregular', 'extreme'];
 const COUNTER_KEYS = ['elapsedMs', 'placedCount', 'ojamaTotal'];
-const BREAKDOWN_KEYS = ['drop', 'visual', 'superchat', 'prank', 'fake'];
+const BREAKDOWN_KEYS = ['drop', 'visual', 'superchat', 'prank', 'fake', 'heavy', 'runaway'];
 
 /** Thrown by the checks below; its message is shown to the user as-is. */
 class InvalidSaveError extends Error {}
@@ -195,7 +195,26 @@ const OJAMA_SCHEMA = {
   fakeDuration: { type: 'number' },
   superchatDuration: { type: 'number' },
   fakeMaxCount: { type: 'number' },
-  triggerWords: { type: 'string', max: MAX_TEXT_LENGTH },
+  heavyLevel: {
+    type: 'string',
+    max: MAX_TEXT_LENGTH,
+    values: Object.keys(OJAMA_CONFIG.HEAVY_LEVELS),
+  },
+  heavyDuration: { type: 'number' },
+  heavyReduceSec: { type: 'number' },
+  runawayChance: { type: 'number' },
+  runawayDuration: { type: 'number' },
+  runawayReduceSec: { type: 'number' },
+  runawayGripMinSec: { type: 'number' },
+  runawayGripMaxSec: { type: 'number' },
+  triggers: {
+    section: Object.fromEntries(
+      Object.keys(OJAMA_CONFIG.DEFAULT_TRIGGERS).map((k) => [
+        k,
+        { type: 'string', max: MAX_TEXT_LENGTH },
+      ]),
+    ),
+  },
 };
 
 const SETTINGS_SCHEMA = {

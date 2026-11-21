@@ -63,6 +63,8 @@ export function handleLockRequest(session, { connId, playerId, msg }) {
     });
     return;
   }
+  const from = typeof msg.x === 'number' ? { x: msg.x, y: msg.y } : null;
+  if (room.runaway.onGrab(groupId, playerId, from)) return;
   for (const [heldGid, owner] of room.groupLocks.entries()) {
     if (owner === playerId && heldGid !== groupId) {
       room.groupLocks.delete(heldGid);
@@ -92,6 +94,7 @@ export function handleDropRequest(session, { connId, playerId, guest, msg }) {
     return;
   }
   room.groupLocks.delete(groupId);
+  room.runaway.onRelease(groupId);
   room.applyPositionsOnly(keepGroupPositions(room, groupId, msg.positions));
   const res = room.engine.resolveDrop(groupId);
   if (res.type === 'snap') {

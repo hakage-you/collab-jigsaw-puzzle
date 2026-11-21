@@ -44,6 +44,14 @@ describe('sanitizeGuestMessage: accepted shapes', () => {
     });
   });
 
+  it('a lock request may carry the grab point (runaway pieces hop away from it)', () => {
+    const grab = { type: MSG.LOCK_REQUEST, groupId: 3, x: 10.5, y: -4 };
+    expect(sanitizeGuestMessage(grab)).toEqual(grab);
+    expect(sanitizeGuestMessage({ ...grab, y: undefined })).toBeNull();
+    expect(sanitizeGuestMessage({ ...grab, x: Number.NaN })).toBeNull();
+    expect(sanitizeGuestMessage({ ...grab, x: NET_LIMITS.MAX_ABS_COORD * 2 })).toBeNull();
+  });
+
   it('accepts drag and drop positions with the bounds of the protocol', () => {
     const drop = {
       type: MSG.DROP_REQUEST,

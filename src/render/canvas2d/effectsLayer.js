@@ -8,6 +8,7 @@ import {
   StampCache,
 } from '../effects/effectPlayer.js';
 import { drawAllCursors } from './canvasOverlayRenderer.js';
+import { drawPieceMotion } from './pieceMotionLayer.js';
 
 /** Snap flashes fade out over about a third of a second. */
 const FLASH_FADE_PER_SEC = 2.7;
@@ -57,6 +58,7 @@ export class EffectsLayer {
     ctx.scale(vs.camera.scale, vs.camera.scale);
     ctx.translate(-vs.camera.x, -vs.camera.y);
     f.drawWorld?.(ctx);
+    drawPieceMotion(ctx, vs, f.pal);
     this._drawSnapFlashes(vs, f.pal, f.dtSec);
     drawAllCursors(ctx, { room: f.room, scale: vs.camera.scale, pal: f.pal });
     ctx.restore();

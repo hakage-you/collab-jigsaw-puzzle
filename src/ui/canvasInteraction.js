@@ -1,5 +1,6 @@
 import { VIEWPORT_CONFIG } from '../config/constants.js';
 import { loadImageFromFile } from '../services/imageLoader.js';
+import { HeavyDrag } from './heavyDrag.js';
 
 export class CanvasInteraction {
   constructor({ app, renderer, loading, ojama, fitViewAndSync, updateZoomReadout, showToast }) {
@@ -23,6 +24,7 @@ export class CanvasInteraction {
     this.prevButtons = 0;
     this._handledRightPointerDown = false;
     this.dragCounter = 0;
+    this.heavy = new HeavyDrag({ app, vs: this.vs });
 
     this._bindEvents();
     this._subscribeApp();
@@ -68,8 +70,17 @@ export class CanvasInteraction {
       if (this.canvas.hasPointerCapture(e.pointerId)) {
         this.canvas.releasePointerCapture(e.pointerId);
       }
+      this.heavy.end();
       this.app.submitDrop(groupId);
     }
+  }
+
+  /** Ends the local drag of `groupId` without dropping it (it hopped away, or the lock was lost). */
+  _cancelDrag(groupId) {
+    if (this.vs.draggingGroupId !== groupId) return;
+    this.heavy.end();
+    this.vs.setDraggingGroup(null);
+    this.canvas.classList.remove('grabbing');
   }
 
   _bindEvents() {
@@ -107,8 +118,9 @@ export class CanvasInteraction {
       const hit = this.app.hitTest(world.x, world.y);
 
       if (hit) {
-        const lockRes = this.app.requestLock(hit.groupId);
+        const lockRes = this.app.requestLock(hit.groupId, world);
         if (!lockRes.allowed) return;
+        if (this.vs.heavyLevel) this.heavy.begin(hit.groupId, world, hit);
         this.vs.setDraggingGroup(hit.groupId);
         this.vs.setHoveredPiece(hit);
         this.app.bringGroupToFront(hit.groupId);
@@ -157,6 +169,10 @@ export class CanvasInteraction {
         return;
       }
 
+      if (this.heavy.active) {
+        this.heavy.move(dxScreen / this.vs.camera.scale, dyScreen / this.vs.camera.scale, world);
+        return;
+      }
       if (this.vs.draggingGroupId !== null) {
         this.app.moveGroup(
           this.vs.draggingGroupId,
@@ -323,11 +339,14 @@ export class CanvasInteraction {
 
   _subscribeApp() {
     this.app.on('renderNeeded', () => this.vs.requestRender());
-    this.app.on('lockDenied', ({ groupId }) => {
-      if (this.vs.draggingGroupId === groupId) {
-        this.vs.setDraggingGroup(null);
-        this.canvas.classList.remove('grabbing');
-      }
+    this.app.on('lockDenied', ({ groupId }) => this._cancelDrag(groupId));
+    this.app.on('pieceHop', (hop) => {
+      this._cancelDrag(hop.groupId);
+      this.vs.playHop(hop, this.app.room.myPlayerId);
+    });
+    this.app.on('heavyChange', ({ level }) => {
+      this.vs.heavyLevel = level;
+      if (!level) this.heavy.catchUp();
     });
     this.app.on('snapEffect', ({ pieces }) => this.vs.addSnapFlashes(pieces));
     this.app.on('ojamaDropEffect', ({ pieces }) => this.vs.playDropEffect(pieces));

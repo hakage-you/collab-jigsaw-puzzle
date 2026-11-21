@@ -89,6 +89,40 @@ export const OJAMA_CONFIG = {
   DEFAULT_COOLDOWN_SEC: 3,
   DEFAULT_DROP_COUNT: 2,
   DEFAULT_VISUAL_DURATION_SEC: 8,
+  /**
+   * Default trigger words per comment ojama type (comma separated; editable in the settings).
+   * The key order is the tie-break order when two words of the same length match.
+   */
+  DEFAULT_TRIGGERS: Object.freeze({
+    drop: '!drop, 落と',
+    visual: '!color, 色',
+    ghost: '!ghost, 透明',
+    prank: '!spin, 回',
+    superchat: '!sp, スパ',
+    fake: '!fake, 偽',
+    heavy: '!heavy, 重',
+    runaway: '!run, 逃',
+    random: 'お邪魔',
+  }),
+  /** Heavy pieces: seconds a dragged piece takes to close about 63% of the gap to the cursor. */
+  HEAVY_LEVELS: Object.freeze({ strong: 0.35, heavier: 0.7, heaviest: 1.2 }),
+  DEFAULT_HEAVY_LEVEL: 'heaviest',
+  DEFAULT_HEAVY_DURATION_SEC: 30,
+  /** Seconds taken off a timed ojama (heavy, runaway) for each piece placed while it lasts. */
+  DEFAULT_HEAVY_REDUCE_SEC: 3,
+  /** Runaway pieces: chance (%) a grab fails after the first one, which always fails. */
+  DEFAULT_RUNAWAY_CHANCE: 30,
+  DEFAULT_RUNAWAY_DURATION_SEC: 30,
+  DEFAULT_RUNAWAY_REDUCE_SEC: 3,
+  /** A held runaway piece slips out of the hand after a random time in this range (seconds). */
+  DEFAULT_RUNAWAY_GRIP_MIN_SEC: 3,
+  DEFAULT_RUNAWAY_GRIP_MAX_SEC: 6,
+  /** Groups of at most this many pieces run away; bigger ones stay put. */
+  RUNAWAY_MAX_GROUP: 4,
+  /** A hop goes this many piece sizes away from where it was grabbed. */
+  RUNAWAY_HOP_MIN_PIECES: 1.5,
+  RUNAWAY_HOP_MAX_PIECES: 3,
+  RUNAWAY_HOP_SEC: 0.35,
 };
 
 export const MULTIPLAYER_CONFIG = {

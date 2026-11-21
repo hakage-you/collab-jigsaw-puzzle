@@ -5,7 +5,7 @@
  * An invalid image or full-state transfer ends the join (see HOST_TRANSFER_TYPES); any other
  * invalid message is dropped and logged with its type and reason only.
  */
-import { MULTIPLAYER_CONFIG, NET_LIMITS } from '../config/constants.js';
+import { MULTIPLAYER_CONFIG, NET_LIMITS, OJAMA_CONFIG } from '../config/constants.js';
 import { recordDiagnostic } from '../services/diagnostics.js';
 import { MSG, isValidMessage } from './protocol.js';
 import {
@@ -44,7 +44,9 @@ const HEX_COLOR = /^#[0-9a-fA-F]{3,8}$/;
 const BASE64_TEXT = /^[A-Za-z0-9+/]*={0,2}$/;
 const ROSTER_ROLES = ['host', 'guest'];
 const COUNTER_KEYS = ['elapsedMs', 'placedCount', 'ojamaTotal'];
-const BREAKDOWN_KEYS = ['drop', 'visual', 'superchat', 'prank', 'fake'];
+const BREAKDOWN_KEYS = ['drop', 'visual', 'superchat', 'prank', 'fake', 'heavy', 'runaway'];
+const TIMED_KINDS = ['heavy', 'runaway'];
+const HEAVY_LEVELS = Object.keys(OJAMA_CONFIG.HEAVY_LEVELS);
 
 /** Thrown by a field check. Every validator turns it into a rejected message. */
 class FieldError extends Error {}
@@ -338,6 +340,24 @@ function validateLockDenied(m) {
   };
 }
 
+function validateTimedOjama(m) {
+  return {
+    type: m.type,
+    kind: oneOf(m.kind, TIMED_KINDS),
+    remaining: durationSec(m.remaining),
+    level: optional(m.level, (v) => oneOf(v, HEAVY_LEVELS)),
+  };
+}
+
+function validatePieceHop(m) {
+  return {
+    type: m.type,
+    groupId: entityId(m.groupId),
+    positions: positionList(m.positions),
+    byPlayerId: m.byPlayerId === null || m.byPlayerId === undefined ? null : playerId(m.byPlayerId),
+  };
+}
+
 function validateLockRelease(m) {
   return { type: m.type, groupId: entityId(m.groupId) };
 }
@@ -428,6 +448,8 @@ const HOST_MESSAGE_VALIDATORS = new Map([
   [MSG.SUPERCHAT_STATE, validateSuperchatState],
   [MSG.SUPERCHAT_DISMISS, validateSignal],
   [MSG.OJAMA_NOTICE, validateNotice],
+  [MSG.OJAMA_TIMED, validateTimedOjama],
+  [MSG.PIECE_HOP, validatePieceHop],
   [MSG.PUZZLE_COMPLETED, validateSignal],
   [MSG.PING, validateSignal],
   [MSG.PONG, validateSignal],

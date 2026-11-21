@@ -223,10 +223,16 @@ describe('validateSaveData: settings, stats and contributions', () => {
   it('truncates long strings to their maximum length', () => {
     const raw = realSave();
     raw.settings.playerName = 'あ'.repeat(50);
-    raw.settings.ojama = { triggerWords: 'x'.repeat(2000), dropCount: 'two' };
+    raw.settings.ojama = {
+      triggers: { drop: 'x'.repeat(2000), nope: 'y' },
+      triggerWords: 'old',
+      dropCount: 'two',
+    };
     const { data } = validateSaveData(raw);
     expect(data.settings.playerName).toHaveLength(20);
-    expect(data.settings.ojama.triggerWords).toHaveLength(500);
+    expect(data.settings.ojama.triggers.drop).toHaveLength(500);
+    expect(data.settings.ojama.triggers).not.toHaveProperty('nope');
+    expect(data.settings.ojama).not.toHaveProperty('triggerWords');
     expect(data.settings.ojama).not.toHaveProperty('dropCount');
   });
 
