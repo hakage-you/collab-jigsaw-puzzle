@@ -190,6 +190,15 @@ export class TopbarUI {
     this.elKnockBanner.classList.remove('hidden');
   }
 
+  /** The stream button in the header, and its copy in the menu (small screens). */
+  _bindStreamButtons() {
+    this.elBtnOpenStreamModal?.addEventListener('click', () => this.openStreamModal());
+    document.getElementById('btnOpenStreamFromMenu')?.addEventListener('click', () => {
+      this.closeMenuModal();
+      this.openStreamModal();
+    });
+  }
+
   _bindEvents() {
     this.elBtnToggleTheme?.addEventListener('click', () => this.app.toggleTheme());
     this.elToggleShowStats?.addEventListener('change', () => {
@@ -214,7 +223,7 @@ export class TopbarUI {
     this.elBtnOpenDrawer?.addEventListener('click', () => this.setDrawerOpen(true));
     this.elBtnCloseDrawer?.addEventListener('click', () => this.setDrawerOpen(false));
 
-    this.elBtnOpenStreamModal?.addEventListener('click', () => this.openStreamModal());
+    this._bindStreamButtons();
     this.elBtnCloseStreamModal?.addEventListener('click', () => this.closeStreamModal());
     this.elStreamModal?.addEventListener('click', (e) => {
       if (e.target === this.elStreamModal) this.closeStreamModal();

@@ -22,7 +22,7 @@ function mountYouTubeDom() {
     <div id="ytPreviewMeta"></div>
     <div id="ytStatusText" class="hidden"></div>
     <div id="ytQuotaReadout"></div>
-    <div id="ytLiveIndicator" class="hidden"></div>
+    <div class="yt-live-indicator hidden"></div>
     <div id="ytGuideModal" class="hidden"></div>
     <button type="button" id="btnOpenYtGuide"></button>
     <button type="button" id="btnCloseYtGuide"></button>
