@@ -1,3 +1,5 @@
+import { EFFECTS } from '../effects/effectRecipes.js';
+import { advanceParticles, sampleParticle, StampCache } from '../effects/effectPlayer.js';
 import { drawAllCursors } from './canvasOverlayRenderer.js';
 
 /** Snap flashes fade out over about a third of a second. */
@@ -14,6 +16,7 @@ export class EffectsLayer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+    this.stamps = new StampCache();
     /** True when the last frame drew effects: one more frame is needed to clear their traces. */
     this.dirty = false;
   }
@@ -50,7 +53,29 @@ export class EffectsLayer {
     drawAllCursors(ctx, { room: f.room, scale: vs.camera.scale, pal: f.pal });
     ctx.restore();
 
+    this._drawParticles(vs, f.pal, rect, f.dtSec);
     this._drawConfetti(vs, rect, f.dtSec);
+  }
+
+  /** Stamp effects: placed at world points, drawn at a fixed screen size. */
+  _drawParticles(vs, pal, rect, dtSec) {
+    const { ctx } = this;
+    const cam = vs.camera;
+    for (const p of vs.particles) {
+      const s = sampleParticle(p);
+      const size = s.sizePx * s.scale;
+      if (size <= 0) continue;
+      const stamp = this.stamps.get(EFFECTS[p.name], pal.fx);
+      ctx.save();
+      ctx.translate(
+        (p.x - cam.x) * cam.scale + rect.width / 2 + s.dx,
+        (p.y - cam.y) * cam.scale + rect.height / 2 + s.dy,
+      );
+      ctx.rotate(s.rotation);
+      ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
+      ctx.restore();
+    }
+    advanceParticles(vs.particles, dtSec);
   }
 
   _drawSnapFlashes(vs, pal, dtSec) {

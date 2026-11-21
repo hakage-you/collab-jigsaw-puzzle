@@ -293,11 +293,12 @@ export class OjamaController {
       return false;
     }
     sound.playOjama();
+    this.app.emit('ojamaDropEffect', { pieces: dropped });
     this.updateHUD();
     this.requestRender();
     const msg = `お邪魔発動：${dropped.length}個のピースが台紙から落ちました`;
     this.showToast(msg, 'ojama');
-    this.room.broadcastPhysicalOjama(msg, dropped);
+    this.room.broadcastPhysicalOjama(msg, dropped, 'ojama_drop');
     return true;
   }
 

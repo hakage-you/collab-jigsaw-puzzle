@@ -83,6 +83,10 @@ function boardCallbacks(session) {
         session.emit('snapEffect', { pieces });
       } else if (res?.type === 'merge') {
         sound.playMerge();
+      } else if (res?.type === 'ojama_drop') {
+        // The patch carries positions only; the effect also needs each piece's board spot.
+        const dropped = pieces.map((p) => session.engine.getPieceById(p.id)).filter(Boolean);
+        session.emit('ojamaDropEffect', { pieces: dropped });
       }
       session.emit('hudUpdate');
       session.emit('renderNeeded');

@@ -376,8 +376,10 @@ export class RoomController {
   }
 
   /** Sends the pieces a physical interference changed (not the whole board) plus its notice. */
-  broadcastPhysicalOjama(noticeText, changedPieces) {
-    if (this.role === 'host') this.hostSession.broadcastPhysicalOjama(noticeText, changedPieces);
+  broadcastPhysicalOjama(noticeText, changedPieces, kind = 'ojama') {
+    if (this.role === 'host') {
+      this.hostSession.broadcastPhysicalOjama(noticeText, changedPieces, kind);
+    }
   }
 
   broadcastSortResult() {

@@ -329,6 +329,7 @@ export class CanvasInteraction {
       }
     });
     this.app.on('snapEffect', ({ pieces }) => this.vs.addSnapFlashes(pieces));
+    this.app.on('ojamaDropEffect', ({ pieces }) => this.vs.playDropEffect(pieces));
     this.app.on('puzzleReset', ({ canvas: srcCanvas, resetEffects, fitView }) => {
       this.vs.resetForNewPuzzle({ clearEffects: resetEffects });
       this.vs.resetRefSheetGeometry(srcCanvas);

@@ -1,4 +1,5 @@
 import { VIEWPORT_CONFIG } from '../config/constants.js';
+import { spawnEffect } from './effects/effectPlayer.js';
 
 /**
  * What the player is looking at and doing on the table, separate from how it is drawn:
@@ -30,6 +31,12 @@ export class ViewState {
     /** Effect data (world-space snap flashes, screen-space confetti); drawn on the effects layer. */
     this.snapFlashes = [];
     this.confetti = [];
+    /** Stamp effects (effects/effectRecipes.js) at world points; sizes are screen px. */
+    this.particles = [];
+    /** Effect strength: 'normal', 'reduced' or 'off' (effects/effectPlayer.js INTENSITY). */
+    this.effectIntensity = 'normal';
+    /** Where each fake piece was last seen (fakeId -> {x, y}), to puff when one vanishes. */
+    this.fakeSpots = new Map();
 
     this.needsRender = true;
     this.postRenderCallbacks = [];
@@ -82,10 +89,12 @@ export class ViewState {
   /** Forgets everything that points at pieces of the previous puzzle. */
   resetForNewPuzzle({ clearEffects = false } = {}) {
     this.hoveredPieceId = null;
+    this.fakeSpots = new Map();
     this.draggingGroupId = null;
     if (clearEffects) {
       this.snapFlashes = [];
       this.confetti = [];
+      this.particles = [];
     }
     this.needsRender = true;
   }
@@ -176,8 +185,39 @@ export class ViewState {
     );
   }
 
-  /** A short outline flash where pieces snapped into place. */
+  /** Plays a stamp effect (a key of effects/effectRecipes.js EFFECTS) at a world point. */
+  playEffect(name, x, y) {
+    spawnEffect(this.particles, name, x, y, { intensity: this.effectIntensity });
+  }
+
+  /**
+   * Puffs smoke where a fake piece vanished (it expired, or the puzzle was completed), on every
+   * player's screen alike. Call once per frame with the current fake pieces.
+   */
+  trackFakePieces(fakes) {
+    if (fakes.length === 0 && this.fakeSpots.size === 0) return;
+    const seen = new Map(fakes.map((f) => [f.fakeId ?? f.id, { x: f.x, y: f.y }]));
+    for (const [id, spot] of this.fakeSpots) {
+      if (!seen.has(id)) this.playEffect('smokePuff', spot.x, spot.y);
+    }
+    this.fakeSpots = seen;
+  }
+
+  /** Smoke where interference knocked pieces off the board, and a puff where each one landed. */
+  playDropEffect(pieces) {
+    for (const p of pieces) {
+      this.playEffect('smokePuff', p.targetX, p.targetY);
+      this.playEffect('smallPuff', p.x, p.y);
+    }
+  }
+
+  /** A short outline flash where pieces snapped into place, and a star hopping from their middle. */
   addSnapFlashes(pieces) {
+    if (pieces.length > 0) {
+      const cx = pieces.reduce((sum, p) => sum + p.x, 0) / pieces.length;
+      const cy = pieces.reduce((sum, p) => sum + p.y, 0) / pieces.length;
+      this.playEffect('snapStar', cx, cy);
+    }
     for (const sp of pieces) {
       this.snapFlashes.push({
         x: sp.x,
@@ -207,6 +247,6 @@ export class ViewState {
   }
 
   get hasEffects() {
-    return this.snapFlashes.length > 0 || this.confetti.length > 0;
+    return this.snapFlashes.length > 0 || this.confetti.length > 0 || this.particles.length > 0;
   }
 }

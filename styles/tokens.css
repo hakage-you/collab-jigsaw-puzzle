@@ -67,6 +67,13 @@ html[data-theme='light'] {
   --canvas-sheet-bg: #f8fafc;
   --canvas-sheet-text: #1e293b;
 
+  /* Effect stamps (src/render/effects): body colours and the paper style's border and shadow */
+  --fx-quiet: #8db4e8;
+  --fx-smoke: #a3adbb;
+  --fx-gold: #f5b301;
+  --fx-paper: #fffdf7;
+  --fx-shadow: rgb(15 23 42 / 30%);
+
   /* Status & Sabotage Tokens */
   --online-dot: var(--palette-success);
   --dot-outline: rgb(15 23 42 / 25%);
@@ -172,6 +179,11 @@ html[data-theme='dark'] {
   --canvas-grid: rgb(148 163 184 / 7%);
   --canvas-cell-grid: rgb(148 163 184 / 16%);
   --dot-outline: rgb(255 255 255 / 25%);
+  --fx-quiet: #4a72ad;
+  --fx-smoke: #7b8798;
+  --fx-gold: #fcd34d;
+  --fx-paper: #cbd5e1;
+  --fx-shadow: rgb(0 0 0 / 55%);
 
   --shadow-sm: 0 2px 8px rgb(0 0 0 / 35%);
   --shadow-md: 0 8px 22px rgb(0 0 0 / 48%);
