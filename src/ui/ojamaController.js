@@ -1,6 +1,7 @@
 import { OJAMA_CONFIG, YOUTUBE_CONFIG } from '../config/constants.js';
 import { decideCommentOjama } from '../app/ojamaRules.js';
 import { sound } from '../services/sound.js';
+import { SuperchatCard } from './superchatCard.js';
 
 export class OjamaController {
   constructor({ app, updateHUD, requestRender, setGhostPiecesActive = null, showToast }) {
@@ -17,11 +18,7 @@ export class OjamaController {
 
     this.visualSabotageTimerId = null;
     this.visualSabotageRemaining = 0;
-    this.superchatTimerId = null;
-    this.superchatRemaining = 0;
     this.fakeCleanupTimerId = null;
-    this.superchatHp = OJAMA_CONFIG.SUPERCHAT_MAX_HP;
-    this.superchatMaxHp = OJAMA_CONFIG.SUPERCHAT_MAX_HP;
     this.lastOjamaTime = 0;
     this.commentCounter = 0;
     this.autoCommentInterval = null;
@@ -31,14 +28,7 @@ export class OjamaController {
     this.elVisualTimer = document.getElementById('visualSabotageTimer');
     this.elSpotlight = document.getElementById('spotlightOverlay');
 
-    this.elSuperchatLayer = document.getElementById('superchatLayer');
-    this.elSuperchatCard = document.getElementById('superchatCard');
-    this.elSuperchatAuthor = document.getElementById('superchatAuthor');
-    this.elSuperchatAmount = document.getElementById('superchatAmount');
-    this.elSuperchatMessage = document.getElementById('superchatMessage');
-    this.elSuperchatCountdown = document.getElementById('superchatCountdown');
-    this.elSuperchatHpFill = document.getElementById('superchatHpFill');
-    this.elSuperchatHpText = document.getElementById('superchatHpText');
+    this.superchat = new SuperchatCard({ app, showToast });
 
     this.elOjamaCommentThreshold = document.getElementById('ojamaCommentThreshold');
     this.elOjamaCooldownSec = document.getElementById('ojamaCooldownSec');
@@ -47,6 +37,7 @@ export class OjamaController {
     this.elOjamaVisualType = document.getElementById('ojamaVisualType');
     this.elOjamaFakeDuration = document.getElementById('ojamaFakeDuration');
     this.elOjamaFakeMaxCount = document.getElementById('ojamaFakeMaxCount');
+    this.elOjamaSuperchatDuration = document.getElementById('ojamaSuperchatDuration');
     this.elOjamaTriggerWords = document.getElementById('ojamaTriggerWords');
 
     this.elCommentTriggerCounter = document.getElementById('commentTriggerCounter');
@@ -76,6 +67,10 @@ export class OjamaController {
         visualType: this.elOjamaVisualType.value || 'random',
         fakeDuration,
         fakeMaxCount,
+        superchatDuration: Math.max(
+          0,
+          Math.min(600, Math.floor(Number(this.elOjamaSuperchatDuration.value) || 0)),
+        ),
         triggerWords: this.elOjamaTriggerWords.value || '',
       },
     });
@@ -94,6 +89,8 @@ export class OjamaController {
     if (this.elOjamaFakeMaxCount) {
       this.elOjamaFakeMaxCount.value = o.fakeMaxCount ?? OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT;
     }
+    this.elOjamaSuperchatDuration.value =
+      o.superchatDuration ?? OJAMA_CONFIG.DEFAULT_SUPERCHAT_DURATION_SEC;
     this.elOjamaTriggerWords.value = o.triggerWords;
     this.updateCommentProgressUI();
   }
@@ -106,9 +103,6 @@ export class OjamaController {
       this.applyVisualEffect(visualType, duration),
     );
     this.app.on('remoteVisualClear', () => this.clearVisualSabotage(false));
-    this.app.on('remoteSuperchat', (msg) => this.showSuperchatOverlay(msg));
-    this.app.on('remoteSuperchatHp', ({ hp, maxHp }) => this.applySuperchatHp(hp, maxHp));
-    this.app.on('remoteSuperchatDismiss', () => this.dismissSuperchat());
   }
 
   _bindEvents() {
@@ -120,6 +114,7 @@ export class OjamaController {
       this.elOjamaVisualType,
       this.elOjamaFakeDuration,
       this.elOjamaFakeMaxCount,
+      this.elOjamaSuperchatDuration,
       this.elOjamaTriggerWords,
     ].forEach((el) => {
       el?.addEventListener('change', () => this._readOjamaInputsToApp());
@@ -138,23 +133,6 @@ export class OjamaController {
     document
       .getElementById('btnTestFake')
       ?.addEventListener('click', () => this.triggerFakePiecesOjama());
-
-    document.getElementById('btnHitSuperchat').addEventListener('click', () => {
-      this.elSuperchatCard.classList.remove('hit-shake');
-      void this.elSuperchatCard.offsetWidth;
-      this.elSuperchatCard.classList.add('hit-shake');
-      sound.playTick();
-
-      if (this.room.isGuest()) {
-        this.room.submitSuperchatHit();
-        return;
-      }
-
-      const nextHp = this.room.submitSuperchatHit();
-      if (nextHp !== null) {
-        this.applySuperchatHp(nextHp, this.superchatMaxHp);
-      }
-    });
 
     document.getElementById('btnSendDummyComment').addEventListener('click', () => {
       const input = document.getElementById('dummyCommentInput');
@@ -233,14 +211,6 @@ export class OjamaController {
     }
   }
 
-  dismissSuperchat() {
-    if (this.superchatTimerId) {
-      clearInterval(this.superchatTimerId);
-      this.superchatTimerId = null;
-    }
-    this.elSuperchatLayer.classList.add('hidden');
-  }
-
   _stopFakeCleanupTimer() {
     if (this.fakeCleanupTimerId) {
       clearInterval(this.fakeCleanupTimerId);
@@ -265,7 +235,7 @@ export class OjamaController {
 
   clearAllOnComplete() {
     this.clearVisualSabotage(false);
-    this.dismissSuperchat();
+    this.superchat.dismiss();
     this.stopAutoComments();
     this._stopFakeCleanupTimer();
     if (this.engine.clearFakePieces()) {
@@ -357,42 +327,6 @@ export class OjamaController {
     return true;
   }
 
-  applySuperchatHp(hp, maxHp) {
-    this.superchatHp = hp;
-    this.superchatMaxHp = maxHp;
-    this.elSuperchatHpText.textContent = String(hp);
-    const pct = maxHp > 0 ? (hp / maxHp) * 100 : 0;
-    this.elSuperchatHpFill.style.width = `${pct}%`;
-    if (hp <= 0) {
-      this.dismissSuperchat();
-      this.showToast('巨大スパチャを撃退しました', 'success');
-    }
-  }
-
-  showSuperchatOverlay({ maxHp, duration, author, message, amountDisplay }) {
-    this.dismissSuperchat();
-    this.elSuperchatAuthor.textContent = author || 'リスナー（お邪魔枠）';
-    this.elSuperchatAmount.textContent = amountDisplay || '¥10,000';
-    this.elSuperchatMessage.textContent = message || '完成させるな！中央をブロック中';
-
-    this.superchatRemaining = duration || OJAMA_CONFIG.SUPERCHAT_DURATION_SEC;
-    this.applySuperchatHp(maxHp, maxHp);
-    this.elSuperchatCountdown.textContent = `${this.superchatRemaining}s`;
-    this.elSuperchatLayer.classList.remove('hidden');
-
-    sound.playOjama();
-    this.showToast('巨大スパチャが盤面をブロックしています', 'ojama');
-
-    this.superchatTimerId = setInterval(() => {
-      this.superchatRemaining -= 1;
-      if (this.superchatRemaining <= 0) {
-        this.dismissSuperchat();
-      } else {
-        this.elSuperchatCountdown.textContent = `${this.superchatRemaining}s`;
-      }
-    }, 1000);
-  }
-
   triggerSuperchatOjama(customText = null, customAuthor = null, options = {}) {
     if (this.guardIfCompleted()) return false;
     const sampleMsgs = [
@@ -408,12 +342,13 @@ export class OjamaController {
       const clampedTier = Math.min(7, Math.max(1, Number(options.tier)));
       maxHp += (clampedTier - 1) * YOUTUBE_CONFIG.SUPERCHAT_TIER_HP_BONUS;
     }
-    const duration = OJAMA_CONFIG.SUPERCHAT_DURATION_SEC;
+    const duration =
+      this.getSettings().ojama.superchatDuration ?? OJAMA_CONFIG.DEFAULT_SUPERCHAT_DURATION_SEC;
 
     this.engine.recordSuperchatOjama();
     this.updateHUD();
     this.room.broadcastSuperchatStart({ maxHp, duration, author, message, amountDisplay });
-    this.showSuperchatOverlay({ maxHp, duration, author, message, amountDisplay });
+    this.superchat.show({ maxHp, duration, author, message, amountDisplay });
     return true;
   }
 
@@ -440,6 +375,7 @@ export class OjamaController {
   triggerPrankOjama() {
     if (this.guardIfCompleted()) return false;
     const excluded = this.room.getLockedGroupIds();
+    const before = this.engine.turnStates();
     const changed = this.engine.prankLoosePieces(OJAMA_CONFIG.PRANK_DEFAULT_COUNT, excluded);
     if (changed.length === 0) {
       this.showToast('動かせる未配置ピースがありません', 'info');
@@ -448,9 +384,10 @@ export class OjamaController {
     sound.playOjama();
     this.updateHUD();
     this.requestRender();
+    this.app.emit('ojamaPrankEffect', { pieces: changed, before });
     const msg = `お邪魔発動：未配置ピース ${changed.length}個が回転・裏返りました`;
     this.showToast(msg, 'ojama');
-    this.room.broadcastPhysicalOjama(msg, changed);
+    this.room.broadcastPhysicalOjama(msg, changed, 'ojama_prank');
     return true;
   }
 

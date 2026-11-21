@@ -5,12 +5,14 @@ import { LobbyUI } from './lobbyUI.js';
 import { OjamaController } from './ojamaController.js';
 import { NoticeUI } from './noticeUI.js';
 import { ParticipantsUI } from './participantsUI.js';
+import { PuzzleLoading } from './puzzleLoading.js';
 import { createPuzzleRenderer } from './puzzleRenderer.js';
 import { RecruitUI } from './recruitUI.js';
 import { ResultModalUI } from './resultModalUI.js';
 import { SaveLoadUI } from './saveLoadUI.js';
 import { SetupDrawerUI } from './setupDrawerUI.js';
 import { SortFilterUI } from './sortFilterUI.js';
+import { TestPalette } from './testPalette.js';
 import { TermsModal } from './termsModal.js';
 import { TopbarUI } from './topbarUI.js';
 import { YouTubeUI } from './youtubeUI.js';
@@ -59,9 +61,12 @@ function boot() {
     showToast,
   });
 
+  const loading = new PuzzleLoading(renderer.viewState);
+
   const setupDrawerUI = new SetupDrawerUI({
     app,
     renderer,
+    loading,
     showToast,
   });
 
@@ -81,15 +86,17 @@ function boot() {
   });
 
   const youtubeUI = new YouTubeUI({ app, ojama, showToast });
+  new TestPalette({ closeStreamModal: () => topbarUI.closeStreamModal() });
 
   new SaveLoadUI({ app, showToast });
   const diagnosticsUI = new DiagnosticsUI({ app, showToast });
   new TermsModal();
-  new ResultModalUI({ app, renderer });
+  new ResultModalUI({ app, renderer, loading });
 
   new CanvasInteraction({
     app,
     renderer,
+    loading,
     ojama,
     fitViewAndSync: () => setupDrawerUI.fitViewAndSync(),
     updateZoomReadout: () => setupDrawerUI.updateZoomReadout(),

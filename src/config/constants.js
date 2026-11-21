@@ -78,7 +78,8 @@ export const VIEWPORT_CONFIG = {
 
 export const OJAMA_CONFIG = {
   SUPERCHAT_MAX_HP: 15,
-  SUPERCHAT_DURATION_SEC: 15,
+  /** Seconds a superchat stays unless driven off; 0 = until it is driven off. */
+  DEFAULT_SUPERCHAT_DURATION_SEC: 0,
   AUTO_COMMENT_INTERVAL_MS: 1100,
   PRANK_DEFAULT_COUNT: 3,
   FAKE_PIECE_DURATION_SEC: 60,

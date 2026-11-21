@@ -438,7 +438,10 @@ export class HostSession {
     return room.sharedSuperchatHp;
   }
 
-  /** `kind` tells guests what happened ('ojama_drop' plays the drop effect; others: 'ojama'). */
+  /**
+   * `kind` tells guests what happened, so they play the same effect: 'ojama_drop' (smoke),
+   * 'ojama_prank' (curled arrows); other interference: 'ojama'.
+   */
   broadcastPhysicalOjama(noticeText, changedPieces, kind = 'ojama') {
     this._broadcastPiecesPatch(changedPieces, { type: kind }, 'host');
     this.room.transport?.broadcast({ type: MSG.OJAMA_NOTICE, text: noticeText });

@@ -70,6 +70,7 @@ html[data-theme='light'] {
   /* Effect stamps (src/render/effects): body colours and the paper style's border and shadow */
   --fx-quiet: #8db4e8;
   --fx-smoke: #a3adbb;
+  --fx-mischief: #a78bfa;
   --fx-gold: #f5b301;
   --fx-rose: #f472b6;
   --fx-mint: #34d399;
@@ -183,6 +184,7 @@ html[data-theme='dark'] {
   --dot-outline: rgb(255 255 255 / 25%);
   --fx-quiet: #4a72ad;
   --fx-smoke: #7b8798;
+  --fx-mischief: #7c6bd6;
   --fx-gold: #fcd34d;
   --fx-rose: #f9a8d4;
   --fx-mint: #6ee7b7;

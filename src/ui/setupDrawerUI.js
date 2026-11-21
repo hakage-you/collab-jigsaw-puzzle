@@ -1,10 +1,13 @@
 import { drawCanvasFit, loadImageFromFile } from '../services/imageLoader.js';
 
 export class SetupDrawerUI {
-  constructor({ app, renderer, showToast }) {
+  constructor({ app, renderer, loading, showToast }) {
     this.app = app;
     this.renderer = renderer;
+    this.loading = loading;
     this.showToast = showToast;
+    /** An image picked in this dialog: the puzzle switches to it only when Start is pressed. */
+    this.pendingImage = null;
 
     this.elModal = document.getElementById('puzzleSetupModal');
     this.elBtnCloseModal = document.getElementById('btnCloseSetupModal');
@@ -38,6 +41,7 @@ export class SetupDrawerUI {
   }
 
   openModal() {
+    this.pendingImage = null;
     this.syncSettings(this.app.getSettings());
     this.updatePreviewStrip();
     this.elModal?.classList.remove('hidden');
@@ -45,6 +49,27 @@ export class SetupDrawerUI {
 
   closeModal() {
     this.elModal?.classList.add('hidden');
+    if (this.pendingImage) {
+      this.pendingImage = null;
+      this.updatePreviewStrip();
+      this.updatePresetHighlight();
+    }
+  }
+
+  /** The image the dialog is set up for: the one just picked, or the current puzzle's. */
+  _image() {
+    return this.pendingImage ?? this.app.getSourceImage();
+  }
+
+  /** Picks an image for the next puzzle, keeping about the same number of pieces. */
+  _pickImage(image) {
+    this.pendingImage = image;
+    const total = Number(this.elInputCols.value) * Number(this.elInputRows.value);
+    const { cols, rows } = this.app.computeGridForPieceCount(total, image.canvas);
+    this.elInputCols.value = cols;
+    this.elInputRows.value = rows;
+    this._readAndPatch();
+    this.updatePreviewStrip();
   }
 
   updateZoomReadout() {
@@ -73,10 +98,10 @@ export class SetupDrawerUI {
   }
 
   updatePreviewStrip() {
-    const { canvas: srcCanvas, name } = this.app.getSourceImage();
+    const { canvas: srcCanvas, name } = this._image();
     const settings = this.app.getSettings();
     drawCanvasFit(this.elPreviewCanvas, srcCanvas);
-    if ((settings.referenceMode || 'underlay') === 'floating') {
+    if (!this.pendingImage && (settings.referenceMode || 'underlay') === 'floating') {
       drawCanvasFit(this.elFloatingRefCanvas, srcCanvas);
     }
     this.elImageSourceLabel.textContent = name;
@@ -85,7 +110,7 @@ export class SetupDrawerUI {
   }
 
   updateLobbySummaries() {
-    const { name } = this.app.getSourceImage();
+    const { name } = this._image();
     const s = this.app.getSettings();
     const summary = `現在の設定: ${name} / ${s.cols}×${s.rows} (${s.cols * s.rows}ピース)`;
     if (this.elLobbySoloSummary) this.elLobbySoloSummary.textContent = summary;
@@ -96,7 +121,7 @@ export class SetupDrawerUI {
     const settings = this.app.getSettings();
     document.querySelectorAll('#splitPresets .btn-seg').forEach((btn) => {
       const targetCount = Number(btn.dataset.count);
-      const grid = this.app.computeGridForPieceCount(targetCount);
+      const grid = this.app.computeGridForPieceCount(targetCount, this._image().canvas);
       btn.classList.toggle('active', grid.cols === settings.cols && grid.rows === settings.rows);
     });
   }
@@ -147,21 +172,7 @@ export class SetupDrawerUI {
       });
     });
 
-    document.getElementById('imageFileInput').addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        loadImageFromFile(
-          file,
-          (imgCanvas, name) => this.app.setCustomImage(imgCanvas, name),
-          (msg) => this.showToast(msg, 'ojama'),
-        );
-      }
-      e.target.value = '';
-    });
-
-    document.getElementById('btnUseSampleImage').addEventListener('click', () => {
-      this.app.useSampleImage();
-    });
+    this._bindImagePicks();
 
     this.elGuideOpacityRange.addEventListener('input', () => {
       this._readAndPatch();
@@ -169,7 +180,10 @@ export class SetupDrawerUI {
 
     document.querySelectorAll('#splitPresets .btn-seg').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const { cols, rows } = this.app.computeGridForPieceCount(Number(btn.dataset.count));
+        const { cols, rows } = this.app.computeGridForPieceCount(
+          Number(btn.dataset.count),
+          this._image().canvas,
+        );
         this.elInputCols.value = cols;
         this.elInputRows.value = rows;
         this._readAndPatch();
@@ -199,10 +213,37 @@ export class SetupDrawerUI {
 
     document.getElementById('btnNewPuzzle').addEventListener('click', () => {
       this._readAndPatch();
-      this.app.startNewPuzzle();
+      const image = this.pendingImage;
+      this.pendingImage = null;
       this.closeModal();
-      const s = this.app.getSettings();
-      this.showToast(`${s.cols}×${s.rows} で新しいパズルを開始しました`, 'success');
+      this.loading.run(() => {
+        this.app.startNewPuzzle(image);
+        const s = this.app.getSettings();
+        this.showToast(`${s.cols}×${s.rows} で新しいパズルを開始しました`, 'success');
+      });
+    });
+  }
+
+  /** Picking a file or the sample only sets up the dialog; Start switches the puzzle to it. */
+  _bindImagePicks() {
+    document.getElementById('imageFileInput').addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        loadImageFromFile(
+          file,
+          (canvas, name) => this._pickImage({ canvas, name, isSample: false }),
+          (msg) => this.showToast(msg, 'ojama'),
+        );
+      }
+      e.target.value = '';
+    });
+
+    document.getElementById('btnUseSampleImage').addEventListener('click', () => {
+      this._pickImage({
+        canvas: this.app.createSampleCanvas(),
+        name: 'サンプルテスト画像',
+        isSample: true,
+      });
     });
   }
 

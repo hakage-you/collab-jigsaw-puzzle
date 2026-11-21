@@ -38,11 +38,12 @@ function startAngle(motion, i, count, turn, random) {
 }
 
 /** The i-th stamp of an effect (see spawnEffect). */
-function makeStamp(name, recipe, i, { x, y, area, k, perWave, duration, turn, random }) {
+function makeStamp(name, recipe, i, at) {
+  const { x, y, area, k, perWave, duration, turn, random, direction } = at;
   const rain = recipe.motion === 'rain';
-  return {
+  const stamp = {
     name,
-    screen: rain,
+    screen: rain || at.screen,
     x: rain ? random() * area.width : x,
     y: rain ? -recipe.sizePx * (1 + random() * 3) : y,
     // Rain falls past the bottom of the area; other motions travel travelPx.
@@ -50,20 +51,24 @@ function makeStamp(name, recipe, i, { x, y, area, k, perWave, duration, turn, ra
     color: recipe.colors[i % recipe.colors.length],
     angle: startAngle(recipe.motion, i % perWave, perWave, turn, random),
     travel: recipe.travelPx * k.travel * (0.8 + 0.4 * random()),
-    spin: recipe.spinTurns * k.spin * (random() < 0.5 ? -1 : 1),
-    // Later waves wait their turn (a negative age is "not started yet").
-    age: -Math.floor(i / perWave) * (recipe.waveGapSec || 0) - (rain ? random() * 0.15 : 0),
-    duration,
   };
+  // Which way it turns; `dir` is kept even when spinning is off, so an arrow still points right.
+  stamp.dir = direction ?? (random() < 0.5 ? -1 : 1);
+  stamp.spin = recipe.spinTurns * k.spin * stamp.dir;
+  // Later waves wait their turn (a negative age is "not started yet").
+  stamp.age = -Math.floor(i / perWave) * (recipe.waveGapSec || 0) - (rain ? random() * 0.15 : 0);
+  stamp.duration = duration;
+  return stamp;
 }
 
 /**
  * Adds one effect's stamps to `list`. Returns how many were added.
- * Point effects start at world point (x, y); 'rain' effects cover the screen area `opts.area`
- * (x and y are ignored) and are placed in screen px.
+ * Point effects start at world point (x, y), or at screen point (x, y) with `opts.screen`;
+ * 'rain' effects cover the screen area `opts.area` (x and y are ignored), in screen px.
  * @param {object[]} list particles (ViewState.particles)
  * @param {string} name a key of EFFECTS
- * @param {object} [opts] { intensity, random, style, area }
+ * @param {object} [opts] { intensity, random, style, area, direction, screen }
+ *   `direction`: 1 or -1 for 'turn' (clockwise or anticlockwise); random when left out.
  */
 export function spawnEffect(list, name, x, y, opts = {}) {
   const { intensity = 'normal', random = Math.random, style = ACTIVE_STYLE } = opts;
@@ -83,8 +88,11 @@ export function spawnEffect(list, name, x, y, opts = {}) {
     duration: style.tokens.durations[recipe.duration],
     turn: random() * Math.PI * 2,
     random,
+    screen: Boolean(opts.screen),
   };
-  for (let i = 0; i < total; i++) list.push(makeStamp(name, recipe, i, at));
+  for (let i = 0; i < total; i++) {
+    list.push(makeStamp(name, recipe, i, { ...at, direction: opts.direction }));
+  }
   return total;
 }
 
@@ -112,6 +120,9 @@ export function sampleParticle(p, style = ACTIVE_STYLE) {
       sizePx: recipe.sizePx,
     };
   }
+  if (recipe.motion === 'turn' || recipe.motion === 'flip') {
+    return sampleInPlace(p, recipe, u, scale, style);
+  }
   const d = p.travel * style.easings[recipe.travel](u);
   return {
     dx: Math.cos(p.angle) * d,
@@ -119,6 +130,23 @@ export function sampleParticle(p, style = ACTIVE_STYLE) {
     scale,
     rotation,
     flip: 1,
+    sizePx: recipe.sizePx,
+  };
+}
+
+/** 'turn' and 'flip': the stamp stays at its point and turns (eased by the travel curve). */
+function sampleInPlace(p, recipe, u, scale, style) {
+  const k = style.easings[recipe.travel](u);
+  const turning = recipe.motion === 'turn';
+  return {
+    dx: 0,
+    dy: 0,
+    scale,
+    rotation: turning ? p.spin * Math.PI * 2 * k : 0,
+    // 'flip' turns the card over. 'turn' uses the mirrored shape for anticlockwise instead of
+    // flipping the stamp, so the shadow stays to the lower right.
+    flip: turning ? 1 : Math.cos(Math.abs(p.spin) * Math.PI * 2 * k),
+    mirror: turning && p.dir < 0,
     sizePx: recipe.sizePx,
   };
 }
@@ -150,6 +178,16 @@ export const FX_COLOR_VARS = Object.freeze({
   shadow: '--fx-shadow',
 });
 
+/** A shape turned left to right. */
+function mirrorShape(shape) {
+  const flipX = (c) => {
+    const m = { ...c, x: -c.x };
+    if (c.x1 !== undefined) Object.assign(m, { x1: -c.x1, x2: -c.x2 });
+    return m;
+  };
+  return { commands: shape.commands.map(flipX) };
+}
+
 /** Stamps drawn once per shape and colour set, then reused (the theme changes the key). */
 export class StampCache {
   constructor(style = ACTIVE_STYLE) {
@@ -157,12 +195,13 @@ export class StampCache {
     this.stamps = new Map();
   }
 
-  get(shape, role, fx) {
+  /** `mirrored`: the shape turned left to right before finishing (its shadow still lower right). */
+  get(shape, role, fx, mirrored = false) {
     const colors = stampColors(role, fx);
-    const key = `${shape}|${colors.body}|${colors.paper}|${colors.shadow}`;
+    const key = `${shape}|${mirrored}|${colors.body}|${colors.paper}|${colors.shadow}`;
     let stamp = this.stamps.get(key);
     if (!stamp) {
-      stamp = this.style.finish(SHAPES[shape], colors);
+      stamp = this.style.finish(mirrored ? mirrorShape(SHAPES[shape]) : SHAPES[shape], colors);
       this.stamps.set(key, stamp);
     }
     return stamp;

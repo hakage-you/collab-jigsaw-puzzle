@@ -2,8 +2,9 @@ import { VIEWPORT_CONFIG } from '../config/constants.js';
 import { loadImageFromFile } from '../services/imageLoader.js';
 
 export class CanvasInteraction {
-  constructor({ app, renderer, ojama, fitViewAndSync, updateZoomReadout, showToast }) {
+  constructor({ app, renderer, loading, ojama, fitViewAndSync, updateZoomReadout, showToast }) {
     this.app = app;
+    this.loading = loading;
     /** Camera, dragged/hovered piece and reference sheet: input changes these, never the renderer. */
     this.vs = renderer.viewState;
     this.ojama = ojama;
@@ -304,7 +305,7 @@ export class CanvasInteraction {
       if (file) {
         loadImageFromFile(
           file,
-          (imgCanvas, name) => this.app.setCustomImage(imgCanvas, name),
+          (imgCanvas, name) => this.loading.run(() => this.app.setCustomImage(imgCanvas, name)),
           (msg) => this.showToast(msg, 'ojama'),
         );
       }
@@ -330,6 +331,11 @@ export class CanvasInteraction {
     });
     this.app.on('snapEffect', ({ pieces }) => this.vs.addSnapFlashes(pieces));
     this.app.on('ojamaDropEffect', ({ pieces }) => this.vs.playDropEffect(pieces));
+    this.app.on('superchatHitEffect', ({ x, y }) => this.vs.playSuperchatHit(x, y));
+    this.app.on('superchatDefeatEffect', ({ x, y }) => this.vs.playSuperchatDefeat(x, y));
+    this.app.on('ojamaPrankEffect', ({ pieces, before }) =>
+      this.vs.playPrankEffect(pieces, before),
+    );
     this.app.on('puzzleReset', ({ canvas: srcCanvas, resetEffects, fitView }) => {
       this.vs.resetForNewPuzzle({ clearEffects: resetEffects });
       this.vs.resetRefSheetGeometry(srcCanvas);

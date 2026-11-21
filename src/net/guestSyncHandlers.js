@@ -1,3 +1,4 @@
+import { turnStates } from '../core/pieceOjamaOps.js';
 import { MSG } from './protocol.js';
 
 /** True when the guest's optimistic lock rollback is pending for this group. */
@@ -118,6 +119,11 @@ function handlePiecesPatch(session, msg) {
   if (Array.isArray(msg.locks)) room.groupLocks = new Map(msg.locks);
   const targetGroupId = msg.pieces?.[0]?.groupId;
   const skipStaleLocalPatch = isStalePatch(session, msg, targetGroupId);
+  // A prank effect shows how each group turned, so keep how the pieces were before the patch.
+  const before =
+    msg.actionResult?.type === 'ojama_prank' && Array.isArray(msg.pieces)
+      ? turnStates(msg.pieces.map((p) => room.engine.getPieceById(p.id)).filter(Boolean))
+      : null;
   if (!skipStaleLocalPatch && Array.isArray(msg.pieces)) {
     applyPatchPieces(room, msg, targetGroupId);
   }
@@ -125,7 +131,7 @@ function handlePiecesPatch(session, msg) {
   if (Array.isArray(msg.zoneLabels)) room.engine.zoneLabels = msg.zoneLabels;
   if (msg.isFinalChunk !== false) {
     room.remoteDragTargets.clear();
-    room.cb.onGuestPatchApplied(msg.pieces || [], msg.actionResult, msg.actorId);
+    room.cb.onGuestPatchApplied(msg.pieces || [], msg.actionResult, msg.actorId, before);
   }
 }
 

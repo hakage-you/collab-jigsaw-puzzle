@@ -48,8 +48,33 @@ function stripOutline() {
   };
 }
 
+/**
+ * A curled arrow going clockwise round most of a circle, head at the end (a piece was turned).
+ * Mirror it for anticlockwise.
+ */
+function curlOutline() {
+  const outer = 0.8;
+  const inner = 0.3;
+  const start = Math.PI * 0.8;
+  const end = Math.PI * 2.1;
+  const steps = 16;
+  const at = (r, a) => ({ x: r * Math.cos(a), y: r * Math.sin(a) });
+  const commands = [];
+  for (let i = 0; i <= steps; i++) {
+    commands.push({ op: i === 0 ? 'M' : 'L', ...at(outer, start + ((end - start) * i) / steps) });
+  }
+  commands.push({ op: 'L', ...at(outer + 0.2, end) });
+  commands.push({ op: 'L', ...at((outer + inner) / 2, end + 0.75) });
+  commands.push({ op: 'L', ...at(inner - 0.2, end) });
+  for (let i = steps; i >= 0; i--) {
+    commands.push({ op: 'L', ...at(inner, start + ((end - start) * i) / steps) });
+  }
+  return { commands };
+}
+
 export const SHAPES = Object.freeze({
   star: starOutline(5, 0.5),
+  curl: curlOutline(),
   strip: stripOutline(),
   puff: puffOutline(
     [

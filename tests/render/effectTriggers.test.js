@@ -75,6 +75,60 @@ describe('effect triggers', () => {
     );
   });
 
+  it('a prank turns an arrow the way each group turned, or turns it over where a piece was flipped', () => {
+    const { engine, vs } = setup();
+    const [a, b, c] = engine.pieces;
+    const before = new Map(
+      [a, b, c].map((p) => [p.id, { rotation: p.rotation, isFlipped: p.isFlipped }]),
+    );
+    a.rotation = (a.rotation + 1) % 4; // a quarter turn clockwise
+    b.rotation = (b.rotation + 3) % 4; // three quarters clockwise: shown as a quarter anticlockwise
+    c.isFlipped = !c.isFlipped;
+    vs.playPrankEffect([a, b, c], before);
+    const got = vs.particles.map(
+      (p) => `${p.name}@${p.x},${p.y}${p.name === 'prankTurn' ? ` ${p.dir}` : ''}`,
+    );
+    expect(new Set(got)).toEqual(
+      new Set([
+        `prankTurn@${a.x},${a.y} 1`,
+        `prankTurn@${b.x},${b.y} -1`,
+        `prankFlip@${c.x},${c.y}`,
+      ]),
+    );
+  });
+
+  it('hitting and driving off the superchat card play on the top layer, over the card', () => {
+    const { renderer, vs } = setup();
+    const stage = renderer.canvasStage;
+    const top = renderer.topEffects.canvas;
+    // The superchat card is part of the stage; the top layer comes after it, so it is drawn over.
+    expect(top.parentElement).toBe(stage);
+    expect(stage.lastElementChild).toBe(top);
+
+    vs.playSuperchatHit(100, 80);
+    vs.playSuperchatDefeat(200, 150);
+    expect(vs.particles).toHaveLength(0);
+    expect(new Set(vs.overlayParticles.map((p) => `${p.name}@${p.x},${p.y} ${p.screen}`))).toEqual(
+      new Set([
+        'superchatHit@100,80 true',
+        'superchatBurstPuff@200,150 true',
+        'superchatBurstStars@200,150 true',
+      ]),
+    );
+
+    for (const now of [1000, 1100, 1116]) renderer.renderFrame(now, () => {});
+    const dpr = top.width / 400;
+    const box = top
+      .getContext('2d')
+      .getImageData(
+        Math.round(70 * dpr),
+        Math.round(50 * dpr),
+        Math.round(60 * dpr),
+        Math.round(60 * dpr),
+      );
+    expect(box.data.some((v, i) => i % 4 === 3 && v > 0)).toBe(true);
+  });
+
   it('confetti falls in waves, and a struggling PC skips the later waves but keeps the first', () => {
     const play = (frameMs) => {
       const { renderer, vs } = setup();

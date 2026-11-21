@@ -193,6 +193,7 @@ const OJAMA_SCHEMA = {
   visualDuration: { type: 'number' },
   visualType: { type: 'string', max: MAX_TEXT_LENGTH },
   fakeDuration: { type: 'number' },
+  superchatDuration: { type: 'number' },
   fakeMaxCount: { type: 'number' },
   triggerWords: { type: 'string', max: MAX_TEXT_LENGTH },
 };

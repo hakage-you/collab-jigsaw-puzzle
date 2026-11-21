@@ -31,7 +31,7 @@ const LIMITS = Object.freeze({
   minContrast: 1.5,
 });
 
-const MOTIONS = ['hop', 'spread', 'rain'];
+const MOTIONS = ['hop', 'spread', 'rain', 'turn', 'flip'];
 
 /** Names a recipe refers to: shape, colour roles, motion, duration and easings. */
 function checkNames(recipe, style, fail) {
