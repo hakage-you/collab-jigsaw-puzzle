@@ -36,10 +36,24 @@ export async function handleAuthResponse(session, connId, msg) {
 }
 
 /** Reconnect of a previously admitted guest using its player id and reconnect token. */
+const SEAT_TAKEN_OVER_REASON = '同じ参加者が別の接続から再参加したため、この接続を切断しました';
+
+function takeOverSeat(session, guest) {
+  const oldConnId = guest.connId;
+  guest.online = false;
+  guest.connId = null;
+  session.releasePlayerHolds(guest.id);
+  if (!oldConnId) return;
+  session.connToPlayer.delete(oldConnId);
+  recordDiagnostic('p2p', 'guest_seat_taken_over', { reason: 'rejoin_token' }, 'info');
+  session.room.transport.sendTo(oldConnId, { type: MSG.KICKED, reason: SEAT_TAKEN_OVER_REASON });
+  setTimeout(() => session.room.transport?.disconnect(oldConnId), 100);
+}
+
 export function handleRejoin(session, connId, msg) {
   session.pendingAuth.delete(connId);
   const existing = session.guests.get(msg.playerId);
-  if (!existing || existing.online || existing.reconnectToken !== msg.reconnectToken) {
+  if (!existing || existing.reconnectToken !== msg.reconnectToken) {
     session.room.transport.sendTo(connId, {
       type: MSG.AUTH_ERROR,
       reason: '再接続トークンが無効です。新しく参加してください',
@@ -47,7 +61,11 @@ export function handleRejoin(session, connId, msg) {
     setTimeout(() => session.room.transport?.disconnect(connId), 100);
     return;
   }
-  if (session.getOnlineCount() >= session.capacity) {
+  if (existing.online) {
+    // The token proves it is the same player: their old connection is stale (network change,
+    // vanished tab) or a duplicate tab. Hand the seat to the new connection.
+    takeOverSeat(session, existing);
+  } else if (session.getOnlineCount() >= session.capacity) {
     session.room.transport.sendTo(connId, { type: MSG.AUTH_ERROR, reason: '部屋が満員です' });
     return;
   }

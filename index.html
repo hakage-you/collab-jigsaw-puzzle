@@ -101,6 +101,7 @@
                   <span class="invite-label">招待リンク（配信映り込み防止のため伏字）</span>
                   <div class="invite-masked-code">••••••••••••••••••••</div>
                 </div>
+                <p class="recruit-status hidden" id="recruitStatus" aria-live="polite"></p>
                 <div class="btn-row">
                   <button type="button" class="btn btn-outline-accent btn-xs" id="btnCopyInviteUrl">
                     招待URLをコピー
@@ -147,6 +148,16 @@
               </button>
               <button type="button" class="btn btn-secondary btn-xs" id="btnRejectKnock">
                 拒否
+              </button>
+            </div>
+          </div>
+
+          <!-- Host Recruiting Banner (idle prompt / stopped / signaling trouble) -->
+          <div id="recruitBanner" class="knock-banner recruit-banner hidden" role="status">
+            <span id="recruitBannerText"></span>
+            <div class="btn-row">
+              <button type="button" class="btn btn-primary btn-xs" id="btnRecruitAction">
+                募集を続ける
               </button>
             </div>
           </div>
@@ -1223,6 +1234,28 @@
             <button type="button" class="btn btn-secondary" id="btnResultClose">
               盤面を眺める
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notices that must not be missed (disconnects). Closes only by its buttons. -->
+      <div
+        id="noticeModal"
+        class="modal-backdrop notice-modal hidden"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="noticeTitle"
+        aria-describedby="noticeMessage"
+      >
+        <div class="modal-card">
+          <h2 id="noticeTitle">お知らせ</h2>
+          <p id="noticeMessage"></p>
+          <p class="notice-hint" id="noticeHint"></p>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-primary hidden" id="btnNoticeAction">
+              再参加する
+            </button>
+            <button type="button" class="btn btn-secondary" id="btnNoticeClose">閉じる</button>
           </div>
         </div>
       </div>

@@ -10,6 +10,7 @@ import {
   broadcastPiecesPatch,
 } from './hostSyncHelper.js';
 import { handleAuthResponse, handleRejoin, admitNewGuest } from './hostAdmission.js';
+import { PeerLiveness } from './heartbeat.js';
 import {
   handleCursorMove,
   handleDragPreview,
@@ -52,9 +53,17 @@ export class HostSession {
     // Monotonic clock for rate limiting; tests replace it to drive time.
     this.now = () => performance.now();
     this.rateGates = new Map();
+    // Guests (admitted or waiting for approval) that stop answering pings are dropped.
+    this.liveness = new PeerLiveness({
+      ping: (connId) => this.room.transport?.sendTo(connId, { type: MSG.PING }),
+      onLost: (connId) => this._dropLostGuest(connId),
+      listPeers: () => [...this.connToPlayer.keys(), ...this.pendingKnocks.keys()],
+      now: () => this.now(),
+    });
   }
 
   reset() {
+    this.liveness.stop();
     if (this.autoBackupTimer) {
       clearTimeout(this.autoBackupTimer);
       this.autoBackupTimer = null;
@@ -159,7 +168,18 @@ export class HostSession {
     });
   }
 
+  startHeartbeat() {
+    this.liveness.start();
+  }
+
+  /** A guest stopped answering pings (tab killed, network lost): free their seat. */
+  _dropLostGuest(connId) {
+    recordDiagnostic('p2p', 'guest_timed_out', { reason: 'no_heartbeat' }, 'warn');
+    this.room.transport?.disconnect(connId);
+  }
+
   onDisconnect(connId) {
+    this.liveness.forget(connId);
     this.pendingAuth.delete(connId);
     this.rateGates.delete(connId);
     if (this.pendingKnocks.has(connId)) {
@@ -176,6 +196,13 @@ export class HostSession {
       guest.connId = null;
     }
 
+    this.releasePlayerHolds(playerId);
+    this.syncRoster();
+    this.room.cb.onRenderNeeded();
+  }
+
+  /** Releases every group the player holds and removes their cursor. */
+  releasePlayerHolds(playerId) {
     for (const [groupId, ownerId] of this.room.groupLocks.entries()) {
       if (ownerId === playerId) {
         this.room.groupLocks.delete(groupId);
@@ -184,14 +211,18 @@ export class HostSession {
       }
     }
     this.room.remoteCursors.delete(playerId);
-    this.syncRoster();
-    this.room.cb.onRenderNeeded();
   }
 
   async onMessage(connId, msg) {
+    this.liveness.seen(connId);
     if (!this._admitRate(connId)) return;
     const clean = sanitizeGuestMessage(msg);
     if (!clean) return;
+    if (clean.type === MSG.PING) {
+      this.room.transport?.sendTo(connId, { type: MSG.PONG });
+      return;
+    }
+    if (clean.type === MSG.PONG) return;
 
     if (clean.type === MSG.AUTH_RESPONSE) {
       await handleAuthResponse(this, connId, clean);
@@ -326,6 +357,8 @@ export class HostSession {
     this.room.roster = this.buildRosterList();
     this.room.transport?.broadcast({ type: MSG.ROSTER_UPDATE, roster: this.room.roster });
     this.room.cb.onRosterUpdate(this.room.roster);
+    // Who is online changed: recruiting may pause (room full) or resume (seat freed).
+    this.room.recruitment?.update();
   }
 
   _broadcastPiecesPatch(pieces, actionResult, actorId) {

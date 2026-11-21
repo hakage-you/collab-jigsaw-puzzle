@@ -951,6 +951,17 @@
   justify-content: center;
 }
 
+/* Above the lobby and other modals: it explains why they appeared. */
+.notice-modal {
+  z-index: 60;
+}
+
+.notice-hint {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
 .modal-card {
   width: min(440px, 92vw);
   background: var(--surface);
@@ -1228,6 +1239,17 @@
   padding: var(--space-2) var(--space-3);
   box-shadow: var(--shadow-md);
   font-size: var(--font-size-sm);
+}
+
+/* Shown under the knock banner when both are visible. */
+.recruit-banner {
+  top: calc(var(--space-3) + 3.5rem);
+}
+
+.recruit-status {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
 }
 
 /* Guest / Host role-based visibility */

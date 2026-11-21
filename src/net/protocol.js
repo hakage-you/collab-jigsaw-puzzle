@@ -13,6 +13,10 @@ export const MSG = {
   WELCOME: 'welcome',
   KICKED: 'kicked',
 
+  // Liveness (either direction; the receiver answers a ping with a pong)
+  PING: 'ping',
+  PONG: 'pong',
+
   // Image Transfer
   IMAGE_ACK: 'image_ack',
   IMAGE_START: 'image_start',

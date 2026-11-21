@@ -22,11 +22,15 @@ export class LocalChannelTransport {
     this.onDisconnect = () => {};
     this.onMessage = () => {};
     this.onError = () => {};
+    this.onSignalingChange = () => {};
+    // Mirrors the host being registered on the signaling server (see PeerJsTransport).
+    this.acceptingJoins = true;
   }
 
   openHost(roomId) {
     this.close();
     this.isHost = true;
+    this.acceptingJoins = true;
     this.roomId = roomId;
     this.channel = new BroadcastChannel(`collab_jigsaw_room_${roomId}`);
 
@@ -36,6 +40,10 @@ export class LocalChannelTransport {
       if (frame.to && frame.to !== this.clientId && frame.to !== 'host') return;
 
       if (frame.kind === 'lc_connect') {
+        if (!this.acceptingJoins) {
+          this.channel.postMessage({ kind: 'lc_unavailable', from: this.clientId, to: frame.from });
+          return;
+        }
         this.connectedPeers.add(frame.from);
         this.channel.postMessage({ kind: 'lc_accept', from: this.clientId, to: frame.from });
         this.onConnect(frame.from);
@@ -58,7 +66,18 @@ export class LocalChannelTransport {
     };
     window.addEventListener('pagehide', this._unloadHandler);
 
+    queueMicrotask(() => this.onSignalingChange('online'));
     return Promise.resolve(roomId);
+  }
+
+  setAcceptingJoins(accepting) {
+    if (!this.isHost || !this.channel) return;
+    this.acceptingJoins = accepting;
+    this.onSignalingChange(accepting ? 'online' : 'paused');
+  }
+
+  retrySignaling() {
+    this.setAcceptingJoins(true);
   }
 
   connectGuest(roomId) {
@@ -89,6 +108,11 @@ export class LocalChannelTransport {
           settled = true;
           this.onConnect(roomId);
           resolve(roomId);
+        } else if (frame.kind === 'lc_unavailable' && !settled) {
+          clearTimeout(timer);
+          settled = true;
+          this.close();
+          reject(new Error('部屋に入れません。満席か募集停止中、または部屋が閉じられています'));
         } else if (frame.kind === 'lc_host_closed' || frame.kind === 'lc_kick') {
           this.onDisconnect(roomId);
           this.close();

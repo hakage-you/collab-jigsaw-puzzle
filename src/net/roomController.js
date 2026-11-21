@@ -3,6 +3,7 @@ import { MSG, generateRoomId } from './protocol.js';
 import { createTransport, getTransportModeFromUrl } from './transport.js';
 import { HostSession } from './hostSession.js';
 import { GuestSession } from './guestSession.js';
+import { Recruitment, RECRUIT_STATE } from './recruitment.js';
 
 export class RoomController {
   constructor({ engine, getSettings, getSourceState, callbacks }) {
@@ -31,6 +32,10 @@ export class RoomController {
     this.sharedSuperchatMaxHp = MULTIPLAYER_CONFIG.SUPERCHAT_BASE_HP;
     this.savedHostContrib = null;
     this.savedGuestContribs = [];
+
+    // Host only: whether new players can find the room on the signaling server.
+    this.recruitment = null;
+    this.signalingState = 'online';
 
     this.hostSession = new HostSession(this);
     this.guestSession = new GuestSession(this);
@@ -123,11 +128,60 @@ export class RoomController {
     this.transport.onDisconnect = (connId) => this.hostSession.onDisconnect(connId);
     this.transport.onMessage = (connId, msg) => this.hostSession.onMessage(connId, msg);
     this.transport.onError = (err) => this.cb.onError(err?.message || '通信エラーが発生しました');
+    this.transport.onSignalingChange = (state) => this._setSignalingState(state);
 
     await this.transport.openHost(this.roomId);
+    this._startRecruitment();
+    this.hostSession.startHeartbeat();
     this.hostSession.syncRoster();
     this.hostSession.scheduleAutoBackup();
     return { roomId: this.roomId, inviteUrl: this.buildInviteUrl() };
+  }
+
+  _startRecruitment() {
+    const host = this.hostSession;
+    this.recruitment = new Recruitment({
+      getOnlineCount: () => host.getOnlineCount(),
+      getCapacity: () => host.capacity,
+      hasPendingJoins: () => host.pendingAuth.size > 0 || host.pendingKnocks.size > 0,
+      setAccepting: (accepting) => this.transport?.setAcceptingJoins(accepting),
+      onChange: () => this._emitRecruitStatus(),
+    });
+    this.recruitment.start();
+    this._emitRecruitStatus();
+  }
+
+  _setSignalingState(state) {
+    if (this.role !== 'host') return;
+    this.signalingState = state;
+    this._emitRecruitStatus();
+  }
+
+  _emitRecruitStatus() {
+    if (this.role !== 'host') return;
+    this.cb.onRecruitChange?.(this.getRecruitStatus());
+  }
+
+  /** Host: { recruit: RECRUIT_STATE value, signaling: transport signaling state }. */
+  getRecruitStatus() {
+    return {
+      recruit: this.recruitment?.state ?? RECRUIT_STATE.OPEN,
+      signaling: this.signalingState,
+    };
+  }
+
+  /** Host answered the idle prompt. */
+  keepRecruiting() {
+    this.recruitment?.keepRecruiting();
+  }
+
+  /** Host reopens recruiting, or retries the signaling server after it gave up. */
+  resumeRecruiting() {
+    if (this.role !== 'host' || !this.recruitment) return;
+    this.recruitment.resume();
+    if (this.signalingState === 'offline' || this.signalingState === 'id_taken') {
+      this.transport?.retrySignaling();
+    }
   }
 
   async joinGuestRoom({ roomId, displayName, passcode = '' }) {
@@ -141,12 +195,20 @@ export class RoomController {
     this.transport.onMessage = (_, msg) => this.guestSession.onMessage(msg);
     this.transport.onDisconnect = () => {
       if (this.role === 'guest') {
+        // Leave the room for real (role, timers, transport) so nothing reports the loss twice.
+        this.close();
         this.cb.onDisconnected('ホストとの接続が切れました');
       }
     };
     this.transport.onError = (err) => this.cb.onError(err?.message || '通信エラーが発生しました');
 
     await this.transport.connectGuest(this.roomId);
+    this.guestSession.startHeartbeat();
+  }
+
+  /** True when this tab holds a reconnect token for the room (same seat on rejoin). */
+  hasRejoinToken(roomId) {
+    return this.guestSession.hasSavedSession(roomId);
   }
 
   approveKnock(connId) {
@@ -444,6 +506,9 @@ export class RoomController {
     if (this.role === 'host') {
       this._snapshotHostContributions();
     }
+    this.recruitment?.stop();
+    this.recruitment = null;
+    this.signalingState = 'online';
     this.hostSession.reset();
     this.guestSession.reset();
     if (this.transport) {

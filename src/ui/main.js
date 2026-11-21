@@ -4,7 +4,9 @@ import { CanvasRenderer } from './canvasRenderer.js';
 import { DiagnosticsUI } from './diagnosticsUI.js';
 import { LobbyUI } from './lobbyUI.js';
 import { OjamaController } from './ojamaController.js';
+import { NoticeUI } from './noticeUI.js';
 import { ParticipantsUI } from './participantsUI.js';
+import { RecruitUI } from './recruitUI.js';
 import { ResultModalUI } from './resultModalUI.js';
 import { SaveLoadUI } from './saveLoadUI.js';
 import { SetupDrawerUI } from './setupDrawerUI.js';
@@ -26,6 +28,7 @@ function boot() {
 
   const showToast = (msg, kind) => topbarUI.showToast(msg, kind);
   const lobbyUI = new LobbyUI({ app, showToast });
+  new NoticeUI({ app, actions: { rejoin: () => lobbyUI.rejoinLastRoom() } });
 
   topbarUI = new TopbarUI({
     app,
@@ -33,6 +36,7 @@ function boot() {
     onOpenLobby: () => lobbyUI.show(),
   });
 
+  new RecruitUI({ app });
   new ParticipantsUI({
     app,
     showToast,

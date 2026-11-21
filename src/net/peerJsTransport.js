@@ -6,6 +6,27 @@ import { MULTIPLAYER_CONFIG } from '../config/constants.js';
 // STUN only: never relay game data through a TURN server (see MULTIPLAYER_CONFIG.ICE_SERVERS).
 const PEER_OPTIONS = { debug: 0, config: { iceServers: MULTIPLAYER_CONFIG.ICE_SERVERS } };
 
+// Errors about the signaling server connection. After the room is open these are handled by
+// re-registering (host) and must not reach the player as error toasts.
+const SIGNALING_ERROR_TYPES = new Set([
+  'network',
+  'server-error',
+  'socket-error',
+  'socket-closed',
+  'disconnected',
+]);
+
+/** Turns a PeerJS join failure into a message the guest can act on. */
+export function describeJoinError(err) {
+  if (err?.type === 'peer-unavailable') {
+    return new Error('部屋に入れません。満席か募集停止中、または部屋が閉じられています');
+  }
+  if (SIGNALING_ERROR_TYPES.has(err?.type)) {
+    return new Error('仲介サーバーに接続できません。時間をおいて再度お試しください');
+  }
+  return err instanceof Error ? err : new Error('接続に失敗しました');
+}
+
 export class PeerJsTransport {
   constructor() {
     this.peer = null;
@@ -17,6 +38,14 @@ export class PeerJsTransport {
     this.onDisconnect = () => {};
     this.onMessage = () => {};
     this.onError = () => {};
+    // Host only: 'online' | 'paused' | 'reconnecting' | 'offline' | 'id_taken'.
+    this.onSignalingChange = () => {};
+
+    this.wantSignaling = false;
+    this.hostReady = false;
+    this.idTaken = false;
+    this.retryIndex = 0;
+    this.retryTimer = null;
   }
 
   _getPeerConstructor() {
@@ -39,10 +68,22 @@ export class PeerJsTransport {
       this.peer = peer;
       let settled = false;
 
+      this.wantSignaling = true;
+      this.hostReady = false;
+      this.idTaken = false;
+      this.retryIndex = 0;
+
       peer.on('open', (id) => {
-        settled = true;
-        resolve(id);
+        this.retryIndex = 0;
+        this.hostReady = true;
+        if (!settled) {
+          settled = true;
+          resolve(id);
+        }
+        this.onSignalingChange('online');
       });
+
+      peer.on('disconnected', () => this._onSignalingLost(peer));
 
       peer.on('connection', (conn) => {
         const connId = conn.peer;
@@ -66,11 +107,76 @@ export class PeerJsTransport {
         if (!settled) {
           settled = true;
           reject(err);
-        } else {
+        } else if (err?.type === 'unavailable-id') {
+          // Someone else registered the room id while we were away: do not keep retrying.
+          this.idTaken = true;
+        } else if (!SIGNALING_ERROR_TYPES.has(err?.type)) {
           this.onError(err);
         }
       });
     });
+  }
+
+  /**
+   * Host: registers on (true) or leaves (false) the signaling server. Players already in the
+   * room are connected directly and are not affected either way.
+   */
+  setAcceptingJoins(accepting) {
+    this.wantSignaling = accepting;
+    const peer = this.peer;
+    if (!this.isHost || !peer || peer.destroyed) return;
+    this._clearRetry();
+    if (!accepting) {
+      if (peer.disconnected) this.onSignalingChange('paused');
+      else peer.disconnect();
+      return;
+    }
+    if (peer.disconnected) {
+      this.idTaken = false;
+      this.retryIndex = 0;
+      this._reconnectSignaling(peer);
+    }
+  }
+
+  /** Host: try to re-register right away (manual retry after giving up). */
+  retrySignaling() {
+    this.setAcceptingJoins(true);
+  }
+
+  _onSignalingLost(peer) {
+    // Failures before the room first opened are reported by openHost() itself.
+    if (peer !== this.peer || peer.destroyed || !this.hostReady) return;
+    if (!this.wantSignaling) {
+      this.onSignalingChange('paused');
+      return;
+    }
+    if (this.idTaken) {
+      this.onSignalingChange('id_taken');
+      return;
+    }
+    const delays = MULTIPLAYER_CONFIG.SIGNALING_RETRY_DELAYS_MS;
+    if (this.retryIndex >= delays.length) {
+      this.onSignalingChange('offline');
+      return;
+    }
+    this.onSignalingChange('reconnecting');
+    this._clearRetry();
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      this._reconnectSignaling(peer);
+    }, delays[this.retryIndex]);
+    this.retryIndex += 1;
+  }
+
+  _reconnectSignaling(peer) {
+    if (peer !== this.peer || peer.destroyed || !peer.disconnected) return;
+    this.onSignalingChange('reconnecting');
+    peer.reconnect();
+  }
+
+  _clearRetry() {
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
   }
 
   connectGuest(roomId) {
@@ -86,8 +192,8 @@ export class PeerJsTransport {
       const fail = (err) => {
         if (!settled) {
           settled = true;
-          reject(err);
-        } else {
+          reject(describeJoinError(err));
+        } else if (!SIGNALING_ERROR_TYPES.has(err?.type)) {
           this.onError(err);
         }
       };
@@ -106,6 +212,8 @@ export class PeerJsTransport {
         conn.on('open', () => {
           clearTimeout(timer);
           settled = true;
+          // Connected directly to the host: the signaling server is no longer needed.
+          peer.disconnect();
           this.onConnect(roomId);
           resolve(roomId);
         });
@@ -161,6 +269,9 @@ export class PeerJsTransport {
   }
 
   close() {
+    this.wantSignaling = false;
+    this.hostReady = false;
+    this._clearRetry();
     for (const conn of this.connections.values()) {
       try {
         conn.close();

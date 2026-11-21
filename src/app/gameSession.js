@@ -474,13 +474,35 @@ export class GameSession {
 
   async joinGuestRoom({ roomId, displayName, passcode }) {
     this.emit('stopYoutubePolling', { reason: null });
+    // Remembered (without the passcode) so a dropped guest can rejoin with one click.
+    this.lastGuestJoin = { roomId: roomId.trim(), displayName };
     await this.room.joinGuestRoom({ roomId, displayName, passcode });
+  }
+
+  /** The room this tab last joined as a guest, or null. */
+  getLastGuestJoin() {
+    return this.lastGuestJoin || null;
+  }
+
+  /** True when this tab still holds a seat token for the room it last joined. */
+  canRejoinLastRoom() {
+    return Boolean(this.lastGuestJoin && this.room.hasRejoinToken(this.lastGuestJoin.roomId));
   }
 
   approveNextKnock() {
     const req = this.knockQueue.shift();
     this.emit('knockChange', [...this.knockQueue]);
     if (req) this.room.approveKnock(req.connId);
+  }
+
+  /** Host: keep the room listed after the "nobody is here" prompt. */
+  keepRecruiting() {
+    this.room.keepRecruiting();
+  }
+
+  /** Host: reopen recruiting (or reconnect to the signaling server). */
+  resumeRecruiting() {
+    this.room.resumeRecruiting();
   }
 
   rejectNextKnock() {

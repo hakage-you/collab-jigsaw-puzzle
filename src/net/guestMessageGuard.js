@@ -95,6 +95,8 @@ const GUEST_MESSAGE_VALIDATORS = new Map([
   [MSG.ROTATE_REQUEST, validatePieceOp],
   [MSG.FLIP_REQUEST, validatePieceOp],
   [MSG.SUPERCHAT_HIT, (m) => ({ type: m.type })],
+  [MSG.PING, (m) => ({ type: m.type })],
+  [MSG.PONG, (m) => ({ type: m.type })],
 ]);
 
 /** Logs only the message type and the reason, never the message contents. */

@@ -157,8 +157,8 @@ describe('room admission', () => {
       const first = await joinGuest(roomId, { name: NAME_A });
       await waitForConvergence([host, first]);
 
-      const second = await joinGuest(roomId, { name: NAME_B, waitForSync: false });
-      await nextEvent(second, 'authRejected', { timeout: 5000 });
+      // A full room stops recruiting, so the second guest cannot even reach the host.
+      await expect(joinGuest(roomId, { name: NAME_B, waitForSync: false })).rejects.toThrow('満席');
 
       await pause(300);
       expect(host.room.getOnlineCount()).toBe(2);

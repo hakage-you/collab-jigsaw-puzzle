@@ -429,6 +429,8 @@ const HOST_MESSAGE_VALIDATORS = new Map([
   [MSG.SUPERCHAT_DISMISS, validateSignal],
   [MSG.OJAMA_NOTICE, validateNotice],
   [MSG.PUZZLE_COMPLETED, validateSignal],
+  [MSG.PING, validateSignal],
+  [MSG.PONG, validateSignal],
 ]);
 
 /** Logs only the message type (truncated) and the reason, never the message contents. */

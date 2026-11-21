@@ -1,4 +1,5 @@
 import { sound } from '../services/sound.js';
+import { disconnectNotice, kickedNotice } from './connectionNotices.js';
 
 /** Lobby, connection and roster callbacks from RoomController. */
 function lobbyCallbacks(session) {
@@ -7,6 +8,7 @@ function lobbyCallbacks(session) {
     onToast: (msg, kind) => session.emit('toast', { message: msg, kind }),
     onRenderNeeded: () => session.emit('renderNeeded'),
     onRosterUpdate: () => session.emit('hudUpdate'),
+    onRecruitChange: (status) => session.emit('recruitChange', status),
     onKnockRequest: (req) => {
       if (!session.knockQueue.some((item) => item.connId === req.connId)) {
         session.knockQueue.push(req);
@@ -19,13 +21,15 @@ function lobbyCallbacks(session) {
       session.emit('knockChange', [...session.knockQueue]);
     },
     onGuestStatus: (text) => session.emit('guestStatus', { text, isError: false }),
-    onAuthRejected: (reason) => {
+    onAuthRejected: (reason, { kicked = false } = {}) => {
       session._emitRoleChange();
       session.emit('authRejected', { reason });
+      if (kicked) session.emit('notice', kickedNotice(reason));
     },
     onDisconnected: (reason) => {
       session._emitRoleChange();
       session.emit('disconnected', { reason });
+      session.emit('notice', disconnectNotice(reason, session.canRejoinLastRoom()));
     },
     onGuestAdmitted: () => {
       session._emitRoleChange();
