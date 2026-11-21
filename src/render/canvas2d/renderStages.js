@@ -13,7 +13,7 @@ import {
  * Every stage receives one frame context `f`, built once per frame:
  * { ctx, engine, room, view, refSheet, settings, isDark, pal, rect, dpr,
  *   highlightFilter, ghostPiecesActive, draggingGroupId, hoveredPiece,
- *   snapFlashes, confetti, lockedCache }
+ *   snapFlashes, confetti, lockedCache, sprites }
  */
 
 export function prepareCanvas(f) {
@@ -69,8 +69,13 @@ export function collectVisiblePieces(f) {
 }
 
 function resolveLodConfig(f, visibleCount) {
-  if (!f.engine.lodCache) return null;
-  return f.engine.lodCache.resolveLodConfig(f.view.scale * f.dpr, f.engine, visibleCount);
+  const { sprites } = f;
+  return sprites.lodCache.resolveLodConfig(
+    f.view.scale * f.dpr,
+    f.engine,
+    visibleCount,
+    sprites.metrics,
+  );
 }
 
 function drawLoosePieces(f, visibleLoose, lodConfig) {
@@ -100,12 +105,12 @@ function drawLoosePieces(f, visibleLoose, lodConfig) {
 export function drawPieceStage(f, { visibleLocked, visibleLoose }) {
   const lodConfig = resolveLodConfig(f, visibleLocked.length + visibleLoose.length);
   if (lodConfig) {
-    f.engine.lodCache.beginFrame(f.engine.puzzleGeneration, lodConfig.bucket, lodConfig.slotStep);
+    f.sprites.lodCache.beginFrame(f.engine.puzzleGeneration, lodConfig.bucket, lodConfig.slotStep);
     for (const p of visibleLocked) {
       drawPiece(f, { piece: p, lodConfig });
     }
   } else {
-    f.lockedCache.draw(f.ctx, f.engine, f.highlightFilter !== 'all');
+    f.lockedCache.draw(f.ctx, f.engine, f.sprites, f.highlightFilter !== 'all');
   }
   drawLoosePieces(f, visibleLoose, lodConfig);
   return lodConfig;
@@ -169,36 +174,33 @@ function pieceAlpha(f, piece) {
   return alpha;
 }
 
-function resolvePieceSprite(engine, piece, lodConfig) {
-  if (lodConfig && engine.lodCache) {
-    const lodSprite = engine.lodCache.getOrRender(piece, {
+function resolvePieceSprite(f, piece, lodConfig) {
+  const { sprites, engine } = f;
+  if (lodConfig) {
+    const lodSprite = sprites.lodCache.getOrRender(piece, {
       isFlipped: piece.isFlipped,
       lodScale: lodConfig.lodScale,
       engine,
+      store: sprites,
     });
     if (lodSprite) return lodSprite;
   }
-  return piece.isFlipped ? engine.ensureBackSprite(piece) : piece.frontSprite;
+  return piece.isFlipped ? sprites.backSprite(piece) : sprites.frontSprite(piece);
 }
 
-function drawSprite(ctx, piece, sprite) {
-  const drawW = piece.spriteLogicalW || sprite.sw;
-  const drawH = piece.spriteLogicalH || sprite.sh;
-  if (sprite.canvas) {
-    ctx.drawImage(
-      sprite.canvas,
-      sprite.sx,
-      sprite.sy,
-      sprite.sw,
-      sprite.sh,
-      -piece.spriteHalfW,
-      -piece.spriteHalfH,
-      drawW,
-      drawH,
-    );
-  } else {
-    ctx.drawImage(sprite, -piece.spriteHalfW, -piece.spriteHalfH, drawW, drawH);
-  }
+/** Draws a sprite at the puzzle-wide logical sprite size, centred on the piece. */
+function drawSprite(ctx, metrics, sprite) {
+  ctx.drawImage(
+    sprite.canvas,
+    sprite.sx,
+    sprite.sy,
+    sprite.sw,
+    sprite.sh,
+    -metrics.halfW,
+    -metrics.halfH,
+    metrics.logicalW,
+    metrics.logicalH,
+  );
 }
 
 function strokeOutline(f, piece, remoteLockMeta, isActiveGroup) {
@@ -208,10 +210,11 @@ function strokeOutline(f, piece, remoteLockMeta, isActiveGroup) {
   else if (isActiveGroup) strokeCol = pal.accent;
   ctx.lineWidth = (remoteLockMeta || isActiveGroup ? 4.4 : 3.6) / view.scale;
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-  ctx.stroke(piece.path);
+  const path = f.sprites.pathOf(piece);
+  ctx.stroke(path);
   ctx.lineWidth = (remoteLockMeta ? 2.8 : 2.4) / view.scale;
   ctx.strokeStyle = strokeCol;
-  ctx.stroke(piece.path);
+  ctx.stroke(path);
 }
 
 /**
@@ -223,7 +226,7 @@ function drawPiece(
   f,
   { piece, isActiveGroup = false, isHoverGroup = false, remoteLockMeta = null, lodConfig = null },
 ) {
-  const sprite = resolvePieceSprite(f.engine, piece, lodConfig);
+  const sprite = resolvePieceSprite(f, piece, lodConfig);
   if (!sprite) return;
   const { ctx } = f;
 
@@ -234,7 +237,7 @@ function drawPiece(
     ctx.scale(-1, 1);
   }
   ctx.globalAlpha = pieceAlpha(f, piece);
-  drawSprite(ctx, piece, sprite);
+  drawSprite(ctx, f.sprites.metrics, sprite);
   if (remoteLockMeta || isActiveGroup || isHoverGroup) {
     strokeOutline(f, piece, remoteLockMeta, isActiveGroup);
   }

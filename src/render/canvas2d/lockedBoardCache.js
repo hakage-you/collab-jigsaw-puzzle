@@ -15,8 +15,8 @@ export class LockedBoardCache {
   }
 
   /** Draws the cached locked pieces onto ctx, faded when a highlight filter is active. */
-  draw(ctx, engine, faded) {
-    this.ensure(engine);
+  draw(ctx, engine, sprites, faded) {
+    this.ensure(engine, sprites);
     if (!this.hasLocked) return;
     if (faded) {
       ctx.save();
@@ -28,7 +28,7 @@ export class LockedBoardCache {
     }
   }
 
-  ensure(engine) {
+  ensure(engine, sprites) {
     const key = `${engine.puzzleGeneration}:${engine.lockedVersion}`;
     if (this.key === key) return;
     this.key = key;
@@ -40,14 +40,15 @@ export class LockedBoardCache {
       this.canvas.height = 0;
       return;
     }
-    this._rebuild(engine, lockedPieces);
+    this._rebuild(engine, sprites, lockedPieces);
   }
 
-  _rebuild(engine, lockedPieces) {
+  _rebuild(engine, sprites, lockedPieces) {
+    const m = sprites.metrics;
     const pad = engine.spritePad + 8;
     const logicalW = Math.ceil(engine.boardW + pad * 2);
     const logicalH = Math.ceil(engine.boardH + pad * 2);
-    const baseScale = engine.pieces[0]?.spriteScale || 1;
+    const baseScale = m.spriteScale;
     const desiredScale = Math.min(2, Math.max(0.4, baseScale));
     const maxScaleByDim = MAX_LOCKED_CACHE_DIM / Math.max(1, logicalW, logicalH);
     const scale = Math.min(desiredScale, maxScaleByDim);
@@ -67,20 +68,18 @@ export class LockedBoardCache {
     lCtx.setTransform(scale, 0, 0, scale, (logicalW / 2) * scale, (logicalH / 2) * scale);
 
     for (const p of lockedPieces) {
-      const sprite = p.frontSprite;
+      const sprite = sprites.frontSprite(p);
       if (!sprite) continue;
-      const drawW = p.spriteLogicalW || sprite.sw;
-      const drawH = p.spriteLogicalH || sprite.sh;
       lCtx.drawImage(
         sprite.canvas,
         sprite.sx,
         sprite.sy,
         sprite.sw,
         sprite.sh,
-        p.targetX - p.spriteHalfW,
-        p.targetY - p.spriteHalfH,
-        drawW,
-        drawH,
+        p.targetX - m.halfW,
+        p.targetY - m.halfH,
+        m.logicalW,
+        m.logicalH,
       );
     }
 

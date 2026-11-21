@@ -1,10 +1,5 @@
 import { PUZZLE_CONFIG } from '../config/constants.js';
 import { buildPieceOutline } from './jigsawPath.js';
-import {
-  outlineToPath2D,
-  renderPieceBackSprite,
-  renderPieceSprites,
-} from './pieceSpriteBuilder.js';
 
 /**
  * Scatters `count` piece positions around the board perimeter and shuffles them.
@@ -59,7 +54,7 @@ function scatterPoint(engine, side, band, rng) {
 
 /**
  * Creates every piece for the engine's grid and pushes it onto engine.pieces.
- * opts: { layout, colorInfos, rng, atlas, savedMap, allowRotation, allowFlip,
+ * opts: { layout, colorInfos, rng, savedMap, allowRotation, allowFlip,
  *         coordScaleX, coordScaleY }
  * Returns the highest group id and z order seen (used when restoring a save).
  */
@@ -72,9 +67,7 @@ export function buildPieceSet(engine, opts) {
 
   for (let r = 0; r < engine.rows; r++) {
     for (let c = 0; c < engine.cols; c++) {
-      const piece = createPiece(engine, state, r, c);
-      renderPieceImages(engine, piece, opts.atlas, total);
-      engine.pieces.push(piece);
+      engine.pieces.push(createPiece(engine, state, r, c));
     }
   }
   return { highestGroup: state.highestGroup, highestZ: state.highestZ };
@@ -125,11 +118,6 @@ function createPiece(engine, state, r, c) {
     zOrder,
     colorInfo: opts.colorInfos[id],
     outline,
-    path: outlineToPath2D(outline),
-    frontSprite: null,
-    backSprite: null,
-    spriteHalfW: engine.pieceW / 2 + engine.spritePad,
-    spriteHalfH: engine.pieceH / 2 + engine.spritePad,
   };
 }
 
@@ -146,26 +134,4 @@ function pickFlip(sp, opts) {
   if (sp) return Boolean(sp.isFlipped);
   if (!opts.allowFlip) return false;
   return opts.rng() < PUZZLE_CONFIG.FLIP_INITIAL_PROB;
-}
-
-function renderPieceImages(engine, piece, atlas, total) {
-  renderPieceSprites(piece, {
-    sourceCanvas: engine.sourceCanvas,
-    boardW: engine.boardW,
-    boardH: engine.boardH,
-    pieceW: engine.pieceW,
-    pieceH: engine.pieceH,
-    spritePad: engine.spritePad,
-    atlas,
-    totalPieces: total,
-  });
-  if (piece.isFlipped) {
-    renderPieceBackSprite(piece, {
-      pieceW: engine.pieceW,
-      pieceH: engine.pieceH,
-      spritePad: engine.spritePad,
-      backPatternCanvas: engine.backPatternCanvas,
-      atlas,
-    });
-  }
 }

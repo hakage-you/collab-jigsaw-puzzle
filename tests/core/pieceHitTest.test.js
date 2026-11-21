@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isPointInOutline } from '../../src/core/pieceHitTest.js';
 import { mulberry32 } from '../../src/core/prng.js';
+import { outlineToPath2D } from '../../src/render/pieceSpriteBuilder.js';
 import { createEngine } from '../helpers/puzzle.js';
 
 // Hit testing moved from canvas isPointInPath to a polygon test on the outline data. The two must
@@ -54,10 +55,11 @@ describe.each(['standard', 'uniform', 'complex'])('hit test, %s cut', (cutComple
 
     for (const piece of engine.pieces) {
       const fine = fineOutline(piece.outline);
+      const path = outlineToPath2D(piece.outline);
       for (let i = 0; i < 300; i++) {
         const x = (rng() * 2 - 1) * reach;
         const y = (rng() * 2 - 1) * reach;
-        const expected = ctx.isPointInPath(piece.path, x, y);
+        const expected = ctx.isPointInPath(path, x, y);
         checked++;
         if (isPointInOutline(piece.outline, x, y) !== expected) {
           disagreements++;

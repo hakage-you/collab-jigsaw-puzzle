@@ -32,6 +32,7 @@ export class GameSession {
     initDiagnostics();
     this.listeners = new Map();
     this.engine = new PuzzleEngine({ imageAnalyzer });
+    this.renderStatsProvider = null;
     this.settings = loadSavedSettings();
     sound.enabled = this.settings.soundEnabled;
 
@@ -519,13 +520,18 @@ export class GameSession {
     });
   }
 
+  /** The UI hands in the renderer's stats (app cannot see the render layer). */
+  setRenderStatsProvider(provider) {
+    this.renderStatsProvider = provider;
+  }
+
   _diagnosticSnapshot() {
     return {
       role: this.room.role,
       puzzleSize: `${this.engine.cols}x${this.engine.rows}`,
       pieceCount: this.engine.pieces.length,
       lockedCount: this.engine.getLockedCount(),
-      atlasCount: this.engine.atlasCount,
+      atlasCount: this.renderStatsProvider?.()?.atlasCount ?? null,
     };
   }
 

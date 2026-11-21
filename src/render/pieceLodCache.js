@@ -86,15 +86,13 @@ export class PieceLodCache {
     }
   }
 
-  resolveLodConfig(desiredScale, engine, visibleCount = 64) {
-    if (!engine || !engine.sourceCanvas || engine.pieces.length === 0) return null;
-    const p0 = engine.pieces[0];
-    const baseScale = p0.spriteScale || 2;
+  /** `metrics` is the sprite store's puzzle-wide sprite metrics (base scale and logical size). */
+  resolveLodConfig(desiredScale, engine, visibleCount, metrics) {
+    if (!engine || !engine.sourceCanvas || engine.pieces.length === 0 || !metrics) return null;
+    const baseScale = metrics.spriteScale;
     if (desiredScale <= baseScale * 1.15) return null;
 
-    const logicalW = p0.spriteLogicalW || Math.ceil(engine.pieceW + engine.spritePad * 2);
-    const logicalH = p0.spriteLogicalH || Math.ceil(engine.pieceH + engine.spritePad * 2);
-    const logicalMax = Math.max(1, logicalW, logicalH);
+    const logicalMax = Math.max(1, metrics.logicalW, metrics.logicalH);
 
     let bucket = LOD_BUCKETS[LOD_BUCKETS.length - 1];
     for (const b of LOD_BUCKETS) {
@@ -137,7 +135,8 @@ export class PieceLodCache {
     }
   }
 
-  getOrRender(piece, { isFlipped, lodScale, engine, maxBudget = DEFAULT_FRAME_BUDGET }) {
+  /** Returns the cached or newly drawn LOD sprite of a piece (null when this frame's budget is spent). */
+  getOrRender(piece, { isFlipped, lodScale, engine, store, maxBudget = DEFAULT_FRAME_BUDGET }) {
     const key = `${piece.id}:${isFlipped ? 1 : 0}`;
     const cached = this.lru.get(key);
     if (cached) {
@@ -174,26 +173,31 @@ export class PieceLodCache {
     if (!page) return null;
     page.ctx.clearRect(sx, sy, this.slotStep, this.slotStep);
 
-    const logicalW = piece.spriteLogicalW || Math.ceil(engine.pieceW + engine.spritePad * 2);
-    const logicalH = piece.spriteLogicalH || Math.ceil(engine.pieceH + engine.spritePad * 2);
+    const { logicalW, logicalH, halfW, halfH } = store.metrics;
+    const path = store.pathOf(piece);
     const physW = Math.min(this.slotStep - 2, Math.ceil(logicalW * lodScale));
     const physH = Math.min(this.slotStep - 2, Math.ceil(logicalH * lodScale));
     const slot = { pageIdx, canvas: page.canvas, sx, sy, sw: physW, sh: physH };
 
     if (isFlipped) {
       drawBackPieceToSlot(page.ctx, slot, {
-        piece,
+        path,
+        halfW,
+        halfH,
         pieceW: engine.pieceW,
         pieceH: engine.pieceH,
         logicalW,
         logicalH,
         renderScale: lodScale,
-        pattern: this._getBackPattern(page.ctx, engine.backPatternCanvas),
+        pattern: this._getBackPattern(page.ctx, store.backPatternCanvas),
         isLod: true,
       });
     } else {
       drawFrontPieceToSlot(page.ctx, slot, {
         piece,
+        path,
+        halfW,
+        halfH,
         sourceCanvas: engine.sourceCanvas,
         boardW: engine.boardW,
         boardH: engine.boardH,

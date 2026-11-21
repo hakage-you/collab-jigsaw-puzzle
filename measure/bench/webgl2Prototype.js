@@ -6,6 +6,8 @@
  * texture array, in a single draw call. Draws pieces only: no board, outlines, cursors or text.
  */
 
+import { PieceSpriteStore } from '../../src/render/pieceSpriteStore.js';
+
 const VERTEX_SHADER = `#version 300 es
 layout(location = 0) in vec2 aCorner;      // 0..1 quad corner
 layout(location = 1) in vec4 aPlace;       // world x, y, rotation quarter turns, flip (1 or -1)
@@ -134,9 +136,11 @@ export class WebGL2PiecePrototype {
     this.canvas = canvas;
     this.engine = engine;
     this.program = createProgram(gl);
-    for (const p of engine.pieces) if (p.isFlipped) engine.ensureBackSprite(p);
-    this.atlas = uploadAtlases(gl, engine.spriteAtlases);
-    this.layerOf = new Map(engine.spriteAtlases.map((c, i) => [c, i]));
+    this.sprites = new PieceSpriteStore();
+    this.sprites.sync(engine);
+    const pages = this.sprites.atlasPages.map((p) => p.canvas);
+    this.atlas = uploadAtlases(gl, pages);
+    this.layerOf = new Map(pages.map((c, i) => [c, i]));
     this.geometry = setupGeometry(gl, engine.pieces.length);
     this.data = new Float32Array(engine.pieces.length * FLOATS_PER_INSTANCE);
     this.uView = gl.getUniformLocation(this.program, 'uView');
@@ -144,17 +148,18 @@ export class WebGL2PiecePrototype {
   }
 
   _fillInstance(offset, p) {
-    const sprite = p.isFlipped ? p.backSprite : p.frontSprite;
+    const sprite = p.isFlipped ? this.sprites.backSprite(p) : this.sprites.frontSprite(p);
+    const m = this.sprites.metrics;
     const size = this.atlas.size;
     const d = this.data;
     d[offset] = p.x;
     d[offset + 1] = p.y;
     d[offset + 2] = p.rotation;
     d[offset + 3] = p.isFlipped ? -1 : 1;
-    d[offset + 4] = -p.spriteHalfW;
-    d[offset + 5] = -p.spriteHalfH;
-    d[offset + 6] = p.spriteLogicalW || sprite.sw;
-    d[offset + 7] = p.spriteLogicalH || sprite.sh;
+    d[offset + 4] = -m.halfW;
+    d[offset + 5] = -m.halfH;
+    d[offset + 6] = m.logicalW;
+    d[offset + 7] = m.logicalH;
     d[offset + 8] = sprite.sx / size;
     d[offset + 9] = sprite.sy / size;
     d[offset + 10] = (sprite.sx + sprite.sw) / size;
