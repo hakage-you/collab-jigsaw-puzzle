@@ -107,6 +107,8 @@ html[data-theme='light'] {
     system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI',
     sans-serif;
   --font-size-xs: 12px;
+  /* Form fields; 16px on touch screens, since iOS Safari zooms into anything smaller. */
+  --font-size-input: 14px;
   --font-size-sm: 13px;
   --font-size: 14px;
   --font-size-heading: 16px;
@@ -202,5 +204,13 @@ html[data-theme='dark'] {
   html[data-theme='dark'] {
     --touch: 44px;
     --touch-compact: 32px;
+  }
+}
+
+@media (pointer: coarse) {
+  :root,
+  html[data-theme='light'],
+  html[data-theme='dark'] {
+    --font-size-input: 16px;
   }
 }

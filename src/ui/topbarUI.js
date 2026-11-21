@@ -5,6 +5,13 @@ export function formatDuration(ms) {
   return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
+/** Same as the `--small-screen` media query in styles/app.css: a phone held either way. */
+const SMALL_SCREEN_QUERY = '(max-width: 768px), (max-height: 500px)';
+
+function isSmallScreen() {
+  return globalThis.matchMedia?.(SMALL_SCREEN_QUERY).matches ?? false;
+}
+
 export class TopbarUI {
   constructor({ app, renderer, onOpenLobby }) {
     this.app = app;
@@ -152,7 +159,8 @@ export class TopbarUI {
     }
     if (this._lastRole !== role) {
       this._lastRole = role;
-      this.setDrawerOpen(!isGuest, { immediate: true });
+      // On a phone the panel covers the board, so it starts closed there.
+      this.setDrawerOpen(!isGuest && !isSmallScreen(), { immediate: true });
     }
   }
 

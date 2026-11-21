@@ -223,6 +223,7 @@ body {
 
 .field input[type='number'],
 .field input[type='text'],
+.field input[type='password'],
 .field select,
 .input-with-btn input,
 .host-rename-row input {
@@ -234,7 +235,7 @@ body {
   color: var(--text);
   padding: var(--space-1) var(--space-3);
   font-family: var(--font);
-  font-size: var(--font-size);
+  font-size: var(--font-size-input);
   transition:
     border-color var(--duration-fast),
     box-shadow var(--duration-fast);
@@ -242,6 +243,7 @@ body {
 
 .field input[type='number']:hover,
 .field input[type='text']:hover,
+.field input[type='password']:hover,
 .field select:hover,
 .input-with-btn input:hover,
 .host-rename-row input:hover {
@@ -250,6 +252,7 @@ body {
 
 .field input[type='number']:focus,
 .field input[type='text']:focus,
+.field input[type='password']:focus,
 .field select:focus,
 .input-with-btn input:focus,
 .host-rename-row input:focus {
@@ -376,4 +379,13 @@ body {
 
 .mt-3 {
   margin-top: var(--space-3);
+}
+
+/* iOS Safari zooms the page into any field under 16px when it is focused. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: var(--font-size-input);
+  }
 }

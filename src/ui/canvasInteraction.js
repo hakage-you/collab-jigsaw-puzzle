@@ -1,6 +1,7 @@
 import { VIEWPORT_CONFIG } from '../config/constants.js';
 import { loadImageFromFile } from '../services/imageLoader.js';
 import { HeavyDrag } from './heavyDrag.js';
+import { DOUBLE_TAP_MS, TapSorter, TouchGestures } from './touchGestures.js';
 
 export class CanvasInteraction {
   constructor({ app, renderer, loading, ojama, fitViewAndSync, updateZoomReadout, showToast }) {
@@ -25,6 +26,10 @@ export class CanvasInteraction {
     this._handledRightPointerDown = false;
     this.dragCounter = 0;
     this.heavy = new HeavyDrag({ app, vs: this.vs });
+    this.touch = new TouchGestures();
+    this.taps = new TapSorter();
+    this.tapTimer = null;
+    this.lastPointerType = 'mouse';
 
     this._bindEvents();
     this._subscribeApp();
@@ -75,9 +80,58 @@ export class CanvasInteraction {
     }
   }
 
+  /** A finger left the board: release like the mouse, then rotate or flip if it was a tap. */
+  _onTouchUp(e) {
+    const kind = this.touch.up(e.pointerId, e.timeStamp, e.type === 'pointercancel');
+    if (kind === 'ignore') return;
+    this._finishDrag(e);
+    if (kind === 'tap') this._onTap(this._getCanvasLocalCoords(e), e.timeStamp);
+  }
+
+  /** A second finger came down: end what the first one was doing, so the two can pinch. */
+  _stopSingleForPinch(e) {
+    this.isPanning = false;
+    this.isDraggingRefSheet = false;
+    this.canvas.classList.remove('grabbing');
+    if (this.canvas.hasPointerCapture(e.pointerId)) this.canvas.releasePointerCapture(e.pointerId);
+    const groupId = this.vs.draggingGroupId;
+    if (groupId === null) return;
+    this.vs.setDraggingGroup(null);
+    this.heavy.end();
+    this.app.submitDrop(groupId);
+  }
+
+  /** A tap on the board: one rotates the piece, two quick ones flip it (when flipping is on). */
+  _onTap({ sx, sy }, t) {
+    const world = this.vs.screenToWorld(sx, sy);
+    const piece = this.app.hitTest(world.x, world.y);
+    const { action, flushed } = this.taps.tap(
+      { x: sx, y: sy, t, key: piece ? piece.id : null, piece },
+      this.app.getAllowFlip(),
+    );
+    clearTimeout(this.tapTimer);
+    if (flushed) this.app.submitRotate(flushed.piece);
+    if (action === 'single') this.app.submitRotate(piece);
+    else if (action === 'double') this.app.submitFlip(piece);
+    else if (action === 'wait') {
+      this.tapTimer = setTimeout(() => {
+        const p = this.taps.expire();
+        if (p) this.app.submitRotate(p.piece);
+      }, DOUBLE_TAP_MS);
+    }
+  }
+
+  /** Two fingers moved: move and zoom the view around the point between them. */
+  _pinch({ pan, zoom }) {
+    this.vs.panBy(pan.dx, pan.dy);
+    this.vs.zoomAt(zoom.x, zoom.y, zoom.factor);
+    this.updateZoomReadout();
+  }
+
   /** Ends the local drag of `groupId` without dropping it (it hopped away, or the lock was lost). */
   _cancelDrag(groupId) {
     if (this.vs.draggingGroupId !== groupId) return;
+    this.touch.dropTap();
     this.heavy.end();
     this.vs.setDraggingGroup(null);
     this.canvas.classList.remove('grabbing');
@@ -98,6 +152,12 @@ export class CanvasInteraction {
   _bindPointerDownEvents() {
     this.canvas.addEventListener('pointerdown', (e) => {
       const { sx, sy } = this._getCanvasLocalCoords(e);
+      this.lastPointerType = e.pointerType;
+      if (e.pointerType === 'touch') {
+        const kind = this.touch.down(e.pointerId, sx, sy, e.timeStamp);
+        if (kind === 'pinch') this._stopSingleForPinch(e);
+        if (kind !== 'single') return;
+      }
       this.lastPointerScreen = { x: sx, y: sy };
       this.prevButtons = e.buttons ?? 0;
 
@@ -143,6 +203,14 @@ export class CanvasInteraction {
     this.canvas.addEventListener('pointermove', (e) => {
       const { sx, sy } = this._getCanvasLocalCoords(e);
       this.ojama.updateSpotlightPosition(sx, sy);
+      if (e.pointerType === 'touch') {
+        const r = this.touch.move(e.pointerId, sx, sy);
+        if (r === 'ignore') return;
+        if (r !== 'single') {
+          this._pinch(r);
+          return;
+        }
+      }
 
       const curButtons = e.buttons ?? 0;
       const rightJustPressed = (curButtons & 2) !== 0 && (this.prevButtons & 2) === 0;
@@ -192,8 +260,9 @@ export class CanvasInteraction {
   }
 
   _bindPointerUpEvents() {
-    this.canvas.addEventListener('pointerup', (e) => this._finishDrag(e));
-    this.canvas.addEventListener('pointercancel', (e) => this._finishDrag(e));
+    const up = (e) => (e.pointerType === 'touch' ? this._onTouchUp(e) : this._finishDrag(e));
+    this.canvas.addEventListener('pointerup', up);
+    this.canvas.addEventListener('pointercancel', up);
   }
 
   _bindMouseEvents() {
@@ -220,6 +289,7 @@ export class CanvasInteraction {
     });
 
     this.canvas.addEventListener('dblclick', (e) => {
+      if (this.lastPointerType === 'touch') return; // a double tap flips through _onTap
       const { sx, sy } = this._getCanvasLocalCoords(e);
       const world = this.vs.screenToWorld(sx, sy);
       this.app.submitFlip(this.app.hitTest(world.x, world.y));
@@ -356,6 +426,8 @@ export class CanvasInteraction {
       this.vs.playPrankEffect(pieces, before),
     );
     this.app.on('puzzleReset', ({ canvas: srcCanvas, resetEffects, fitView }) => {
+      clearTimeout(this.tapTimer);
+      this.taps.clear();
       this.vs.resetForNewPuzzle({ clearEffects: resetEffects });
       this.vs.resetRefSheetGeometry(srcCanvas);
       if (fitView) this.fitViewAndSync();

@@ -710,6 +710,21 @@
   color: var(--text);
 }
 
+/* Touch screens get the touch wording (src/ui/touchGestures.js). */
+.legend-touch {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .legend-mouse {
+    display: none;
+  }
+
+  .legend-touch {
+    display: flex;
+  }
+}
+
 /* ==========================================================================
    Side Drawer (Compact 280px Play Assistance Panel, No Scroll)
    ========================================================================== */
@@ -1702,4 +1717,94 @@
 
 #zoomReadout {
   cursor: pointer;
+}
+
+/* ==========================================================================
+   Small screens (a phone held either way; same query as isSmallScreen in src/ui/topbarUI.js)
+   ========================================================================== */
+@media (max-width: 768px), (max-height: 500px) {
+  .topbar {
+    padding: var(--space-1) var(--space-2);
+    gap: var(--space-2);
+  }
+
+  /* Streaming and ojama settings stay on a PC (_plan/open_issues.md section 10). */
+  .brand,
+  .topbar-center,
+  .pill-label,
+  .progress-bar-wrap,
+  #btnOpenStreamModal {
+    display: none;
+  }
+
+  .progress-pill {
+    padding: var(--space-1) var(--space-2);
+    gap: var(--space-1);
+  }
+
+  .timer-text {
+    padding-left: var(--space-1);
+  }
+
+  .topbar-right {
+    gap: var(--space-1);
+  }
+
+  /* The panel lies over the board instead of squeezing it. */
+  .side-drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(var(--drawer-width), 88vw);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .viewport-controls {
+    left: var(--space-2);
+    bottom: var(--space-2);
+  }
+
+  .controls-legend {
+    right: var(--space-2);
+    bottom: calc(var(--space-2) + var(--touch) + var(--space-2));
+    left: var(--space-2);
+    justify-content: center;
+    gap: var(--space-1) var(--space-3);
+    border-radius: var(--radius-card);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  /* Toasts go to the bottom, above the legend, so they never cover the ojama banners. */
+  .toast-container {
+    inset: auto var(--space-2) calc(var(--space-2) + var(--touch) + var(--space-2) + 48px);
+    align-items: center;
+  }
+
+  .sabotage-banner {
+    top: var(--space-2);
+    max-width: calc(100% - 2 * var(--space-2));
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+  }
+
+  .timed-ojama-banner {
+    top: calc(var(--space-2) + 40px);
+  }
+
+  /* The popover spans the screen instead of hanging off its button. */
+  .participants-popover {
+    position: fixed;
+    top: calc(var(--header-height) + var(--space-1));
+    left: var(--space-2);
+    right: var(--space-2);
+    width: auto;
+  }
+
+  /* Room for the scrollbar, so it never sits on the switches at the right edge. */
+  .modal-body {
+    padding-right: var(--space-2);
+  }
 }
