@@ -14,8 +14,6 @@ import {
   computeGridForPieceCount,
   normalizeCutComplexity,
 } from '../core/jigsawPath.js';
-import { computeImageSignature } from '../core/prng.js';
-import { generateSampleImageCanvas } from '../core/sampleImage.js';
 import { validateSaveData } from '../core/saveValidation.js';
 import {
   clearAutoBackup,
@@ -24,6 +22,8 @@ import {
   saveSettings,
 } from '../services/storage.js';
 import { sound } from '../services/sound.js';
+import { computeImageSignature, imageAnalyzer } from '../services/imagePixels.js';
+import { generateSampleImageCanvas } from '../services/sampleImage.js';
 import { RoomController } from '../net/roomController.js';
 import { createRoomCallbacks } from './roomCallbacks.js';
 
@@ -31,7 +31,7 @@ export class GameSession {
   constructor() {
     initDiagnostics();
     this.listeners = new Map();
-    this.engine = new PuzzleEngine();
+    this.engine = new PuzzleEngine({ imageAnalyzer });
     this.settings = loadSavedSettings();
     sound.enabled = this.settings.soundEnabled;
 

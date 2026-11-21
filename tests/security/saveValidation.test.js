@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { GameSession } from '../../src/app/gameSession.js';
-import { generateSampleImageCanvas } from '../../src/core/sampleImage.js';
+import { generateSampleImageCanvas } from '../../src/services/sampleImage.js';
 import {
   MAX_SAVE_TEXT_LENGTH,
   parseSaveText,

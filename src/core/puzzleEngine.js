@@ -1,12 +1,11 @@
 import { PUZZLE_CONFIG } from '../config/constants.js';
-import { mulberry32, computeImageSignature } from './prng.js';
+import { mulberry32 } from './prng.js';
 import {
   clampGridDimensions,
   generateCutLayout,
   createBacksidePatternCanvas,
   normalizeCutComplexity,
 } from './jigsawPath.js';
-import { analyzePieceColors } from './colorAnalysis.js';
 import { PieceLodCache } from './pieceLodCache.js';
 import { PieceSpriteAtlas, renderPieceBackSprite } from './pieceSpriteBuilder.js';
 import { buildPieceSet } from './pieceFactory.js';
@@ -33,8 +32,24 @@ function releasePreviousSource(prevSrc, sourceCanvas) {
   }
 }
 
+/** Used when no image analyzer was given: core cannot read pixels itself. */
+const MISSING_ANALYZER = Object.freeze({
+  signature() {
+    throw new Error('PuzzleEngine needs an imageAnalyzer (services/imagePixels.js)');
+  },
+  pieceColors() {
+    throw new Error('PuzzleEngine needs an imageAnalyzer (services/imagePixels.js)');
+  },
+});
+
 export class PuzzleEngine {
-  constructor() {
+  /**
+   * @param {object} [deps]
+   * @param {{ signature(image): string, pieceColors(image, cols, rows): object[] }} [deps.imageAnalyzer]
+   *   reads the source image's pixels (services/imagePixels.js imageAnalyzer)
+   */
+  constructor({ imageAnalyzer = MISSING_ANALYZER } = {}) {
+    this.imageAnalyzer = imageAnalyzer;
     this.sourceCanvas = null;
     this.isSampleImage = true;
     this.imageHash = '';
@@ -163,7 +178,7 @@ export class PuzzleEngine {
     const prevSrc = this.sourceCanvas;
     this.sourceCanvas = sourceCanvas;
     this.isSampleImage = Boolean(isSampleImage);
-    this.imageHash = computeImageSignature(sourceCanvas);
+    this.imageHash = this.imageAnalyzer.signature(sourceCanvas);
     const clamped = clampGridDimensions(cols, rows);
     this.cols = clamped.cols;
     this.rows = clamped.rows;
@@ -210,7 +225,7 @@ export class PuzzleEngine {
     const pInfo = saveData.puzzle;
     this.sourceCanvas = sourceCanvas;
     this.isSampleImage = Boolean(isSampleImage);
-    this.imageHash = computeImageSignature(sourceCanvas);
+    this.imageHash = this.imageAnalyzer.signature(sourceCanvas);
     const clamped = clampGridDimensions(pInfo.cols, pInfo.rows);
     this.cols = clamped.cols;
     this.rows = clamped.rows;
@@ -239,7 +254,7 @@ export class PuzzleEngine {
       seed: this.seed,
       cutComplexity: this.cutComplexity,
     });
-    const colorInfos = analyzePieceColors(this.sourceCanvas, this.cols, this.rows);
+    const colorInfos = this.imageAnalyzer.pieceColors(this.sourceCanvas, this.cols, this.rows);
     const rng = mulberry32(this.seed ^ 0x9e3779b9);
 
     const atlas = new PieceSpriteAtlas(

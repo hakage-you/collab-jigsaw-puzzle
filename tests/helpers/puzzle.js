@@ -1,5 +1,6 @@
 import { PuzzleEngine } from '../../src/core/puzzleEngine.js';
-import { generateSampleImageCanvas } from '../../src/core/sampleImage.js';
+import { imageAnalyzer } from '../../src/services/imagePixels.js';
+import { generateSampleImageCanvas } from '../../src/services/sampleImage.js';
 
 /** Small, fast default puzzle used by most tests. */
 export const SMALL_PUZZLE = Object.freeze({
@@ -13,7 +14,7 @@ export const SMALL_PUZZLE = Object.freeze({
 
 /** Creates an engine with a fresh puzzle built from the sample image. */
 export function createEngine(options = {}) {
-  const engine = new PuzzleEngine();
+  const engine = new PuzzleEngine({ imageAnalyzer });
   engine.initPuzzle({
     sourceCanvas: generateSampleImageCanvas(),
     isSampleImage: true,
