@@ -1,7 +1,7 @@
 import { drawBackPieceToSlot, drawFrontPieceToSlot } from './pieceSpriteBuilder.js';
 
-const LOD_ATLAS_SIZE = 2048;
-const MAX_LOD_CANVASES = 2;
+export const LOD_ATLAS_SIZE = 2048;
+export const MAX_LOD_CANVASES = 2;
 const LOD_BUCKETS = [0.75, 1.25, 2.0, 3.0, 4.5];
 const MAX_LOD_CELL_PX = 256;
 const LOD_SLOT_PAD = 4;
@@ -27,6 +27,13 @@ export class PieceLodCache {
     this.frameRasterCount = 0;
     this.budgetExhausted = false;
     this.evictedInFrame = false;
+    /** Set by PieceSpriteStore: told about every newly drawn zoom sprite. */
+    this.onRegionDrawn = null;
+  }
+
+  /** Canvases of the zoom sprite pages (each LOD_ATLAS_SIZE square). */
+  get pageCanvases() {
+    return this.pages.map((p) => p.canvas);
   }
 
   get canvasCount() {
@@ -212,6 +219,7 @@ export class PieceLodCache {
 
     this.frameRasterCount += 1;
     this.lru.set(key, slot);
+    this.onRegionDrawn?.(slot);
     return slot;
   }
 }

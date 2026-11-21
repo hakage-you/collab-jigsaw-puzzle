@@ -29,7 +29,11 @@ export class EffectsLayer {
     return false;
   }
 
-  /** Draws one frame. `f`: { viewState, room, pal, rect, dpr, dtSec }. */
+  /**
+   * Draws one frame. `f`: { viewState, room, pal, rect, dpr, dtSec, drawWorld }.
+   * `drawWorld(ctx)`, when given, draws renderer-specific things in world space first
+   * (outlines and lock badges over WebGL pieces).
+   */
   render(f) {
     const { ctx } = this;
     const { rect, dpr, viewState: vs } = f;
@@ -41,6 +45,7 @@ export class EffectsLayer {
     ctx.translate(rect.width / 2, rect.height / 2);
     ctx.scale(vs.camera.scale, vs.camera.scale);
     ctx.translate(-vs.camera.x, -vs.camera.y);
+    f.drawWorld?.(ctx);
     this._drawSnapFlashes(vs, f.pal, f.dtSec);
     drawAllCursors(ctx, { room: f.room, scale: vs.camera.scale, pal: f.pal });
     ctx.restore();
