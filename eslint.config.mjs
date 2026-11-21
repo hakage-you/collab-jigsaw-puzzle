@@ -177,6 +177,11 @@ export default [
     rules: noScreenDom('src/services', { allowDocumentGlobal: true }),
   },
   { files: ['src/net/**/*.js'], rules: noScreenDom('src/net', { allowDocumentGlobal: true }) },
+  // render draws on canvases it is given; it may create offscreen canvases but not look up the page.
+  {
+    files: ['src/render/**/*.js'],
+    rules: noScreenDom('src/render', { allowDocumentGlobal: true }),
+  },
   { files: ['src/app/**/*.js'], rules: noScreenDom('src/app') },
   {
     files: ['src/ui/main.js'],

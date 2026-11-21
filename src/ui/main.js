@@ -1,11 +1,11 @@
 import { GameSession } from '../app/gameSession.js';
 import { CanvasInteraction } from './canvasInteraction.js';
-import { CanvasRenderer } from './canvasRenderer.js';
 import { DiagnosticsUI } from './diagnosticsUI.js';
 import { LobbyUI } from './lobbyUI.js';
 import { OjamaController } from './ojamaController.js';
 import { NoticeUI } from './noticeUI.js';
 import { ParticipantsUI } from './participantsUI.js';
+import { createPuzzleRenderer } from './puzzleRenderer.js';
 import { RecruitUI } from './recruitUI.js';
 import { ResultModalUI } from './resultModalUI.js';
 import { SaveLoadUI } from './saveLoadUI.js';
@@ -20,7 +20,7 @@ function boot() {
 
   let topbarUI = null;
 
-  const renderer = new CanvasRenderer({
+  const renderer = createPuzzleRenderer({
     engine: app.engine,
     room: app.room,
     getSettings: () => app.getSettings(),

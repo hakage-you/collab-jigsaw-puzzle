@@ -1,4 +1,4 @@
-import { VIEWPORT_CONFIG } from '../config/constants.js';
+import { VIEWPORT_CONFIG } from '../../config/constants.js';
 import { LockedBoardCache } from './lockedBoardCache.js';
 import {
   collectVisiblePieces,
@@ -14,10 +14,16 @@ import {
   prepareCanvas,
 } from './renderStages.js';
 
+/**
+ * Canvas 2D renderer of the puzzle table (board, pieces, cursors, effects).
+ * The render layer does not look up screen elements: the stage and canvas are passed in
+ * (src/ui/puzzleRenderer.js does that for the game page).
+ */
 export class CanvasRenderer {
-  constructor({ canvasStage = null, canvas = null, engine, room, getSettings }) {
-    this.canvasStage = canvasStage || document.getElementById('canvasStage');
-    this.canvas = canvas || document.getElementById('puzzleCanvas');
+  constructor({ canvasStage, canvas, engine, room, getSettings }) {
+    if (!canvasStage || !canvas) throw new Error('CanvasRenderer needs canvasStage and canvas');
+    this.canvasStage = canvasStage;
+    this.canvas = canvas;
     this.ctx = this.canvas.getContext('2d');
     this.engine = engine;
     this.room = room;

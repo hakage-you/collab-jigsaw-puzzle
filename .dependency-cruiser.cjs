@@ -48,6 +48,22 @@ module.exports = {
       to: { path: '^src/(app|ui)/' },
     },
     {
+      name: 'render-only-core-and-config',
+      severity: 'error',
+      comment:
+        'src/render/** draws the puzzle: it may only import src/render/**, src/core/** and src/config/**.',
+      from: { path: '^src/render/' },
+      to: { path: '^src/', pathNot: '^src/(render|core|config)/' },
+    },
+    {
+      name: 'only-ui-uses-render',
+      severity: 'error',
+      comment:
+        'Only src/ui/** may import src/render/** (core, services, net and app must not draw).',
+      from: { path: '^src/(config|core|services|net|app)/' },
+      to: { path: '^src/render/' },
+    },
+    {
       name: 'app-no-ui',
       severity: 'error',
       comment: 'src/app/** must not import src/ui/**.',

@@ -8,7 +8,7 @@
  */
 import { it } from 'vitest';
 import { GameSession } from '../src/app/gameSession.js';
-import { CanvasRenderer } from '../src/ui/canvasRenderer.js';
+import { CanvasRenderer } from '../src/render/canvas2d/canvasRenderer.js';
 import { PUZZLE_CONFIG } from '../src/config/constants.js';
 import { computeGridForPieceCount } from '../src/core/jigsawPath.js';
 import { seedMathRandom } from '../tests/helpers/determinism.js';

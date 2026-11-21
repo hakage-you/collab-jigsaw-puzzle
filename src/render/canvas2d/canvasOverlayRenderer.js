@@ -1,4 +1,4 @@
-import { VIEWPORT_CONFIG } from '../config/constants.js';
+import { VIEWPORT_CONFIG } from '../../config/constants.js';
 
 /**
  * Draws board overlays: desk grid, flipped backs, reference sheet, zone labels, lock badges, cursors.
