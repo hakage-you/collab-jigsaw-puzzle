@@ -1,5 +1,4 @@
 import {
-  drawAllCursors,
   drawBoardFrame,
   drawDeskBackground,
   drawReferenceSheet,
@@ -12,8 +11,8 @@ import {
  * Ordered draw stages used by CanvasRenderer.renderFrame.
  * Every stage receives one frame context `f`, built once per frame:
  * { ctx, engine, room, view, refSheet, settings, isDark, pal, rect, dpr,
- *   highlightFilter, ghostPiecesActive, draggingGroupId, hoveredPiece,
- *   snapFlashes, confetti, lockedCache, sprites }
+ *   highlightFilter, ghostPiecesActive, draggingGroupId, hoveredPiece, lockedCache, sprites }
+ * Cursors, snap flashes and confetti are drawn on the effects layer (effectsLayer.js).
  */
 
 export function prepareCanvas(f) {
@@ -118,44 +117,6 @@ export function drawPieceStage(f, { visibleLocked, visibleLoose }) {
 
 export function drawLockBadgeStage(f) {
   drawRemoteLockBadges(f.ctx, { room: f.room, engine: f.engine, scale: f.view.scale, pal: f.pal });
-}
-
-export function drawSnapFlashStage(f) {
-  const { ctx, snapFlashes, pal, view } = f;
-  for (let i = snapFlashes.length - 1; i >= 0; i--) {
-    const fl = snapFlashes[i];
-    ctx.save();
-    ctx.globalAlpha = fl.alpha;
-    ctx.strokeStyle = pal.accent;
-    ctx.lineWidth = 4 / view.scale;
-    ctx.strokeRect(fl.x - fl.w / 2, fl.y - fl.h / 2, fl.w, fl.h);
-    ctx.restore();
-    fl.alpha -= 0.045;
-    if (fl.alpha <= 0) snapFlashes.splice(i, 1);
-  }
-}
-
-export function drawCursorStage(f) {
-  drawAllCursors(f.ctx, { room: f.room, scale: f.view.scale, pal: f.pal });
-}
-
-/** Screen-space confetti, advanced one step per frame. */
-export function drawConfettiStage(f) {
-  const { ctx, confetti, rect } = f;
-  for (let i = confetti.length - 1; i >= 0; i--) {
-    const c = confetti[i];
-    c.x += c.vx;
-    c.y += c.vy;
-    c.vy += 0.14;
-    c.rot += c.vr;
-    ctx.save();
-    ctx.translate(c.x, c.y);
-    ctx.rotate(c.rot);
-    ctx.fillStyle = c.color;
-    ctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size * 0.6);
-    ctx.restore();
-    if (c.y > rect.height + 30) confetti.splice(i, 1);
-  }
 }
 
 function pieceAlpha(f, piece) {

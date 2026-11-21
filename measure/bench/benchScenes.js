@@ -82,6 +82,28 @@ function heavyStep(s, t, dt) {
   s.overlay.setLine({ x1: a.x, y1: a.y, x2: b.x, y2: b.y });
 }
 
+/** Remembers the fitted view and centres on a loose piece; teardown restores the view. */
+function zoomSetup(s) {
+  s.savedView = { ...s.view };
+  const piece = looseSingles(s.engine)[0];
+  s.zoomCenter = { x: piece.x, y: piece.y };
+}
+
+function restoreView(s) {
+  Object.assign(s.view, s.savedView);
+}
+
+/** Wheel-like zooming in and out between the fitted scale and 6x it, once every 2 s. */
+function zoomStep(s, t) {
+  const k = (1 - Math.cos(t * Math.PI)) / 2;
+  const scale = s.savedView.scale * (1 + 5 * k);
+  Object.assign(s.view, {
+    scale,
+    x: s.savedView.x + (s.zoomCenter.x - s.savedView.x) * k,
+    y: s.savedView.y + (s.zoomCenter.y - s.savedView.y) * k,
+  });
+}
+
 export const SCENES = [
   {
     id: 'redraw',
@@ -100,6 +122,24 @@ export const SCENES = [
     label: '4人が同時にドラッグ（他人の分は補間と同じく毎フレーム動く）',
     setup: (s) => orbitSetup(s, 4),
     step: orbitStep,
+  },
+  {
+    id: 'zoom',
+    label: '拡大縮小を繰り返す（全体表示 ⇔ 6倍）',
+    setup: zoomSetup,
+    step: zoomStep,
+    teardown: restoreView,
+  },
+  {
+    id: 'zoomDrag',
+    label: '3倍に拡大してドラッグ',
+    setup(s) {
+      zoomSetup(s);
+      orbitSetup(s, 1);
+      Object.assign(s.view, { scale: s.savedView.scale * 3, x: s.zoomCenter.x, y: s.zoomCenter.y });
+    },
+    step: orbitStep,
+    teardown: restoreView,
   },
   {
     id: 'flee',

@@ -149,7 +149,7 @@ describe('CanvasRenderer pixel snapshots', () => {
       prepare: ({ app, renderer }) => {
         app.setHighlightFilter('edges');
         // Hover state is a plain field the pointer handler writes; there is no setter for it.
-        renderer.hoveredPiece = app.engine.pieces.find((p) => !p.isLocked);
+        renderer.viewState.setHoveredPiece(app.engine.pieces.find((p) => !p.isLocked));
       },
     });
   });
@@ -176,7 +176,7 @@ describe('CanvasRenderer pixel snapshots', () => {
     await expectStableSnapshot({
       prepare: ({ app, renderer }) => {
         dropNearTarget(app.engine, app.engine.pieces[0]);
-        renderer.setGhostPiecesActive(true);
+        renderer.viewState.setGhostPiecesActive(true);
         // durationSec 0 means the fake pieces never expire, so no wall-clock dependency.
         app.engine.addFakePieces(3, 0, true, true);
       },

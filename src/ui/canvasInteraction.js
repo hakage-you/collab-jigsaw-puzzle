@@ -4,7 +4,8 @@ import { loadImageFromFile } from '../services/imageLoader.js';
 export class CanvasInteraction {
   constructor({ app, renderer, ojama, fitViewAndSync, updateZoomReadout, showToast }) {
     this.app = app;
-    this.renderer = renderer;
+    /** Camera, dragged/hovered piece and reference sheet: input changes these, never the renderer. */
+    this.vs = renderer.viewState;
     this.ojama = ojama;
     this.fitViewAndSync = fitViewAndSync;
     this.updateZoomReadout = updateZoomReadout;
@@ -33,16 +34,13 @@ export class CanvasInteraction {
 
   _rotatePieceOrGroupAt(sx, sy) {
     const target =
-      this.renderer.draggingGroupId !== null
-        ? this.app.getGroupPieces(this.renderer.draggingGroupId)[0]
-        : this.app.hitTest(
-            this.renderer.screenToWorld(sx, sy).x,
-            this.renderer.screenToWorld(sx, sy).y,
-          );
+      this.vs.draggingGroupId !== null
+        ? this.app.getGroupPieces(this.vs.draggingGroupId)[0]
+        : this.app.hitTest(this.vs.screenToWorld(sx, sy).x, this.vs.screenToWorld(sx, sy).y);
     if (!target) return false;
     const rotated = this.app.submitRotate(target);
-    if (rotated && this.renderer.draggingGroupId !== null) {
-      this.app.sendDragPreview(this.renderer.draggingGroupId, true);
+    if (rotated && this.vs.draggingGroupId !== null) {
+      this.app.sendDragPreview(this.vs.draggingGroupId, true);
     }
     return rotated;
   }
@@ -62,9 +60,9 @@ export class CanvasInteraction {
       }
       return;
     }
-    if (this.renderer.draggingGroupId !== null) {
-      const groupId = this.renderer.draggingGroupId;
-      this.renderer.draggingGroupId = null;
+    if (this.vs.draggingGroupId !== null) {
+      const groupId = this.vs.draggingGroupId;
+      this.vs.setDraggingGroup(null);
       this.canvas.classList.remove('grabbing');
       if (this.canvas.hasPointerCapture(e.pointerId)) {
         this.canvas.releasePointerCapture(e.pointerId);
@@ -104,19 +102,19 @@ export class CanvasInteraction {
       }
       if (e.button !== 0) return;
 
-      const world = this.renderer.screenToWorld(sx, sy);
+      const world = this.vs.screenToWorld(sx, sy);
       const hit = this.app.hitTest(world.x, world.y);
 
       if (hit) {
         const lockRes = this.app.requestLock(hit.groupId);
         if (!lockRes.allowed) return;
-        this.renderer.draggingGroupId = hit.groupId;
-        this.renderer.hoveredPiece = hit;
+        this.vs.setDraggingGroup(hit.groupId);
+        this.vs.setHoveredPiece(hit);
         this.app.bringGroupToFront(hit.groupId);
         this.canvas.classList.add('grabbing');
         this.canvas.setPointerCapture(e.pointerId);
-        this.renderer.requestRender();
-      } else if (this.renderer.isPointInRefSheet(world.x, world.y)) {
+        this.vs.requestRender();
+      } else if (this.vs.isPointInRefSheet(world.x, world.y)) {
         this.isDraggingRefSheet = true;
         this.canvas.classList.add('grabbing');
         this.canvas.setPointerCapture(e.pointerId);
@@ -136,7 +134,7 @@ export class CanvasInteraction {
       const curButtons = e.buttons ?? 0;
       const rightJustPressed = (curButtons & 2) !== 0 && (this.prevButtons & 2) === 0;
       this.prevButtons = curButtons;
-      if (rightJustPressed && this.renderer.draggingGroupId !== null) {
+      if (rightJustPressed && this.vs.draggingGroupId !== null) {
         this._handledRightPointerDown = true;
         this._rotatePieceOrGroupAt(sx, sy);
       }
@@ -146,39 +144,32 @@ export class CanvasInteraction {
       this.lastPointerScreen = { x: sx, y: sy };
 
       if (this.isPanning) {
-        this.renderer.view.x -= dxScreen / this.renderer.view.scale;
-        this.renderer.view.y -= dyScreen / this.renderer.view.scale;
-        this.renderer.requestRender();
+        this.vs.panBy(dxScreen, dyScreen);
         return;
       }
 
-      const world = this.renderer.screenToWorld(sx, sy);
+      const world = this.vs.screenToWorld(sx, sy);
       this.app.sendCursorMove(world.x, world.y);
 
       if (this.isDraggingRefSheet) {
-        this.renderer.refSheet.x += dxScreen / this.renderer.view.scale;
-        this.renderer.refSheet.y += dyScreen / this.renderer.view.scale;
-        this.renderer.requestRender();
+        this.vs.moveRefSheetBy(dxScreen, dyScreen);
         return;
       }
 
-      if (this.renderer.draggingGroupId !== null) {
+      if (this.vs.draggingGroupId !== null) {
         this.app.moveGroup(
-          this.renderer.draggingGroupId,
-          dxScreen / this.renderer.view.scale,
-          dyScreen / this.renderer.view.scale,
+          this.vs.draggingGroupId,
+          dxScreen / this.vs.camera.scale,
+          dyScreen / this.vs.camera.scale,
         );
-        this.app.sendDragPreview(this.renderer.draggingGroupId);
-        this.renderer.requestRender();
+        this.app.sendDragPreview(this.vs.draggingGroupId);
+        this.vs.requestRender();
         return;
       }
 
       const hit = this.app.hitTest(world.x, world.y);
-      const overSheet = !hit && this.renderer.isPointInRefSheet(world.x, world.y);
-      if (hit !== this.renderer.hoveredPiece) {
-        this.renderer.hoveredPiece = hit;
-        this.renderer.requestRender();
-      }
+      const overSheet = !hit && this.vs.isPointInRefSheet(world.x, world.y);
+      this.vs.setHoveredPiece(hit);
       this.canvas.style.cursor = hit || overSheet ? 'pointer' : 'grab';
     });
   }
@@ -213,7 +204,7 @@ export class CanvasInteraction {
 
     this.canvas.addEventListener('dblclick', (e) => {
       const { sx, sy } = this._getCanvasLocalCoords(e);
-      const world = this.renderer.screenToWorld(sx, sy);
+      const world = this.vs.screenToWorld(sx, sy);
       this.app.submitFlip(this.app.hitTest(world.x, world.y));
     });
   }
@@ -224,18 +215,10 @@ export class CanvasInteraction {
       (e) => {
         e.preventDefault();
         const { sx, sy } = this._getCanvasLocalCoords(e);
-        const before = this.renderer.screenToWorld(sx, sy);
         const factor =
           e.deltaY < 0 ? VIEWPORT_CONFIG.ZOOM_STEP_WHEEL : 1 / VIEWPORT_CONFIG.ZOOM_STEP_WHEEL;
-        this.renderer.view.scale = Math.max(
-          VIEWPORT_CONFIG.MIN_ZOOM,
-          Math.min(VIEWPORT_CONFIG.MAX_ZOOM, this.renderer.view.scale * factor),
-        );
-        const after = this.renderer.screenToWorld(sx, sy);
-        this.renderer.view.x += before.x - after.x;
-        this.renderer.view.y += before.y - after.y;
+        this.vs.zoomAt(sx, sy, factor);
         this.updateZoomReadout();
-        this.renderer.requestRender();
       },
       { passive: false },
     );
@@ -249,15 +232,15 @@ export class CanvasInteraction {
         this.spacePressed = true;
       } else if (e.key === 'r' || e.key === 'R') {
         const target =
-          this.renderer.draggingGroupId !== null
-            ? this.app.getGroupPieces(this.renderer.draggingGroupId)[0]
-            : this.renderer.hoveredPiece;
+          this.vs.draggingGroupId !== null
+            ? this.app.getGroupPieces(this.vs.draggingGroupId)[0]
+            : this.vs.hoveredPiece;
         this.app.submitRotate(target);
       } else if (e.key === 'f' || e.key === 'F') {
         const target =
-          this.renderer.draggingGroupId !== null
-            ? this.app.getGroupPieces(this.renderer.draggingGroupId)[0]
-            : this.renderer.hoveredPiece;
+          this.vs.draggingGroupId !== null
+            ? this.app.getGroupPieces(this.vs.draggingGroupId)[0]
+            : this.vs.hoveredPiece;
         this.app.submitFlip(target);
       } else if (e.key === '0') {
         this.fitViewAndSync();
@@ -271,28 +254,19 @@ export class CanvasInteraction {
 
   _bindZoomControls() {
     document.getElementById('btnZoomIn').addEventListener('click', () => {
-      this.renderer.view.scale = Math.min(
-        VIEWPORT_CONFIG.MAX_ZOOM,
-        this.renderer.view.scale * VIEWPORT_CONFIG.ZOOM_STEP_BUTTON,
-      );
+      this.vs.setScale(this.vs.camera.scale * VIEWPORT_CONFIG.ZOOM_STEP_BUTTON);
       this.updateZoomReadout();
-      this.renderer.requestRender();
     });
     document.getElementById('btnZoomOut').addEventListener('click', () => {
-      this.renderer.view.scale = Math.max(
-        VIEWPORT_CONFIG.MIN_ZOOM,
-        this.renderer.view.scale / VIEWPORT_CONFIG.ZOOM_STEP_BUTTON,
-      );
+      this.vs.setScale(this.vs.camera.scale / VIEWPORT_CONFIG.ZOOM_STEP_BUTTON);
       this.updateZoomReadout();
-      this.renderer.requestRender();
     });
     document.getElementById('btnResetView').addEventListener('click', () => this.fitViewAndSync());
 
     const zoomReadout = document.getElementById('zoomReadout');
     const resetTo100Pct = () => {
-      this.renderer.view.scale = 1.0;
+      this.vs.setScale(1.0);
       this.updateZoomReadout();
-      this.renderer.requestRender();
     };
     zoomReadout?.addEventListener('click', resetTo100Pct);
     zoomReadout?.addEventListener('keydown', (e) => {
@@ -347,19 +321,17 @@ export class CanvasInteraction {
   }
 
   _subscribeApp() {
-    this.app.on('renderNeeded', () => this.renderer.requestRender());
+    this.app.on('renderNeeded', () => this.vs.requestRender());
     this.app.on('lockDenied', ({ groupId }) => {
-      if (this.renderer.draggingGroupId === groupId) {
-        this.renderer.draggingGroupId = null;
+      if (this.vs.draggingGroupId === groupId) {
+        this.vs.setDraggingGroup(null);
         this.canvas.classList.remove('grabbing');
       }
     });
-    this.app.on('snapEffect', ({ pieces }) => this.renderer.addSnapFlashes(pieces));
+    this.app.on('snapEffect', ({ pieces }) => this.vs.addSnapFlashes(pieces));
     this.app.on('puzzleReset', ({ canvas: srcCanvas, resetEffects, fitView }) => {
-      this.renderer.hoveredPiece = null;
-      this.renderer.draggingGroupId = null;
-      if (resetEffects) this.renderer.clearEffects();
-      this.renderer.resetRefSheetGeometry(srcCanvas);
+      this.vs.resetForNewPuzzle({ clearEffects: resetEffects });
+      this.vs.resetRefSheetGeometry(srcCanvas);
       if (fitView) this.fitViewAndSync();
     });
   }
