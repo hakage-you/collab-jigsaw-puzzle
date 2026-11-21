@@ -288,6 +288,8 @@
   transition: filter 0.35s ease;
 }
 
+/* Pieces drawn with WebGL2, above the desk/board canvas (#puzzleCanvas keeps receiving input). */
+.webgl-pieces-canvas,
 /* Cursors, snap flashes and confetti, drawn over the table without redrawing it. */
 .effects-canvas {
   position: absolute;
@@ -295,21 +297,25 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
+  transition: filter 0.35s ease;
 }
 
 #puzzleCanvas.grabbing {
   cursor: grabbing;
 }
 
-#puzzleCanvas.sabotage-grayscale {
+#puzzleCanvas.sabotage-grayscale,
+.sabotage-grayscale ~ .webgl-pieces-canvas {
   filter: grayscale(100%) contrast(1.1);
 }
 
-#puzzleCanvas.sabotage-sepia {
+#puzzleCanvas.sabotage-sepia,
+.sabotage-sepia ~ .webgl-pieces-canvas {
   filter: sepia(100%) contrast(1.05);
 }
 
-#puzzleCanvas.sabotage-hue {
+#puzzleCanvas.sabotage-hue,
+.sabotage-hue ~ .webgl-pieces-canvas {
   filter: hue-rotate(165deg) saturate(1.8);
 }
 

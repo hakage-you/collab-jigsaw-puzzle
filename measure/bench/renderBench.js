@@ -9,17 +9,17 @@ import { PUZZLE_CONFIG, STORAGE_KEYS } from '../../src/config/constants.js';
 import { computeGridForPieceCount } from '../../src/core/jigsawPath.js';
 import { mulberry32 } from '../../src/core/prng.js';
 import { CanvasRenderer } from '../../src/render/canvas2d/canvasRenderer.js';
+import { WebGL2Renderer } from '../../src/render/webgl2/webgl2Renderer.js';
 import { seedMathRandom } from '../../tests/helpers/determinism.js';
 import { EffectsOverlay, MinimalCanvas2DPieces } from './benchLayers.js';
 import { SCENES } from './benchScenes.js';
-import { WebGL2PiecePrototype } from './webgl2Prototype.js';
 
 const WARMUP_FRAMES = 30;
 const MEASURE_MS = 3000;
 const MODES = {
-  app: 'ゲーム本体の Canvas 2D 描画（盤面・縁取りを含む）',
+  app: 'ゲーム本体の Canvas 2D 描画',
   c2d: 'Canvas 2D 最小版（ピースだけ）',
-  webgl2: 'WebGL2 試作（ピースだけ）',
+  webgl2: 'ゲーム本体の WebGL2 描画',
 };
 
 const nextFrame = () =>
@@ -78,46 +78,51 @@ function freshCanvases(stage) {
   return { pieceCanvas, overlayCanvas };
 }
 
-/** Creates the piece layer for a mode. Returns { render(now), view, gpuName }. */
-function createPieceLayer(mode, { app, stage, pieceCanvas }) {
-  // fitView measures its canvas, so a stand-in canvas must sit in the stage while fitting
-  // (the WebGL2 piece canvas cannot also get a 2D context).
-  const fitCanvas = mode === 'app' ? pieceCanvas : document.createElement('canvas');
-  if (fitCanvas !== pieceCanvas) stage.appendChild(fitCanvas);
+/** The minimal Canvas 2D loop, viewed like the game would fit the board. */
+function createMinimalLayer({ app, stage, pieceCanvas }) {
+  // fitView measures the stage; a throwaway game renderer on a stand-in canvas computes it.
+  const standIn = document.createElement('canvas');
+  stage.appendChild(standIn);
   const fitter = new CanvasRenderer({
     canvasStage: stage,
-    canvas: fitCanvas,
+    canvas: standIn,
     engine: app.engine,
     room: app.room,
     getSettings: () => app.getSettings(),
   });
   fitter.fitView();
-  if (fitCanvas !== pieceCanvas) fitCanvas.remove();
+  fitter.dispose();
+  standIn.remove();
   const view = fitter.view;
-  const css = () => stage.getBoundingClientRect();
-  if (mode === 'app') {
-    return {
-      view,
-      setDragging: (gid) => {
-        fitter.viewState.setDraggingGroup(gid);
-      },
-      render: (now) => {
-        fitter.requestRender();
-        fitter.renderFrame(now, () => {});
-      },
-    };
-  }
-  const layer =
-    mode === 'webgl2'
-      ? new WebGL2PiecePrototype(pieceCanvas, app.engine)
-      : new MinimalCanvas2DPieces(pieceCanvas, app.engine);
+  const layer = new MinimalCanvas2DPieces(pieceCanvas, app.engine);
   return {
     view,
     setDragging: () => {},
-    gpuName: layer.gpuName?.(),
     render: () => {
-      const r = css();
+      const r = stage.getBoundingClientRect();
       layer.render(view, r.width, r.height, window.devicePixelRatio);
+    },
+  };
+}
+
+/** Creates the piece layer for a mode. Returns { render(now), view, setDragging }. */
+function createPieceLayer(mode, { app, stage, pieceCanvas }) {
+  if (mode === 'c2d') return createMinimalLayer({ app, stage, pieceCanvas });
+  const Renderer = mode === 'webgl2' ? WebGL2Renderer : CanvasRenderer;
+  const renderer = new Renderer({
+    canvasStage: stage,
+    canvas: pieceCanvas,
+    engine: app.engine,
+    room: app.room,
+    getSettings: () => app.getSettings(),
+  });
+  renderer.fitView();
+  return {
+    view: renderer.view,
+    setDragging: (gid) => renderer.viewState.setDraggingGroup(gid),
+    render: (now) => {
+      renderer.requestRender();
+      renderer.renderFrame(now, () => {});
     },
   };
 }
@@ -210,7 +215,7 @@ export async function runMode({ mode, pieceCount, dpr, stage, refreshMs, onProgr
         ...(await runScene(scene, ctx)),
       });
     }
-    return { results, gpuName: layer.gpuName ?? null };
+    return { results };
   } finally {
     restoreDpr();
   }

@@ -21,6 +21,8 @@ export class TopbarUI {
 
     this.elToggleShowStats = document.getElementById('toggleShowStats');
     this.elToggleSound = document.getElementById('toggleSound');
+    this.elToggleCompatRenderer = document.getElementById('toggleCompatRenderer');
+    this.elRendererStatus = document.getElementById('rendererStatus');
     this.elBtnToggleTheme = document.getElementById('btnToggleTheme');
     this.elBtnOpenLobby = document.getElementById('btnOpenLobby');
     this.elBtnOpenSetupFromMenu = document.getElementById('btnOpenSetupFromMenu');
@@ -100,6 +102,21 @@ export class TopbarUI {
     setTimeout(() => div.remove(), 3200);
   }
 
+  /** Shows which renderer draws the table, and why when WebGL2 could not be used. */
+  updateRendererStatus() {
+    if (!this.elRendererStatus) return;
+    const { renderer: kind, mode, fallbackReason } = this.renderer.getStats();
+    let text = '描画: WebGL2（高速）';
+    if (kind !== 'webgl2') {
+      text =
+        mode === 'canvas2d'
+          ? '描画: Canvas 2D（互換モード）'
+          : '描画: Canvas 2D（この環境では WebGL2 を使えないため）';
+    }
+    this.elRendererStatus.textContent = text;
+    this.elRendererStatus.title = fallbackReason || '';
+  }
+
   updateTimer(elapsedMs) {
     this.elTimerText.textContent = formatDuration(elapsedMs);
   }
@@ -116,6 +133,10 @@ export class TopbarUI {
     this.applyTheme(settings.theme);
     if (this.elToggleShowStats) this.elToggleShowStats.checked = settings.showStats;
     if (this.elToggleSound) this.elToggleSound.checked = settings.soundEnabled;
+    if (this.elToggleCompatRenderer) {
+      this.elToggleCompatRenderer.checked = settings.rendererMode === 'canvas2d';
+    }
+    this.updateRendererStatus();
     if (!this.app.room.isGuest()) {
       document.body.classList.toggle('stats-hidden', !settings.showStats);
     }
@@ -165,6 +186,12 @@ export class TopbarUI {
     this.elBtnToggleTheme?.addEventListener('click', () => this.app.toggleTheme());
     this.elToggleShowStats?.addEventListener('change', () => {
       this.app.patchSettings({ showStats: this.elToggleShowStats.checked });
+    });
+    this.elToggleCompatRenderer?.addEventListener('change', () => {
+      const rendererMode = this.elToggleCompatRenderer.checked ? 'canvas2d' : 'auto';
+      this.app.patchSettings({ rendererMode });
+      this.renderer.setMode(rendererMode);
+      this.updateRendererStatus();
     });
     this.elToggleSound?.addEventListener('change', () => {
       this.app.patchSettings({ soundEnabled: this.elToggleSound.checked });

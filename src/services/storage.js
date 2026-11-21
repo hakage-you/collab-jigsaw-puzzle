@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS = {
   allowFlip: true,
   showStats: true,
   soundEnabled: true,
+  rendererMode: 'auto', // 'auto' (WebGL2 when available) | 'canvas2d' (compatibility mode)
   referenceMode: 'underlay', // 'underlay' | 'sheet' | 'floating' | 'none'
   guideOpacity: 14,
   playerName: 'ホスト（自分）',

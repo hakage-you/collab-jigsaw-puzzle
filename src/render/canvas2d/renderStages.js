@@ -67,7 +67,8 @@ export function collectVisiblePieces(f) {
   return { visibleLocked, visibleLoose };
 }
 
-function resolveLodConfig(f, visibleCount) {
+/** Zoom-sprite (LOD) settings for this frame, or null when base sprites are sharp enough. */
+export function resolveLodConfig(f, visibleCount) {
   const { sprites } = f;
   return sprites.lodCache.resolveLodConfig(
     f.view.scale * f.dpr,
@@ -77,23 +78,49 @@ function resolveLodConfig(f, visibleCount) {
   );
 }
 
-function drawLoosePieces(f, visibleLoose, lodConfig) {
+/**
+ * Which outline a loose piece gets: dragged by me (active), under the pointer (hover) or held
+ * by another player (remoteLockMeta). Returns a function so the per-frame lookups happen once.
+ */
+function outlineResolver(f) {
   const { room, draggingGroupId, hoveredPiece } = f;
   const hoverGroupId = hoveredPiece ? hoveredPiece.groupId : null;
   const isMulti = Boolean(room?.isMultiplayer());
-  for (const p of visibleLoose) {
+  return (p) => {
     const lockOwner = isMulti ? room.groupLocks.get(p.groupId) : null;
-    const remoteMeta =
+    const remoteLockMeta =
       lockOwner && lockOwner !== room.myPlayerId ? room.getPlayerMeta(lockOwner) : null;
-    const isActive = draggingGroupId !== null && p.groupId === draggingGroupId;
-    const isHover = !isActive && !remoteMeta && hoverGroupId !== null && p.groupId === hoverGroupId;
-    drawPiece(f, {
-      piece: p,
-      isActiveGroup: isActive,
-      isHoverGroup: isHover,
-      remoteLockMeta: remoteMeta,
-      lodConfig,
-    });
+    const isActiveGroup = draggingGroupId !== null && p.groupId === draggingGroupId;
+    const isHoverGroup =
+      !isActiveGroup && !remoteLockMeta && hoverGroupId !== null && p.groupId === hoverGroupId;
+    return { isActiveGroup, isHoverGroup, remoteLockMeta };
+  };
+}
+
+function drawLoosePieces(f, visibleLoose, lodConfig) {
+  const outlineOf = outlineResolver(f);
+  for (const p of visibleLoose) {
+    drawPiece(f, { piece: p, ...outlineOf(p), lodConfig });
+  }
+}
+
+/**
+ * Outlines only (no sprites), for renderers that draw the pieces elsewhere (WebGL): strokes the
+ * dragged, hovered and remotely held pieces in world space on `f.ctx`.
+ */
+export function drawOutlinesStage(f, visibleLoose) {
+  const outlineOf = outlineResolver(f);
+  const { ctx } = f;
+  for (const piece of visibleLoose) {
+    const o = outlineOf(piece);
+    if (!(o.remoteLockMeta || o.isActiveGroup || o.isHoverGroup)) continue;
+    ctx.save();
+    ctx.translate(piece.x, piece.y);
+    ctx.rotate((piece.rotation * Math.PI) / 2);
+    if (piece.isFlipped) ctx.scale(-1, 1);
+    ctx.globalAlpha = pieceAlpha(f, piece);
+    strokeOutline(f, piece, o.remoteLockMeta, o.isActiveGroup);
+    ctx.restore();
   }
 }
 
@@ -119,7 +146,8 @@ export function drawLockBadgeStage(f) {
   drawRemoteLockBadges(f.ctx, { room: f.room, engine: f.engine, scale: f.view.scale, pal: f.pal });
 }
 
-function pieceAlpha(f, piece) {
+/** Opacity of a piece under the highlight filter and the ghost interference. */
+export function pieceAlpha(f, piece) {
   let alpha = 1;
   if (f.highlightFilter !== 'all') {
     if (piece.isLocked) alpha = 0.75;
@@ -135,7 +163,8 @@ function pieceAlpha(f, piece) {
   return alpha;
 }
 
-function resolvePieceSprite(f, piece, lodConfig) {
+/** The sprite to draw for a piece: a zoom sprite when available, else its front or back. */
+export function resolvePieceSprite(f, piece, lodConfig) {
   const { sprites, engine } = f;
   if (lodConfig) {
     const lodSprite = sprites.lodCache.getOrRender(piece, {

@@ -47,9 +47,18 @@ export class PieceSpriteStore {
     this.lodCache = new PieceLodCache();
     this.fakeAtlas = null;
     this.fakeSprites = new Map();
+    /**
+     * Called with a sprite ({ canvas, sx, sy, sw, sh }) whenever one is drawn after the initial
+     * build (back sprites, fake pieces, zoom sprites), so a GPU renderer can upload just it.
+     */
+    this.onRegionDrawn = null;
+    this.lodCache.onRegionDrawn = (slot) => this.onRegionDrawn?.(slot);
   }
 
-  /** Rebuilds the sprites when the engine built a new puzzle. Call before drawing a frame. */
+  /**
+   * Rebuilds the sprites when the engine built a new puzzle. Call before drawing a frame.
+   * `generation` tells a GPU renderer when to upload the whole atlas again.
+   */
   sync(engine) {
     this.engine = engine;
     if (engine.puzzleGeneration === this.generation) return;
@@ -180,6 +189,7 @@ export class PieceSpriteStore {
       this.atlasPages[i] = { canvas: p.canvas, ctx: p.ctx };
     });
     this.back.set(piece.id, sprite);
+    this.onRegionDrawn?.(sprite);
     return sprite;
   }
 
@@ -225,6 +235,7 @@ export class PieceSpriteStore {
       isLod: false,
     });
     this.fakeSprites.set(piece.id, { key, slotIdx, sprite: slot });
+    this.onRegionDrawn?.(slot);
     return slot;
   }
 

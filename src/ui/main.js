@@ -15,16 +15,31 @@ import { TermsModal } from './termsModal.js';
 import { TopbarUI } from './topbarUI.js';
 import { YouTubeUI } from './youtubeUI.js';
 
+/** The table renderer; records which one is used (and fallbacks) in the diagnostics log. */
+function createRenderer(app, getTopbar) {
+  return createPuzzleRenderer({
+    engine: app.engine,
+    room: app.room,
+    getSettings: () => app.getSettings(),
+    onChange: ({ kind, reason }) => {
+      const fellBack = kind === 'canvas2d' && app.getSettings().rendererMode !== 'canvas2d';
+      app.recordDiagnostic(
+        'render',
+        'renderer_selected',
+        { kind, reason },
+        fellBack ? 'warn' : 'info',
+      );
+      getTopbar()?.updateRendererStatus();
+    },
+  });
+}
+
 function boot() {
   const app = new GameSession();
 
   let topbarUI = null;
 
-  const renderer = createPuzzleRenderer({
-    engine: app.engine,
-    room: app.room,
-    getSettings: () => app.getSettings(),
-  });
+  const renderer = createRenderer(app, () => topbarUI);
 
   app.setRenderStatsProvider(() => renderer.getStats());
 

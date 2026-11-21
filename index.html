@@ -657,7 +657,16 @@
                   <input type="checkbox" class="md-switch-input" id="toggleSound" checked />
                   <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
                 </label>
+                <label
+                  class="md-switch md-switch-row"
+                  title="表示がおかしいときに、WebGL2 を使わない描画に切り替えます（動きは重くなります）"
+                >
+                  <span class="md-switch-label">互換描画モード</span>
+                  <input type="checkbox" class="md-switch-input" id="toggleCompatRenderer" />
+                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+                </label>
               </div>
+              <p class="hint-text mt-2" id="rendererStatus"></p>
               <button type="button" class="btn btn-secondary btn-block mt-2" id="btnToggleTheme">
                 テーマ: ライト
               </button>
