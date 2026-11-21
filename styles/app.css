@@ -1781,6 +1781,7 @@
   .topbar {
     padding: var(--space-1) var(--space-2);
     gap: var(--space-2);
+    overflow: hidden;
   }
 
   /* Streaming and ojama settings stay on a PC (_plan/open_issues.md section 10). */
@@ -1803,6 +1804,16 @@
 
   .topbar-right {
     gap: var(--space-1);
+  }
+
+  /* Narrow phones (360px and less) must still fit every button: nothing may stick out sideways. */
+  .topbar-left {
+    flex-shrink: 1;
+  }
+
+  .topbar-right .btn {
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-sm);
   }
 
   /* The panel lies over the board instead of squeezing it. */
@@ -1861,5 +1872,12 @@
   /* Room for the scrollbar, so it never sits on the switches at the right edge. */
   .modal-body {
     padding-right: var(--space-2);
+  }
+}
+
+/* The narrowest phones: progress stays, the clock goes, so the buttons fit. */
+@media (max-width: 359px) {
+  .timer-text {
+    display: none;
   }
 }
