@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { GameSession } from '../../src/app/gameSession.js';
-import { CanvasRenderer } from '../../src/ui/canvasRenderer.js';
+import { CanvasRenderer } from '../../src/render/canvas2d/canvasRenderer.js';
 import { hashCanvas, seedMathRandom } from '../helpers/determinism.js';
 import { SMALL_PUZZLE, dropNearTarget, movePieceTo } from '../helpers/puzzle.js';
 

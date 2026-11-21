@@ -8,7 +8,7 @@ import { GameSession } from '../../src/app/gameSession.js';
 import { PUZZLE_CONFIG, STORAGE_KEYS } from '../../src/config/constants.js';
 import { computeGridForPieceCount } from '../../src/core/jigsawPath.js';
 import { mulberry32 } from '../../src/core/prng.js';
-import { CanvasRenderer } from '../../src/ui/canvasRenderer.js';
+import { CanvasRenderer } from '../../src/render/canvas2d/canvasRenderer.js';
 import { seedMathRandom } from '../../tests/helpers/determinism.js';
 import { EffectsOverlay, MinimalCanvas2DPieces } from './benchLayers.js';
 import { SCENES } from './benchScenes.js';
