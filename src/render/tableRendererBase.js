@@ -7,6 +7,7 @@ import { ViewState } from './viewState.js';
 const FX_FALLBACKS = {
   quiet: '#8db4e8',
   smoke: '#a3adbb',
+  mischief: '#a78bfa',
   gold: '#f5b301',
   rose: '#f472b6',
   mint: '#34d399',
@@ -74,6 +75,24 @@ export class TableRendererBase {
     canvas.after(effectsCanvas);
     this.effects = new EffectsLayer(effectsCanvas);
 
+    // The top layer: effects over the stage's overlays (the superchat card), in screen px only.
+    const topCanvas = document.createElement('canvas');
+    topCanvas.className = 'effects-canvas effects-canvas-top';
+    topCanvas.setAttribute('aria-hidden', 'true');
+    canvasStage.appendChild(topCanvas);
+    this.topEffects = new EffectsLayer(topCanvas);
+    const vs = this.viewState;
+    this._topView = {
+      camera: vs.camera,
+      snapFlashes: [],
+      get particles() {
+        return vs.overlayParticles;
+      },
+      get hasEffects() {
+        return vs.overlayParticles.length > 0;
+      },
+    };
+
     this.lastFrameTime = performance.now();
     this._paletteCache = { key: null, palette: null };
     this.sprites = new PieceSpriteStore();
@@ -122,6 +141,7 @@ export class TableRendererBase {
     }
     if (this._resizeLayers(targetW, targetH)) this.viewState.requestRender();
     if (this.effects.resize(rect.width, rect.height, dpr)) this.effects.dirty = true;
+    if (this.topEffects.resize(rect.width, rect.height, dpr)) this.topEffects.dirty = true;
   }
 
   /** Subclasses resize extra layers; return true when one changed. */
@@ -175,6 +195,17 @@ export class TableRendererBase {
         drawWorld: frame ? (ctx) => this._drawOverlay(ctx, frame) : null,
       });
     }
+    if (vs.overlayParticles.length > 0 || this.topEffects.dirty) {
+      this.topEffects.render({
+        viewState: this._topView,
+        room: null,
+        pal: this._getThemePalette(),
+        rect: this.canvasStage.getBoundingClientRect(),
+        dpr: window.devicePixelRatio || 1,
+        dtSec: dt / 1000,
+        drawWorld: null,
+      });
+    }
   }
 
   /** World-space drawing on the effects layer, above the pieces. Default: nothing. */
@@ -183,5 +214,6 @@ export class TableRendererBase {
   /** Removes the layers this renderer added to the stage. */
   dispose() {
     this.effects.canvas.remove();
+    this.topEffects.canvas.remove();
   }
 }

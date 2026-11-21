@@ -81,8 +81,8 @@ export class GameSession {
     return normalizeCutComplexity(val);
   }
 
-  computeGridForPieceCount(targetCount) {
-    const { canvas } = this.sourceImage;
+  /** The grid closest to `targetCount` pieces for `canvas` (default: the current image). */
+  computeGridForPieceCount(targetCount, canvas = this.sourceImage.canvas) {
     return computeGridForPieceCount(targetCount, canvas?.width, canvas?.height);
   }
 
@@ -176,7 +176,12 @@ export class GameSession {
     this.emit('toast', { message: 'サンプルテスト画像を生成しました', kind: 'success' });
   }
 
-  startNewPuzzle() {
+  /**
+   * Cuts a new puzzle from the current settings, first switching to `image` when given
+   * ({ canvas, name, isSample }: one picked in the setup dialog, used only once Start is pressed).
+   */
+  startNewPuzzle(image = null) {
+    if (image) this._replaceSourceImage(image.canvas, image.name, image.isSample);
     this.highlightFilter = 'all';
     this.room.resetContributions();
     this.engine.initPuzzle({

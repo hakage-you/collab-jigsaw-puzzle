@@ -359,6 +359,8 @@ describe('sanitizeHostMessage: ojama values', () => {
       ...overrides,
     });
     expect(sanitizeHostMessage(superchat({ maxHp: NET_LIMITS.MAX_SUPERCHAT_HP + 1 }))).toBeNull();
+    // 0 seconds: the card stays until it is driven off (the default).
+    expect(sanitizeHostMessage(superchat({ duration: 0 }))).toMatchObject({ duration: 0 });
     expect(sanitizeHostMessage(superchat({ author: 5 }))).toBeNull();
     const clean = sanitizeHostMessage(superchat({ message: 'x'.repeat(10000) }));
     expect(clean.message).toHaveLength(NET_LIMITS.MAX_TEXT_LENGTH);

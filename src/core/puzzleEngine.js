@@ -13,6 +13,7 @@ import {
 import {
   dropLockedPiecesOp,
   prankLoosePiecesOp,
+  turnStates,
   addFakePiecesOp,
   syncFakePiecesFromSpecsOp,
 } from './pieceOjamaOps.js';
@@ -444,6 +445,11 @@ export class PuzzleEngine {
   }
 
   /** Returns every piece that was rotated, flipped or moved (empty when nothing could be). */
+  /** How every piece is turned and flipped now (see turnStates), to tell a later change apart. */
+  turnStates() {
+    return turnStates(this.pieces);
+  }
+
   prankLoosePieces(count, excludedGroupIds = null) {
     return prankLoosePiecesOp(this, count, excludedGroupIds);
   }

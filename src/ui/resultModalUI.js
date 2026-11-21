@@ -1,9 +1,10 @@
 import { formatDuration } from './topbarUI.js';
 
 export class ResultModalUI {
-  constructor({ app, renderer }) {
+  constructor({ app, renderer, loading }) {
     this.app = app;
     this.renderer = renderer;
+    this.loading = loading;
     this.elModal = document.getElementById('resultModal');
     this.elRankingList = document.getElementById('resultRankingList');
 
@@ -58,7 +59,7 @@ export class ResultModalUI {
 
   _bindEvents() {
     document.getElementById('btnResultReplay').addEventListener('click', () => {
-      this.app.startNewPuzzle();
+      this.loading.run(() => this.app.startNewPuzzle());
     });
     document.getElementById('btnResultClose').addEventListener('click', () => this.hide());
   }

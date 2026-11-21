@@ -91,11 +91,11 @@ describe('RendererHost', () => {
   it('switching modes keeps the camera and removes the old layers', () => {
     const { host, stage } = setup();
     Object.assign(host.view, { x: 12, y: -34, scale: 0.8 });
-    expect(stage.querySelectorAll('canvas')).toHaveLength(3);
+    expect(stage.querySelectorAll('canvas')).toHaveLength(4);
     host.setMode('canvas2d');
     expect(host.kind).toBe('canvas2d');
     expect(host.view).toMatchObject({ x: 12, y: -34, scale: 0.8 });
-    expect(stage.querySelectorAll('canvas')).toHaveLength(2);
+    expect(stage.querySelectorAll('canvas')).toHaveLength(3);
     host.setMode('auto');
     expect(host.kind).toBe('webgl2');
   });

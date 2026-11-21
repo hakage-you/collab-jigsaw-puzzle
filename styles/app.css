@@ -300,6 +300,11 @@
   transition: filter 0.35s ease;
 }
 
+/* Above the superchat card (z-index 15; later in the stage, so drawn over it). */
+.effects-canvas-top {
+  z-index: 15;
+}
+
 #puzzleCanvas.grabbing {
   cursor: grabbing;
 }
@@ -317,6 +322,43 @@
 #puzzleCanvas.sabotage-hue,
 .sabotage-hue ~ .webgl-pieces-canvas {
   filter: hue-rotate(165deg) saturate(1.8);
+}
+
+/* Ojama test palette: floats over the board (above the superchat card) and is moved by its header.
+ * It starts top right, clear of the toasts at the top left. */
+.test-palette {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 16;
+  width: 320px;
+  max-height: calc(100% - 2 * var(--space-4));
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.test-palette-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+}
+
+.test-palette-body {
+  padding: var(--space-3);
+  overflow-y: auto;
 }
 
 /* Floating Reference Window */
@@ -564,6 +606,51 @@
 .file-drop-box span {
   color: var(--text-muted);
   font-size: var(--font-size-sm);
+}
+
+/* While a new puzzle is prepared: above everything, painted before the work starts. */
+.puzzle-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.puzzle-loading-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  font-weight: 700;
+}
+
+/* Turned with a transform, so it keeps moving while the page is busy preparing the pieces. */
+.puzzle-loading-spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: puzzle-loading-turn 0.9s linear infinite;
+}
+
+@keyframes puzzle-loading-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .puzzle-loading-spinner {
+    animation-duration: 2.4s;
+  }
 }
 
 /* Viewport & Legend */

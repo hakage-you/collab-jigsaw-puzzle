@@ -27,6 +27,7 @@ const DEFAULT_SETTINGS = {
     visualType: 'random',
     fakeDuration: OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC,
     fakeMaxCount: OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT,
+    superchatDuration: OJAMA_CONFIG.DEFAULT_SUPERCHAT_DURATION_SEC,
     triggerWords: '!drop, !color, !spin, !ghost, !fake, お邪魔',
   },
 };

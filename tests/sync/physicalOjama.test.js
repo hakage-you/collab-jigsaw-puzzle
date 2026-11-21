@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { turnStates } from '../../src/core/pieceOjamaOps.js';
 import { MSG } from '../../src/net/protocol.js';
 import { dropNearTarget } from '../helpers/puzzle.js';
 import { closeAllSessions, joinGuest, startHost, waitForConvergence } from '../helpers/room.js';
@@ -57,12 +58,19 @@ describe('physical interference in multiplayer', () => {
     const guest = await joinGuest(roomId, { name: 'A' });
 
     const sent = recordPatches(host);
+    const effect = nextEvent(guest, 'ojamaPrankEffect', { timeout: 5000 });
+    const before = turnStates(host.engine.pieces);
     const changed = host.engine.prankLoosePieces(3, host.room.getLockedGroupIds());
-    host.room.broadcastPhysicalOjama('prank test', changed);
+    host.room.broadcastPhysicalOjama('prank test', changed, 'ojama_prank');
 
     await waitForConvergence([host, guest]);
     expect(changed.length).toBeGreaterThan(0);
     expect(sent.map((p) => p.id).sort()).toEqual(changed.map((p) => p.id).sort());
     expect(sent.length).toBeLessThan(host.engine.pieces.length);
+    // The guest plays the prank effect too: it knows how each changed piece was before and is now.
+    const got = await effect;
+    const states = (list, was) =>
+      list.map((p) => [p.id, was.get(p.id), p.rotation, p.isFlipped]).sort();
+    expect(states(got.pieces, got.before)).toEqual(states(changed, before));
   });
 });

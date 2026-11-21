@@ -295,6 +295,65 @@
             </div>
           </section>
 
+          <!-- Ojama test palette: floats over the board and can be moved (src/ui/testPalette.js) -->
+          <section
+            id="ojamaTestPalette"
+            class="test-palette host-only hidden"
+            aria-label="おじゃまテスト用パレット"
+          >
+            <div class="test-palette-header" id="testPaletteHandle">
+              <span>おじゃまテスト</span>
+              <button type="button" class="btn btn-xs btn-ghost" id="btnCloseTestPalette">
+                閉じる
+              </button>
+            </div>
+            <div class="test-palette-body">
+              <div class="ojama-btn-grid">
+                <button type="button" class="btn btn-ojama" id="btnTestDrop">
+                  <span>ピース落下</span>
+                  <small>台紙から外れて落ちる</small>
+                </button>
+                <button type="button" class="btn btn-ojama" id="btnTestVisual">
+                  <span>視覚妨害</span>
+                  <small>色変更・暗闇スポット</small>
+                </button>
+                <button type="button" class="btn btn-ojama" id="btnTestSuperchat">
+                  <span>巨大スパチャ</span>
+                  <small>画面中央を隠す</small>
+                </button>
+                <button type="button" class="btn btn-ojama" id="btnTestPrank">
+                  <span>いたずら回転/裏</span>
+                  <small>未配置ピースを攪乱</small>
+                </button>
+                <button type="button" class="btn btn-ojama" id="btnTestFake">
+                  <span>偽ピース追加</span>
+                  <small>ダミーを混ぜて攪乱</small>
+                </button>
+              </div>
+              <div class="input-with-btn mt-2">
+                <input
+                  type="text"
+                  id="dummyCommentInput"
+                  placeholder="例: !drop 落ちろ / 応援してるよ"
+                />
+                <button type="button" class="btn btn-outline-accent" id="btnSendDummyComment">
+                  送信
+                </button>
+              </div>
+              <div class="btn-row mt-2">
+                <button type="button" class="btn btn-secondary" id="btnToggleAutoComments">
+                  自動コメント開始
+                </button>
+                <span class="comment-counter-badge"
+                  >進捗: <b id="commentTriggerCounter">0 / 5</b></span
+                >
+              </div>
+              <div class="mini-chat-log" id="miniChatLog">
+                <div class="chat-empty">コメントを送信するとここで判定されます</div>
+              </div>
+            </div>
+          </section>
+
           <!-- Toast Notifications -->
           <div id="toastContainer" class="toast-container" aria-live="polite"></div>
         </div>
@@ -535,6 +594,10 @@
                   </label>
                 </div>
                 <label class="field">
+                  <span>巨大スパチャで消えるまで(秒/0で倒すまで残る)</span>
+                  <input type="number" id="ojamaSuperchatDuration" min="0" max="600" value="0" />
+                </label>
+                <label class="field">
                   <span>視覚妨害の種類</span>
                   <select id="ojamaVisualType">
                     <option value="random">ランダム（毎回どれか）</option>
@@ -559,49 +622,12 @@
             <!-- Sub-tab 3: Test & Debug -->
             <div class="modal-tab-panel" id="stream-tab-debug">
               <div class="drawer-section">
-                <div class="ojama-btn-grid">
-                  <button type="button" class="btn btn-ojama" id="btnTestDrop">
-                    <span>ピース落下</span>
-                    <small>台紙から外れて落ちる</small>
-                  </button>
-                  <button type="button" class="btn btn-ojama" id="btnTestVisual">
-                    <span>視覚妨害</span>
-                    <small>色変更・暗闇スポット</small>
-                  </button>
-                  <button type="button" class="btn btn-ojama" id="btnTestSuperchat">
-                    <span>巨大スパチャ</span>
-                    <small>画面中央を隠す</small>
-                  </button>
-                  <button type="button" class="btn btn-ojama" id="btnTestPrank">
-                    <span>いたずら回転/裏</span>
-                    <small>未配置ピースを攪乱</small>
-                  </button>
-                  <button type="button" class="btn btn-ojama" id="btnTestFake">
-                    <span>偽ピース追加</span>
-                    <small>ダミーを混ぜて攪乱</small>
-                  </button>
-                </div>
-                <div class="input-with-btn mt-2">
-                  <input
-                    type="text"
-                    id="dummyCommentInput"
-                    placeholder="例: !drop 落ちろ / 応援してるよ"
-                  />
-                  <button type="button" class="btn btn-outline-accent" id="btnSendDummyComment">
-                    送信
-                  </button>
-                </div>
-                <div class="btn-row mt-2">
-                  <button type="button" class="btn btn-secondary" id="btnToggleAutoComments">
-                    自動コメント開始
-                  </button>
-                  <span class="comment-counter-badge"
-                    >進捗: <b id="commentTriggerCounter">0 / 5</b></span
-                  >
-                </div>
-                <div class="mini-chat-log" id="miniChatLog">
-                  <div class="chat-empty">コメントを送信するとここで判定されます</div>
-                </div>
+                <p class="hint-text">
+                  テスト用のボタンは、盤面の上に浮かぶパレットに出します。押した結果をそのまま見ながら試せます。
+                </p>
+                <button type="button" class="btn btn-secondary btn-block" id="btnOpenTestPalette">
+                  テスト用パレットを開く
+                </button>
               </div>
             </div>
           </div>
@@ -1183,6 +1209,14 @@
               この設定でパズルを開始
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Shown while a new puzzle is being cut and its pieces prepared (src/ui/puzzleLoading.js) -->
+      <div id="puzzleLoading" class="puzzle-loading hidden" role="status" aria-live="polite">
+        <div class="puzzle-loading-box">
+          <span class="puzzle-loading-spinner" aria-hidden="true"></span>
+          <span>パズルを準備しています…</span>
         </div>
       </div>
 

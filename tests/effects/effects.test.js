@@ -163,19 +163,29 @@ describe(`effect recipes (${STYLE.name} style)`, () => {
         STYLE.tokens.durations[recipe.duration] +
         ((recipe.waves ?? 1) - 1) * (recipe.waveGapSec ?? 0);
       const total = Math.ceil(playSec * fps) + 1;
-      // Keep one frame per style step, and fewer for long effects (at most 14 frames).
+      // Point effects that fit get a small cell at 2x; screen-wide effects, and point effects that
+      // reach farther (travel plus size), a cell at 1x big enough to hold them.
+      const reach = recipe.travelPx + recipe.sizePx;
+      const [cell, zoom] =
+        recipe.motion === 'rain'
+          ? [160, 1]
+          : reach * 2 <= 80
+            ? [80, 2]
+            : [Math.ceil((reach * 2 + 16) / 40) * 40, 1];
+      // Both themes must fit the review page (1280 x 800): up to 1120 x 400 px each, so 7 x 2
+      // frames of the usual cells and fewer of bigger ones.
+      const side = cell * zoom;
+      const perLine = Math.max(1, Math.floor(1120 / side));
+      const most = perLine * Math.max(1, Math.floor(400 / side));
+      // Keep one frame per style step, and fewer for long effects.
       const step = fps / STYLE.tokens.framesPerSec;
-      const every = Math.max(step, Math.ceil(total / 14 / step) * step);
+      const every = Math.max(step, Math.ceil(total / most / step) * step);
       const count = Math.ceil(total / every);
-      // Screen-wide effects get a bigger cell at 1x; point effects a small cell at 2x.
-      const [cell, zoom] = recipe.motion === 'rain' ? [160, 1] : [80, 2];
-      const perLine = 7;
       const lines = Math.ceil(count / perLine);
       const rows = THEMES.map((theme) => {
         const all = playFrames(name, { theme, fps, frames: total, size: cell, dpr: zoom });
         const frames = all.filter((_, i) => i % every === 0);
         const bg = useTheme(theme).table.css;
-        const side = cell * zoom;
         const row = newCanvas(side * Math.min(count, perLine), side * lines, bg);
         frames.forEach((f, i) => {
           row.getContext('2d').drawImage(f, (i % perLine) * side, Math.floor(i / perLine) * side);

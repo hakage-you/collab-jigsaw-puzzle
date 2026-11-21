@@ -32,6 +32,8 @@ export class ViewState {
      * (effects/effectRecipes.js) at world points or across the screen; sizes are screen px. */
     this.snapFlashes = [];
     this.particles = [];
+    /** Stamp effects on the top layer, above the stage's overlays (the superchat card): screen px. */
+    this.overlayParticles = [];
     /** Effect strength: 'normal', 'reduced' or 'off' (effects/effectPlayer.js INTENSITY). */
     this.effectIntensity = 'normal';
     /** Where each fake piece was last seen (fakeId -> {x, y}), to puff when one vanishes. */
@@ -93,6 +95,7 @@ export class ViewState {
     if (clearEffects) {
       this.snapFlashes = [];
       this.particles = [];
+      this.overlayParticles = [];
     }
     this.needsRender = true;
   }
@@ -184,8 +187,8 @@ export class ViewState {
   }
 
   /** Plays a stamp effect (a key of effects/effectRecipes.js EFFECTS) at a world point. */
-  playEffect(name, x, y) {
-    spawnEffect(this.particles, name, x, y, { intensity: this.effectIntensity });
+  playEffect(name, x, y, opts = {}) {
+    spawnEffect(this.particles, name, x, y, { ...opts, intensity: this.effectIntensity });
   }
 
   /**
@@ -209,6 +212,29 @@ export class ViewState {
     }
   }
 
+  /**
+   * A curled arrow over the middle of each group interference turned round (pointing the way it
+   * turned), or turning over like a card where a piece was flipped.
+   * @param {object[]} pieces the changed pieces, as they are now
+   * @param {Map} before id -> { rotation, isFlipped } before the change (turnStates)
+   */
+  playPrankEffect(pieces, before) {
+    const groups = new Map();
+    for (const p of pieces) groups.set(p.groupId, [...(groups.get(p.groupId) || []), p]);
+    for (const group of groups.values()) {
+      const p = group.find((q) => before.has(q.id));
+      if (!p) continue;
+      const was = before.get(p.id);
+      const cx = group.reduce((sum, q) => sum + q.x, 0) / group.length;
+      const cy = group.reduce((sum, q) => sum + q.y, 0) / group.length;
+      const turns = (((p.rotation - was.rotation) % 4) + 4) % 4;
+      if (p.isFlipped !== was.isFlipped) this.playEffect('prankFlip', cx, cy);
+      else if (turns !== 0) {
+        this.playEffect('prankTurn', cx, cy, { direction: turns === 3 ? -1 : 1 });
+      }
+    }
+  }
+
   /** A short outline flash where pieces snapped into place, and a star hopping from their middle. */
   addSnapFlashes(pieces) {
     if (pieces.length > 0) {
@@ -225,6 +251,25 @@ export class ViewState {
         alpha: 0.9,
       });
     }
+  }
+
+  /** Plays a stamp effect on the top layer at a screen point (CSS px from the stage's top left). */
+  playOverlayEffect(name, x, y) {
+    spawnEffect(this.overlayParticles, name, x, y, {
+      intensity: this.effectIntensity,
+      screen: true,
+    });
+  }
+
+  /** Stars popping where the superchat card was hit (screen px). */
+  playSuperchatHit(x, y) {
+    this.playOverlayEffect('superchatHit', x, y);
+  }
+
+  /** Smoke and stars bursting from the middle of the superchat card when it is driven off. */
+  playSuperchatDefeat(x, y) {
+    this.playOverlayEffect('superchatBurstPuff', x, y);
+    this.playOverlayEffect('superchatBurstStars', x, y);
   }
 
   /** Confetti across the whole stage (the result screen plays it on completion). */

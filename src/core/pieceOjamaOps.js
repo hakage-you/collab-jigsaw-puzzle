@@ -1,6 +1,14 @@
 import { OJAMA_CONFIG } from '../config/constants.js';
 import { getSingleLoosePieces } from './pieceSorter.js';
 
+/**
+ * How pieces are turned and flipped now (id -> { rotation, isFlipped }), so a later change can be
+ * told apart (the prank effect shows which way each group turned, or that it was flipped).
+ */
+export function turnStates(pieces) {
+  return new Map(pieces.map((p) => [p.id, { rotation: p.rotation, isFlipped: p.isFlipped }]));
+}
+
 /** Most fake pieces on the table at once (the render layer keeps one sprite slot for each). */
 export const MAX_FAKE_PIECES = 16;
 

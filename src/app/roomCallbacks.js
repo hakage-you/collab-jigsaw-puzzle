@@ -77,7 +77,7 @@ function boardCallbacks(session) {
       });
       session.emit('renderNeeded');
     },
-    onGuestPatchApplied: (pieces, res, _actorId) => {
+    onGuestPatchApplied: (pieces, res, _actorId, before) => {
       if (res?.type === 'snap') {
         sound.playSnap();
         session.emit('snapEffect', { pieces });
@@ -87,6 +87,9 @@ function boardCallbacks(session) {
         // The patch carries positions only; the effect also needs each piece's board spot.
         const dropped = pieces.map((p) => session.engine.getPieceById(p.id)).filter(Boolean);
         session.emit('ojamaDropEffect', { pieces: dropped });
+      } else if (res?.type === 'ojama_prank' && before) {
+        const changed = pieces.map((p) => session.engine.getPieceById(p.id)).filter(Boolean);
+        session.emit('ojamaPrankEffect', { pieces: changed, before });
       }
       session.emit('hudUpdate');
       session.emit('renderNeeded');

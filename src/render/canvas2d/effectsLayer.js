@@ -72,7 +72,7 @@ export class EffectsLayer {
       const s = sampleParticle(p);
       const size = s.sizePx * s.scale;
       if (size <= 0) continue;
-      const stamp = this.stamps.get(EFFECTS[p.name].shape, p.color, pal.fx);
+      const stamp = this.stamps.get(EFFECTS[p.name].shape, p.color, pal.fx, s.mirror);
       const x = p.screen ? p.x : (p.x - cam.x) * cam.scale + rect.width / 2;
       const y = p.screen ? p.y : (p.y - cam.y) * cam.scale + rect.height / 2;
       ctx.save();
