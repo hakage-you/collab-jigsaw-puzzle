@@ -389,3 +389,14 @@ body {
     font-size: var(--font-size-input);
   }
 }
+
+/*
+ * No browser pinch zoom or double-tap zoom anywhere: once the page is zoomed on a phone, touching
+ * the header or a modal pans it sideways. Scrolling still works, and the board has its own zoom.
+ * Every element gets it because each scroll container would otherwise allow zoom again inside.
+ * Rules with a class (the board: touch-action: none) still win over this one.
+ */
+body,
+body * {
+  touch-action: pan-x pan-y;
+}
