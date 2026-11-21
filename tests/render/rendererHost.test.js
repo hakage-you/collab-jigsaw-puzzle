@@ -15,7 +15,12 @@ afterEach(() => {
   for (const fn of cleanups.splice(0)) fn();
 });
 
-function setup({ mode = 'auto', restoreWaitMs = 3000, prepare = () => {} } = {}) {
+function setup({
+  mode = 'auto',
+  restoreWaitMs = 3000,
+  prepare = () => {},
+  referenceMode = 'none',
+} = {}) {
   localStorage.clear();
   const restoreRandom = seedMathRandom(0x5eed);
   const stage = document.createElement('div');
@@ -25,7 +30,7 @@ function setup({ mode = 'auto', restoreWaitMs = 3000, prepare = () => {} } = {})
   stage.appendChild(canvas);
   document.body.appendChild(stage);
   const app = new GameSession();
-  app.patchSettings({ ...SMALL_PUZZLE, theme: 'light', referenceMode: 'none' });
+  app.patchSettings({ ...SMALL_PUZZLE, theme: 'light', referenceMode });
   app.startNewPuzzle();
   restoreRandom();
   prepare(app);
@@ -155,6 +160,33 @@ describe('RendererHost', () => {
     c2d.host.renderFrame(1016, () => {});
     const a = composite(gl.stage);
     const b = composite(c2d.stage);
+    let far = 0;
+    for (let i = 0; i < a.length; i += 4) {
+      const d = Math.max(
+        Math.abs(a[i] - b[i]),
+        Math.abs(a[i + 1] - b[i + 1]),
+        Math.abs(a[i + 2] - b[i + 2]),
+      );
+      if (d > 64) far++;
+    }
+    expect(far / (a.length / 4)).toBeLessThan(0.01);
+  });
+
+  // The reference image (underlay under the board, or a sheet beside it) is drawn on the bottom
+  // canvas in WebGL2 mode; pieces must still cover it exactly as in Canvas 2D.
+  it.each([
+    ['underlay', null],
+    ['sheet', { x: -300, y: 0, scale: 0.5 }],
+    ['floating', null],
+  ])('reference mode %s looks the same with WebGL2 and Canvas 2D', (referenceMode, view) => {
+    const render = (mode) => {
+      const r = setup({ mode, referenceMode });
+      if (view) Object.assign(r.host.view, view);
+      r.host.renderFrame(1000, () => {});
+      return composite(r.stage);
+    };
+    const a = render('auto');
+    const b = render('canvas2d');
     let far = 0;
     for (let i = 0; i < a.length; i += 4) {
       const d = Math.max(
