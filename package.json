@@ -2,6 +2,7 @@
   "name": "collab-jigsaw-puzzle",
   "version": "0.1.0",
   "private": true,
+  "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {
     "lint": "npm run lint:format && npm run lint:css && npm run lint:js && npm run lint:html && npm run lint:contrast && npm run lint:arch && npm run lint:unused && npm run lint:content",
