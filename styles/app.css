@@ -850,6 +850,28 @@
   margin: var(--space-3) 0;
 }
 
+/* A labelled choice in the settings menu (UI colour, ...): label left, choices right. */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--touch);
+  margin-top: var(--space-2);
+}
+
+.setting-row-label {
+  font-size: var(--font-size);
+  color: var(--text);
+}
+
+.setting-seg-group {
+  display: grid;
+  grid-auto-columns: minmax(64px, 1fr);
+  grid-auto-flow: column;
+  gap: var(--space-1);
+}
+
 .preview-strip {
   display: flex;
   gap: var(--space-3);
@@ -1501,9 +1523,9 @@
   padding-top: var(--space-3);
   border-top: 1px solid var(--border);
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-2);
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
 }
 
 #streamOjamaModal,
@@ -2060,4 +2082,142 @@
   .timer-text {
     display: none;
   }
+}
+
+/* The desk choice: a tile of each texture, applied at once (src/ui/topbarUI.js). */
+.setting-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.desk-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+.desk-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--font-size-xs);
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--duration-fast);
+}
+
+.desk-tile:hover {
+  border-color: var(--border-strong);
+}
+
+.desk-tile.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.desk-tile-swatch {
+  display: block;
+  aspect-ratio: 4 / 3;
+  border-radius: 4px;
+  background-color: var(--desk-bg);
+  background-size: 128px 128px;
+}
+
+.desk-tile[data-desk-style='wood-b'] .desk-tile-swatch {
+  background-image: url('../assets/textures/desk-wood-b.webp');
+}
+
+.desk-tile[data-desk-style='wood-a'] .desk-tile-swatch {
+  background-image: url('../assets/textures/desk-wood-a.webp');
+}
+
+.desk-tile[data-desk-style='felt-green'] .desk-tile-swatch {
+  background-image: url('../assets/textures/desk-mat-felt-green.webp');
+}
+
+.desk-tile[data-desk-style='felt-navy'] .desk-tile-swatch {
+  background-image: url('../assets/textures/desk-mat-felt-navy.webp');
+}
+
+.desk-tile[data-desk-style='cork-a'] .desk-tile-swatch {
+  background-image: url('../assets/textures/desk-cork-a.webp');
+}
+
+.desk-tile[data-desk-style='cork-b'] .desk-tile-swatch {
+  background-image: url('../assets/textures/desk-cork-b.webp');
+}
+
+.desk-tile[data-desk-style='grid'] .desk-tile-swatch {
+  background-image:
+    linear-gradient(var(--canvas-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--canvas-grid) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Board frame tiles: a small picture of each frame round a piece of paper. */
+.frame-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: url('../assets/textures/desk-wood-b.webp');
+}
+
+.frame-swatch-paper {
+  width: 62%;
+  height: 56%;
+  background: var(--board-paper);
+}
+
+.frame-tile[data-board-style='wood'] .frame-swatch-paper {
+  border: 4px solid var(--frame-wood);
+  box-shadow: 1px 2px 4px var(--frame-shadow);
+}
+
+.frame-tile[data-board-style='tray'] .frame-swatch-paper {
+  border: 4px solid var(--frame-tray);
+  border-radius: 4px;
+  box-shadow: 1px 2px 5px var(--frame-shadow);
+}
+
+.frame-tile[data-board-style='gallery'] .frame-swatch-paper {
+  border: 2px solid var(--frame-gallery);
+  outline: 3px solid var(--board-paper);
+  outline-offset: -5px;
+  box-shadow: 1px 2px 4px var(--frame-shadow);
+}
+
+.frame-tile[data-board-style='classic'] .frame-swatch-paper {
+  border: 1px solid var(--accent);
+}
+
+/* The menu dims the table only lightly and does not blur it, so a new desk can be judged. */
+.modal-backdrop-see-through {
+  background: var(--overlay-soft);
+  backdrop-filter: none;
+}
+
+/* Line icons (Lucide, ISC) beside the main entry buttons' labels. */
+.btn-icon {
+  flex-shrink: 0;
+}
+
+/* Full licence texts in the credits (terms dialog). */
+.license-text {
+  margin: 0;
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  color: var(--text-muted);
 }

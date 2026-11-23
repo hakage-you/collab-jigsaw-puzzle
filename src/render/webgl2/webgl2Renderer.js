@@ -7,6 +7,9 @@ import {
   drawnAt,
   enterWorld,
   leaveWorld,
+  liftScaleOf,
+  liftShadowFor,
+  liftedGroups,
   pieceAlpha,
   prepareCanvas,
   resolveLodConfig,
@@ -110,16 +113,40 @@ export class WebGL2Renderer extends TableRendererBase {
       draggingGroupId: vs.draggingGroupId,
       hoveredPiece: vs.hoveredPiece,
       sprites: this.sprites,
+      lifted: liftedGroups({ viewState: vs, engine: this.engine, room: this.room }),
+      requestRender: () => vs.requestRender(),
     };
   }
 
-  /** Pieces to draw this frame with their sprite and opacity (locked first, then by z order). */
+  /**
+   * Pieces to draw this frame with their sprite and opacity (locked first, then by z order).
+   * Lifted pieces go last, after their shadows: the sprite in black, a few times, offset.
+   */
   _collectInstances(frame, visible, lodConfig) {
     const list = [];
+    const lifted = [];
     for (const piece of [...visible.visibleLocked, ...visible.visibleLoose]) {
       const sprite = resolvePieceSprite(frame, piece, lodConfig);
-      if (sprite) list.push({ piece, sprite, alpha: pieceAlpha(frame, piece) });
+      if (!sprite) continue;
+      const entry = { piece, sprite, alpha: pieceAlpha(frame, piece), shadow: 0, dx: 0, dy: 0 };
+      if (frame.lifted?.has(piece.groupId)) lifted.push(entry);
+      else list.push(entry);
     }
+    const shadow = liftShadowFor(lifted.length);
+    if (shadow) {
+      const s = frame.view.scale;
+      // No blur on the GPU: three offset layers make a soft enough edge.
+      for (const [f, strength] of [
+        [0.45, 0.12],
+        [0.8, 0.14],
+        [1.2, 0.1],
+      ]) {
+        for (const e of lifted) {
+          list.push({ ...e, shadow: strength, dx: (shadow.dx * f) / s, dy: (shadow.dy * f) / s });
+        }
+      }
+    }
+    list.push(...lifted);
     return list;
   }
 
@@ -130,19 +157,20 @@ export class WebGL2Renderer extends TableRendererBase {
     const m = this.sprites.metrics;
     const d = this.data;
     let n = 0;
-    for (const { piece, sprite, alpha } of list) {
+    for (const { piece, sprite, alpha, shadow, dx, dy } of list) {
       const loc = this.textures.locate(sprite.canvas);
       if (!loc) continue;
       const o = n * FLOATS_PER_INSTANCE;
       const at = drawnAt(frame, piece);
-      d[o] = at.x;
-      d[o + 1] = at.y;
+      const lift = liftScaleOf(frame, piece);
+      d[o] = at.x + dx;
+      d[o + 1] = at.y + dy;
       d[o + 2] = piece.rotation;
       d[o + 3] = piece.isFlipped ? -1 : 1;
-      d[o + 4] = -m.halfW;
-      d[o + 5] = -m.halfH;
-      d[o + 6] = m.logicalW;
-      d[o + 7] = m.logicalH;
+      d[o + 4] = -m.halfW * lift;
+      d[o + 5] = -m.halfH * lift;
+      d[o + 6] = m.logicalW * lift;
+      d[o + 7] = m.logicalH * lift;
       d[o + 8] = sprite.sx / loc.size;
       d[o + 9] = sprite.sy / loc.size;
       d[o + 10] = (sprite.sx + sprite.sw) / loc.size;
@@ -150,7 +178,7 @@ export class WebGL2Renderer extends TableRendererBase {
       d[o + 12] = loc.kind;
       d[o + 13] = loc.layer;
       d[o + 14] = alpha;
-      d[o + 15] = 0;
+      d[o + 15] = shadow;
       n++;
     }
     return n;

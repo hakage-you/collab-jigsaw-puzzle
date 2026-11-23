@@ -1,6 +1,33 @@
 import { VIEWPORT_CONFIG } from '../config/constants.js';
+import { scatterBand } from '../core/pieceFactory.js';
 import { spawnEffect } from './effects/effectPlayer.js';
 import { PieceMotion } from './effects/pieceMotion.js';
+
+/** The reference mode in effect (settings without one use the default). */
+export function referenceModeOf(settings) {
+  return settings?.referenceMode || VIEWPORT_CONFIG.DEFAULT_REFERENCE_MODE;
+}
+
+/**
+ * The reference sheet's paper round its image, in world units: margin, title strip, title font,
+ * corner radius and shadow offset. They grow with the sheet, so the title stays readable next
+ * to a large board; a sheet up to 320 wide keeps the original sizes.
+ */
+export function refSheetFrame(sheet) {
+  const k = Math.max(1, sheet.w / 320);
+  return { k, pad: 10 * k, header: 18 * k, font: 12 * k, radius: 8 * k };
+}
+
+/** The sheet's paper as a box (image, margin and title strip). */
+function refSheetBox(sheet) {
+  const { pad, header } = refSheetFrame(sheet);
+  return {
+    minX: sheet.x - sheet.w / 2 - pad,
+    maxX: sheet.x + sheet.w / 2 + pad,
+    minY: sheet.y - sheet.h / 2 - pad - header,
+    maxY: sheet.y + sheet.h / 2 + pad,
+  };
+}
 
 /**
  * What the player is looking at and doing on the table, separate from how it is drawn:
@@ -79,6 +106,14 @@ export class ViewState {
     this.needsRender = true;
   }
 
+  /**
+   * Whether held pieces are drawn lifted off the desk: not when effects are reduced, and not
+   * while the "heavy" interference lasts (heavy pieces are dragged along the desk).
+   */
+  get liftHeldPieces() {
+    return this.effectIntensity === 'normal' && !this.heavyLevel;
+  }
+
   setHighlightFilter(mode) {
     this.highlightFilter = mode;
     this.needsRender = true;
@@ -142,7 +177,7 @@ export class ViewState {
     this.camera.y += before.y - after.y;
   }
 
-  /** Fits the board and every piece into the stage (at most 120%). */
+  /** Fits the board, every piece and the reference sheet (when shown) into the stage (at most 120%). */
   fitView() {
     const { width, height } = this.getViewportSize();
     if (width <= 0 || height <= 0) return;
@@ -158,6 +193,14 @@ export class ViewState {
       if (p.y - pad < minY) minY = p.y - pad;
       if (p.y + pad > maxY) maxY = p.y + pad;
     }
+    if (referenceModeOf(this.getSettings()) === 'sheet') {
+      const box = refSheetBox(this.refSheet);
+      const margin = Math.max(e.pieceW, e.pieceH) * 0.5;
+      minX = Math.min(minX, box.minX - margin);
+      maxX = Math.max(maxX, box.maxX + margin);
+      minY = Math.min(minY, box.minY - margin);
+      maxY = Math.max(maxY, box.maxY + margin);
+    }
     const s = Math.min(width / Math.max(1, maxX - minX), height / Math.max(1, maxY - minY));
     this.camera.scale = Math.max(VIEWPORT_CONFIG.MIN_ZOOM, Math.min(1.2, s));
     this.camera.x = (minX + maxX) / 2;
@@ -165,14 +208,23 @@ export class ViewState {
     this.needsRender = true;
   }
 
-  /** Places the reference sheet left of the board, sized to the image's aspect ratio. */
+  /**
+   * Places the reference sheet left of the band where a new puzzle's pieces are scattered, so
+   * none starts on top of it, sized with the board and to the image's aspect ratio.
+   */
   resetRefSheetGeometry(sourceCanvas) {
     const e = this.engine;
+    const sheet = this.refSheet;
     const aspect = sourceCanvas.height / Math.max(1, sourceCanvas.width);
-    this.refSheet.w = Math.max(180, Math.min(480, Math.round(e.boardW * 0.44)));
-    this.refSheet.h = Math.round(this.refSheet.w * aspect);
-    this.refSheet.x = -e.boardW / 2 - this.refSheet.w / 2 - Math.max(60, e.pieceW * 1.1);
-    this.refSheet.y = 0;
+    sheet.w = Math.max(180, Math.round(e.boardW * 0.44));
+    sheet.h = Math.round(sheet.w * aspect);
+    const { marginX, bandW } = scatterBand(e);
+    // A piece reaches this far from its centre, turned any way, tabs included.
+    const pieceReach = Math.max(e.pieceW, e.pieceH) / 2 + e.spritePad;
+    const gap = Math.max(e.pieceW, e.pieceH) * 0.5;
+    const sheetRight = -(marginX + bandW) - pieceReach - gap;
+    sheet.x = sheetRight - refSheetFrame(sheet).pad - sheet.w / 2;
+    sheet.y = 0;
   }
 
   moveRefSheetBy(dxScreen, dyScreen) {
@@ -182,14 +234,9 @@ export class ViewState {
   }
 
   isPointInRefSheet(wx, wy) {
-    if ((this.getSettings().referenceMode || 'underlay') !== 'sheet') return false;
-    const r = this.refSheet;
-    return (
-      wx >= r.x - r.w / 2 - 10 &&
-      wx <= r.x + r.w / 2 + 10 &&
-      wy >= r.y - r.h / 2 - 28 &&
-      wy <= r.y + r.h / 2 + 10
-    );
+    if (referenceModeOf(this.getSettings()) !== 'sheet') return false;
+    const box = refSheetBox(this.refSheet);
+    return wx >= box.minX && wx <= box.maxX && wy >= box.minY && wy <= box.maxY;
   }
 
   /** Plays a stamp effect (a key of effects/effectRecipes.js EFFECTS) at a world point. */

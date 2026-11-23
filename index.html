@@ -65,6 +65,25 @@
 
         <div class="topbar-right">
           <button type="button" class="btn btn-secondary btn-sm host-only" id="btnOpenStreamModal">
+            <svg
+              class="btn-icon"
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"
+              />
+              <path d="M20 2v4" />
+              <path d="M22 4h-4" />
+              <circle cx="4" cy="20" r="2" />
+            </svg>
             配信・お邪魔
             <span class="live-status-dot yt-live-indicator hidden" aria-hidden="true"></span>
           </button>
@@ -76,6 +95,23 @@
               id="btnToggleParticipants"
               aria-expanded="false"
             >
+              <svg
+                class="btn-icon"
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <path d="M16 3.128a4 4 0 0 1 0 7.744" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <circle cx="9" cy="7" r="4" />
+              </svg>
               参加者 <span class="count-badge" id="participantCountBadge">1</span>
             </button>
             <div
@@ -118,6 +154,29 @@
             id="btnOpenDrawer"
             aria-expanded="true"
           >
+            <svg
+              class="btn-icon"
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"
+              />
+              <path d="m14 7 3 3" />
+              <path d="M5 6v4" />
+              <path d="M19 14v4" />
+              <path d="M10 2v2" />
+              <path d="M7 8H3" />
+              <path d="M21 16h-4" />
+              <path d="M11 3H9" />
+            </svg>
             プレイ補助
           </button>
 
@@ -415,10 +474,10 @@
             <div class="drawer-section">
               <h3>お手本</h3>
               <div class="ref-mode-grid" id="referenceModeGroup">
-                <button type="button" class="btn btn-xs btn-seg active" data-ref-mode="underlay">
+                <button type="button" class="btn btn-xs btn-seg" data-ref-mode="underlay">
                   下絵
                 </button>
-                <button type="button" class="btn btn-xs btn-seg" data-ref-mode="sheet">
+                <button type="button" class="btn btn-xs btn-seg active" data-ref-mode="sheet">
                   シート
                 </button>
                 <button type="button" class="btn btn-xs btn-seg" data-ref-mode="floating">
@@ -426,7 +485,7 @@
                 </button>
                 <button type="button" class="btn btn-xs btn-seg" data-ref-mode="none">なし</button>
               </div>
-              <label class="range-row mt-2" id="underlayOpacityRow">
+              <label class="range-row mt-2 hidden" id="underlayOpacityRow">
                 <span>下絵の濃さ</span>
                 <input type="range" id="guideOpacityRange" min="0" max="40" value="14" />
               </label>
@@ -727,7 +786,7 @@
       <!-- Menu & Settings Modal (Unified Single Structure with Role Degradation) -->
       <div
         id="menuModal"
-        class="modal-backdrop hidden"
+        class="modal-backdrop modal-backdrop-see-through hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="menuModalTitle"
@@ -750,6 +809,25 @@
                   class="btn btn-secondary btn-block host-only menu-stream-entry"
                   id="btnOpenStreamFromMenu"
                 >
+                  <svg
+                    class="btn-icon"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"
+                    />
+                    <path d="M20 2v4" />
+                    <path d="M22 4h-4" />
+                    <circle cx="4" cy="20" r="2" />
+                  </svg>
                   配信・お邪魔
                   <span class="live-status-dot yt-live-indicator hidden" aria-hidden="true"></span>
                 </button>
@@ -758,6 +836,24 @@
                   class="btn btn-primary btn-block host-only"
                   id="btnOpenSetupFromMenu"
                 >
+                  <svg
+                    class="btn-icon"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M16 5h6" />
+                    <path d="M19 2v6" />
+                    <path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5" />
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                    <circle cx="9" cy="9" r="2" />
+                  </svg>
                   新しいパズルを作成
                 </button>
                 <button type="button" class="btn btn-secondary btn-block" id="btnOpenLobby">
@@ -768,6 +864,175 @@
 
             <div class="drawer-section">
               <h3>表示・サウンド</h3>
+              <details class="drawer-details" id="lookDetails">
+                <summary class="drawer-details-summary">見た目（UIカラー・机・額縁）</summary>
+                <div class="drawer-details-body">
+                  <div class="setting-row">
+                    <span class="setting-row-label" id="themeModeLabel">UIカラー</span>
+                    <div
+                      class="setting-seg-group"
+                      id="themeModeGroup"
+                      role="group"
+                      aria-labelledby="themeModeLabel"
+                    >
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-seg active"
+                        data-theme-mode="light"
+                        aria-pressed="true"
+                      >
+                        ライト
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-seg"
+                        data-theme-mode="dark"
+                        aria-pressed="false"
+                      >
+                        ダーク
+                      </button>
+                    </div>
+                  </div>
+                  <div class="setting-block">
+                    <span class="setting-row-label" id="deskStyleLabel">机のデザイン</span>
+                    <div
+                      class="desk-tiles"
+                      id="deskStyleGroup"
+                      role="group"
+                      aria-labelledby="deskStyleLabel"
+                    >
+                      <button
+                        type="button"
+                        class="desk-tile active"
+                        data-desk-style="wood-b"
+                        aria-pressed="true"
+                        title="木目（オーク）"
+                      >
+                        <span class="desk-tile-swatch" aria-hidden="true"></span>
+                        <span class="desk-tile-name">オーク</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="desk-tile"
+                        data-desk-style="wood-a"
+                        aria-pressed="false"
+                        title="木目（濃い）"
+                      >
+                        <span class="desk-tile-swatch" aria-hidden="true"></span>
+                        <span class="desk-tile-name">濃い木目</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="desk-tile"
+                        data-desk-style="felt-green"
+                        aria-pressed="false"
+                        title="フェルト（深緑）"
+                      >
+                        <span class="desk-tile-swatch" aria-hidden="true"></span>
+                        <span class="desk-tile-name">フェルト緑</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="desk-tile"
+                        data-desk-style="felt-navy"
+                        aria-pressed="false"
+                        title="フェルト（濃紺）"
+                      >
+                        <span class="desk-tile-swatch" aria-hidden="true"></span>
+                        <span class="desk-tile-name">フェルト紺</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="desk-tile"
+                        data-desk-style="cork-a"
+                        aria-pressed="false"
+                        title="コルク（細かい粒）"
+                      >
+                        <span class="desk-tile-swatch" aria-hidden="true"></span>
+                        <span class="desk-tile-name">コルク細</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="desk-tile"
+                        data-desk-style="cork-b"
+                        aria-pressed="false"
+                        title="コルク（粗い粒）"
+                      >
+                        <span class="desk-tile-swatch" aria-hidden="true"></span>
+                        <span class="desk-tile-name">コルク粗</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="desk-tile"
+                        data-desk-style="grid"
+                        aria-pressed="false"
+                        title="方眼（模様なし）"
+                      >
+                        <span class="desk-tile-swatch" aria-hidden="true"></span>
+                        <span class="desk-tile-name">方眼</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="setting-block">
+                    <span class="setting-row-label" id="boardStyleLabel">台紙の額縁</span>
+                    <div
+                      class="desk-tiles"
+                      id="boardStyleGroup"
+                      role="group"
+                      aria-labelledby="boardStyleLabel"
+                    >
+                      <button
+                        type="button"
+                        class="desk-tile frame-tile active"
+                        data-board-style="wood"
+                        aria-pressed="true"
+                        title="木の額縁（濃い木目）"
+                      >
+                        <span class="desk-tile-swatch frame-swatch" aria-hidden="true"
+                          ><span class="frame-swatch-paper"></span
+                        ></span>
+                        <span class="desk-tile-name">木の額縁</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="desk-tile frame-tile"
+                        data-board-style="tray"
+                        aria-pressed="false"
+                        title="パズル用トレー"
+                      >
+                        <span class="desk-tile-swatch frame-swatch" aria-hidden="true"
+                          ><span class="frame-swatch-paper"></span
+                        ></span>
+                        <span class="desk-tile-name">トレー</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="desk-tile frame-tile"
+                        data-board-style="gallery"
+                        aria-pressed="false"
+                        title="細い額縁と白い余白"
+                      >
+                        <span class="desk-tile-swatch frame-swatch" aria-hidden="true"
+                          ><span class="frame-swatch-paper"></span
+                        ></span>
+                        <span class="desk-tile-name">細い額縁</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="desk-tile frame-tile"
+                        data-board-style="classic"
+                        aria-pressed="false"
+                        title="シンプル（青い線）"
+                      >
+                        <span class="desk-tile-swatch frame-swatch" aria-hidden="true"
+                          ><span class="frame-swatch-paper"></span
+                        ></span>
+                        <span class="desk-tile-name">シンプル</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </details>
               <div class="switch-list">
                 <label
                   class="md-switch md-switch-row host-only"
@@ -782,10 +1047,17 @@
                   <input type="checkbox" class="md-switch-input" id="toggleSound" checked />
                   <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
                 </label>
+                <label class="md-switch md-switch-row">
+                  <span class="md-switch-label">
+                    <span>演出を控えめに</span>
+                    <span class="md-switch-sub"
+                      >ピースの持ち上げや星・紙吹雪などの動きを減らします</span
+                    >
+                  </span>
+                  <input type="checkbox" class="md-switch-input" id="toggleReduceEffects" />
+                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+                </label>
               </div>
-              <button type="button" class="btn btn-secondary btn-block mt-2" id="btnToggleTheme">
-                テーマ: ライト
-              </button>
             </div>
 
             <div class="drawer-section host-only">
@@ -1138,6 +1410,9 @@
             <button type="button" class="btn btn-xs btn-ghost" id="btnOpenTerms">
               利用規約・免責事項・プライバシー
             </button>
+            <button type="button" class="btn btn-xs btn-ghost" id="btnOpenCredits">
+              クレジット
+            </button>
           </div>
         </div>
       </div>
@@ -1181,6 +1456,81 @@
               API 利用規約および YouTube 利用規約に従ってご利用ください。
             </p>
             <!-- @content:terms:end -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Credits Modal (libraries and assets, with their licences) -->
+      <div
+        id="creditsModal"
+        class="modal-backdrop hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="creditsTitle"
+      >
+        <div class="terms-card">
+          <div class="terms-header">
+            <h2 id="creditsTitle">クレジット</h2>
+            <button type="button" class="btn btn-xs btn-ghost" id="btnCloseCredits">閉じる</button>
+          </div>
+          <div class="terms-body">
+            <!-- @content:credits:start -->
+            <h3>使用しているライブラリ・素材</h3>
+            <ul class="guide-list">
+              <li>
+                <strong>PeerJS</strong>（ブラウザ同士の通信）: MIT License / Copyright (c) 2015
+                Michelle Bu and Eric Zhang
+              </li>
+              <li>
+                <strong>Lucide</strong>（ロゴとボタンのアイコン）: ISC License / Copyright (c) 2026
+                Lucide Icons and Contributors
+              </li>
+              <li>
+                <strong>机の素材</strong>: Poly Haven（Oak Veneer 01、Wood Table
+                001）、ambientCG（Fabric 034、Cork 003、Cork 004）。いずれも
+                CC0（パブリックドメイン）で、色合いと大きさを加工して使用しています。
+              </li>
+            </ul>
+            <details class="drawer-details mt-2">
+              <summary class="drawer-details-summary">ライセンス全文（PeerJS・Lucide）</summary>
+              <div class="drawer-details-body">
+                <pre class="license-text">
+            PeerJS — The MIT License
+
+            Copyright (c) 2015 Michelle Bu and Eric Zhang, http://peerjs.com
+
+            Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+            and associated documentation files (the "Software"), to deal in the Software without
+            restriction, including without limitation the rights to use, copy, modify, merge, publish,
+            distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+            Software is furnished to do so, subject to the following conditions:
+
+            The above copyright notice and this permission notice shall be included in all copies or
+            substantial portions of the Software.
+
+            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+            BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+            NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+            DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+            Lucide — ISC License
+
+            Copyright (c) 2026 Lucide Icons and Contributors
+
+            Permission to use, copy, modify, and/or distribute this software for any purpose with or
+            without fee is hereby granted, provided that the above copyright notice and this permission
+            notice appear in all copies.
+
+            THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+            SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+            AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+            WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+            NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+            PERFORMANCE OF THIS SOFTWARE.</pre>
+              </div>
+            </details>
+            <!-- @content:credits:end -->
           </div>
         </div>
       </div>

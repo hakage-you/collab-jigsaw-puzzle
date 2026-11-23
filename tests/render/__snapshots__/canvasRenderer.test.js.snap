@@ -1,17 +1,17 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`CanvasRenderer pixel snapshots > edges highlight filter with a hovered loose piece 1`] = `"cf17aa71a8a66950"`;
+exports[`CanvasRenderer pixel snapshots > edges highlight filter with a hovered loose piece 1`] = `"44109280c85eda7f"`;
 
-exports[`CanvasRenderer pixel snapshots > fresh puzzle with default underlay reference 1`] = `"1b38185173c62711"`;
+exports[`CanvasRenderer pixel snapshots > fresh puzzle with default underlay reference 1`] = `"44109280c85eda7f"`;
 
-exports[`CanvasRenderer pixel snapshots > fresh puzzle with reference mode none 1`] = `"8df94f8b2518ebe9"`;
+exports[`CanvasRenderer pixel snapshots > fresh puzzle with reference mode none 1`] = `"1db325645fb8ba49"`;
 
-exports[`CanvasRenderer pixel snapshots > fresh puzzle with reference sheet, view widened to include the sheet 1`] = `"ddf17df4edce7863"`;
+exports[`CanvasRenderer pixel snapshots > fresh puzzle with reference sheet, view widened to include the sheet 1`] = `"d0f763051353ff49"`;
 
-exports[`CanvasRenderer pixel snapshots > ghost pieces active with fake pieces present 1`] = `"127d744b7ac4782b"`;
+exports[`CanvasRenderer pixel snapshots > ghost pieces active with fake pieces present 1`] = `"ae6e02f8b9837141"`;
 
-exports[`CanvasRenderer pixel snapshots > rotation and flip enabled with rotated and flipped pieces 1`] = `"f1f448130eecaf64"`;
+exports[`CanvasRenderer pixel snapshots > rotation and flip enabled with rotated and flipped pieces 1`] = `"927c4181d30752e2"`;
 
-exports[`CanvasRenderer pixel snapshots > two pieces snapped and one two-piece group merged 1`] = `"303916af93f74a75"`;
+exports[`CanvasRenderer pixel snapshots > two pieces snapped and one two-piece group merged 1`] = `"2dab1c6f420264a8"`;
 
-exports[`CanvasRenderer pixel snapshots > zoomed in to 400 percent (high-resolution LOD path) 1`] = `"847bca71ae087259"`;
+exports[`CanvasRenderer pixel snapshots > zoomed in to 400 percent (high-resolution LOD path) 1`] = `"429c1ee3e23a1001"`;

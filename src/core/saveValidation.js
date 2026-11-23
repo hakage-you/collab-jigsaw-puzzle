@@ -1,4 +1,4 @@
-import { OJAMA_CONFIG, PUZZLE_CONFIG } from '../config/constants.js';
+import { BOARD_CONFIG, DESK_CONFIG, OJAMA_CONFIG, PUZZLE_CONFIG } from '../config/constants.js';
 import { normalizeCutComplexity } from './jigsawPath.js';
 
 /*
@@ -234,6 +234,8 @@ const OJAMA_SCHEMA = {
 
 const SETTINGS_SCHEMA = {
   theme: { type: 'string', max: MAX_TEXT_LENGTH, values: ['light', 'dark'] },
+  deskStyle: { type: 'string', max: MAX_TEXT_LENGTH, values: DESK_CONFIG.STYLES },
+  boardStyle: { type: 'string', max: MAX_TEXT_LENGTH, values: BOARD_CONFIG.STYLES },
   cols: { type: 'number' },
   rows: { type: 'number' },
   seed: { type: 'number' },
@@ -242,6 +244,7 @@ const SETTINGS_SCHEMA = {
   allowFlip: { type: 'boolean' },
   showStats: { type: 'boolean' },
   soundEnabled: { type: 'boolean' },
+  reduceEffects: { type: 'boolean' },
   referenceMode: {
     type: 'string',
     max: MAX_TEXT_LENGTH,

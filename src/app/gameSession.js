@@ -121,12 +121,6 @@ export class GameSession {
     this.emit('renderNeeded');
   }
 
-  toggleTheme() {
-    const next = this.settings.theme === 'dark' ? 'light' : 'dark';
-    this.patchSettings({ theme: next });
-    return next;
-  }
-
   resetSettingsToDefault() {
     this.settings = resetSavedSettings();
     sound.enabled = this.settings.soundEnabled;

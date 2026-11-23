@@ -1,3 +1,4 @@
+import { drawTexturedDesk } from '../deskTextures.js';
 import {
   drawBoardFrame,
   drawDeskBackground,
@@ -7,11 +8,54 @@ import {
   resolvePlayerColor,
 } from './canvasOverlayRenderer.js';
 
+/** How much a held piece grows when lifted off the desk. */
+const LIFT_SCALE = 1.04;
+/** Lifted pieces get a drop shadow only up to this many (big groups are just scaled). */
+const LIFT_SHADOW_MAX_PIECES = 64;
+/** The lifted piece's shadow, in screen px. */
+const LIFT_SHADOW = Object.freeze({ dx: 5, dy: 9, blur: 12, color: 'rgba(15, 23, 42, 0.34)' });
+
+/**
+ * Groups drawn lifted this frame (the one I drag, and those other players hold), each with its
+ * centre to grow from; null when held pieces are not lifted.
+ */
+export function liftedGroups({ viewState, engine, room }) {
+  if (!viewState.liftHeldPieces) return null;
+  const ids = new Set();
+  if (viewState.draggingGroupId !== null) ids.add(viewState.draggingGroupId);
+  if (room?.isMultiplayer()) {
+    for (const [groupId, owner] of room.groupLocks.entries()) {
+      if (owner !== room.myPlayerId) ids.add(groupId);
+    }
+  }
+  if (ids.size === 0) return null;
+  const centres = new Map();
+  for (const id of ids) {
+    const group = engine.getGroupPieces(id);
+    if (group.length === 0 || group[0].isLocked) continue;
+    const x = group.reduce((sum, p) => sum + p.x, 0) / group.length;
+    const y = group.reduce((sum, p) => sum + p.y, 0) / group.length;
+    centres.set(id, { x, y });
+  }
+  return centres.size > 0 ? centres : null;
+}
+
+/** 1, or LIFT_SCALE when the piece's group is lifted. */
+export function liftScaleOf(f, piece) {
+  return f.lifted?.has(piece.groupId) ? LIFT_SCALE : 1;
+}
+
+/** The lifted pieces' shadow in screen px, or null when there is none. */
+export function liftShadowFor(count) {
+  return count > 0 && count <= LIFT_SHADOW_MAX_PIECES ? LIFT_SHADOW : null;
+}
+
 /*
  * Ordered draw stages used by CanvasRenderer.renderFrame.
  * Every stage receives one frame context `f`, built once per frame:
  * { ctx, engine, room, view, refSheet, settings, isDark, pal, rect, dpr,
- *   highlightFilter, ghostPiecesActive, draggingGroupId, hoveredPiece, lockedCache, sprites }
+ *   highlightFilter, ghostPiecesActive, draggingGroupId, hoveredPiece, lockedCache, sprites,
+ *   lifted (liftedGroups), requestRender }
  * Cursors, snap flashes and confetti are drawn on the effects layer (effectsLayer.js).
  */
 
@@ -24,6 +68,10 @@ export function prepareCanvas(f) {
 }
 
 export function drawDeskStage(f) {
+  const style = f.settings?.deskStyle;
+  if (drawTexturedDesk(f.ctx, { rect: f.rect, view: f.view, style, onReady: f.requestRender })) {
+    return;
+  }
   drawDeskBackground(f.ctx, { rect: f.rect, view: f.view, pal: f.pal });
 }
 
@@ -40,8 +88,18 @@ export function leaveWorld(f) {
 }
 
 export function drawBoardStage(f) {
-  const { ctx, engine, view, settings, isDark, pal, refSheet } = f;
-  drawBoardFrame(ctx, { engine, scale: view.scale, settings, isDark, pal });
+  const { ctx, engine, view, settings, isDark, pal, refSheet, dpr } = f;
+  const board = f.settings?.boardStyle;
+  drawBoardFrame(ctx, {
+    engine,
+    scale: view.scale,
+    settings,
+    isDark,
+    pal,
+    board,
+    dpr,
+    requestRender: f.requestRender,
+  });
   drawReferenceSheet(ctx, { settings, sourceCanvas: engine.sourceCanvas, refSheet, pal });
   drawZoneLabels(ctx, engine.zoneLabels, pal, view.scale);
 }
@@ -97,32 +155,82 @@ function outlineResolver(f) {
   };
 }
 
+/** Loose pieces; their outlines go on the effects layer (drawOutlinesStage). */
 function drawLoosePieces(f, visibleLoose, lodConfig) {
-  const outlineOf = outlineResolver(f);
+  const lifted = [];
   for (const p of visibleLoose) {
-    drawPiece(f, { piece: p, ...outlineOf(p), lodConfig });
+    if (f.lifted?.has(p.groupId)) lifted.push(p);
+    else drawPiece(f, { piece: p, lodConfig });
   }
+  // Lifted pieces go on top: first their shadows (each drawn with its piece, so pieces of the
+  // same group are drawn again over any shadow that fell on them), then the pieces.
+  const shadow = liftShadowFor(lifted.length);
+  if (shadow) for (const p of lifted) drawPiece(f, { piece: p, lodConfig, shadow });
+  for (const p of lifted) drawPiece(f, { piece: p, lodConfig });
+}
+
+/** Moves the context to a piece: its drawn position, turn, mirror and lift. */
+function enterPiece(f, piece) {
+  const { ctx } = f;
+  const at = drawnAt(f, piece);
+  ctx.translate(at.x, at.y);
+  ctx.rotate((piece.rotation * Math.PI) / 2);
+  if (piece.isFlipped) ctx.scale(-1, 1);
+  const lift = liftScaleOf(f, piece);
+  if (lift !== 1) ctx.scale(lift, lift);
+}
+
+/** Outlines with a glow up to this many pieces (a big group gets the line only). */
+const OUTLINE_GLOW_MAX_PIECES = 64;
+
+function outlineColor(f, o) {
+  if (o.remoteLockMeta) return resolvePlayerColor(o.remoteLockMeta.color, f.pal);
+  return o.isActiveGroup ? f.pal.accent : f.pal.secondary;
 }
 
 /**
- * Outlines only (no sprites), for renderers that draw the pieces elsewhere (WebGL): strokes the
- * dragged, hovered and remotely held pieces in world space on `f.ctx`.
+ * Outlines of the dragged, hovered and remotely held pieces, on the effects layer (with either
+ * renderer), drawn outside the pieces only: each outlined piece is stroked (with a soft glow), then
+ * every outlined piece's shape is cut out of the layer. The line hugs the outer edge without
+ * covering the picture, and no line runs across the joins inside a group. Needs a layer of its
+ * own above the pieces (the effects layer), since the cut erases whatever is under it there.
  */
 export function drawOutlinesStage(f, visibleLoose) {
-  const outlineOf = outlineResolver(f);
-  const { ctx } = f;
+  const resolve = outlineResolver(f);
+  const marked = [];
   for (const piece of visibleLoose) {
-    const o = outlineOf(piece);
-    if (!(o.remoteLockMeta || o.isActiveGroup || o.isHoverGroup)) continue;
+    const o = resolve(piece);
+    if (o.remoteLockMeta || o.isActiveGroup || o.isHoverGroup) marked.push({ piece, o });
+  }
+  if (marked.length === 0) return;
+  const { ctx, view, dpr } = f;
+  const glow = marked.length <= OUTLINE_GLOW_MAX_PIECES;
+  ctx.save();
+  ctx.lineJoin = 'round';
+  for (const { piece, o } of marked) {
+    const color = outlineColor(f, o);
     ctx.save();
-    const at = drawnAt(f, piece);
-    ctx.translate(at.x, at.y);
-    ctx.rotate((piece.rotation * Math.PI) / 2);
-    if (piece.isFlipped) ctx.scale(-1, 1);
+    enterPiece(f, piece);
     ctx.globalAlpha = pieceAlpha(f, piece);
-    strokeOutline(f, piece, o.remoteLockMeta, o.isActiveGroup);
+    ctx.strokeStyle = color;
+    // Half of the line is cut away below: 3 px stay outside a held piece, 2.5 px when hovered.
+    ctx.lineWidth = (o.isHoverGroup ? 5 : 6) / view.scale;
+    if (glow) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 7 * dpr;
+    }
+    ctx.stroke(f.sprites.pathOf(piece));
     ctx.restore();
   }
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = '#000';
+  for (const { piece } of marked) {
+    ctx.save();
+    enterPiece(f, piece);
+    ctx.fill(f.sprites.pathOf(piece));
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 /**
@@ -147,10 +255,16 @@ export function drawLockBadgeStage(f) {
   drawRemoteLockBadges(f.ctx, { room: f.room, engine: f.engine, scale: f.view.scale, pal: f.pal });
 }
 
-/** Where a piece is drawn: its position, moved along a runaway hop while one plays. */
+/**
+ * Where a piece is drawn: its position, moved along a runaway hop while one plays, and spread
+ * from its group's centre while the group is lifted (so the group grows as one).
+ */
 export function drawnAt(f, piece) {
   const o = f.motionOffsets?.get(piece.id);
-  return o ? { x: piece.x + o.dx, y: piece.y + o.dy } : piece;
+  const at = o ? { x: piece.x + o.dx, y: piece.y + o.dy } : piece;
+  const c = f.lifted?.get(piece.groupId);
+  if (!c) return at;
+  return { x: c.x + (at.x - c.x) * LIFT_SCALE, y: c.y + (at.y - c.y) * LIFT_SCALE };
 }
 
 /** Opacity of a piece under the highlight filter and the ghost interference. */
@@ -200,44 +314,25 @@ function drawSprite(ctx, metrics, sprite) {
   );
 }
 
-function strokeOutline(f, piece, remoteLockMeta, isActiveGroup) {
-  const { ctx, pal, view } = f;
-  let strokeCol = pal.secondary;
-  if (remoteLockMeta) strokeCol = resolvePlayerColor(remoteLockMeta.color, pal);
-  else if (isActiveGroup) strokeCol = pal.accent;
-  ctx.lineWidth = (remoteLockMeta || isActiveGroup ? 4.4 : 3.6) / view.scale;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-  const path = f.sprites.pathOf(piece);
-  ctx.stroke(path);
-  ctx.lineWidth = (remoteLockMeta ? 2.8 : 2.4) / view.scale;
-  ctx.strokeStyle = strokeCol;
-  ctx.stroke(path);
-}
-
 /**
- * Draws one piece in world space.
- * Options: piece, isActiveGroup, isHoverGroup, remoteLockMeta (another player's lock),
- * lodConfig (null when the LOD cache is not in use).
+ * Draws one piece in world space. `lodConfig` is null when the LOD cache is not in use;
+ * `shadow` draws it with a drop shadow (a lifted piece's first pass).
  */
-function drawPiece(
-  f,
-  { piece, isActiveGroup = false, isHoverGroup = false, remoteLockMeta = null, lodConfig = null },
-) {
+function drawPiece(f, { piece, lodConfig = null, shadow = null }) {
   const sprite = resolvePieceSprite(f, piece, lodConfig);
   if (!sprite) return;
   const { ctx } = f;
 
   ctx.save();
-  const at = drawnAt(f, piece);
-  ctx.translate(at.x, at.y);
-  ctx.rotate((piece.rotation * Math.PI) / 2);
-  if (piece.isFlipped) {
-    ctx.scale(-1, 1);
-  }
+  enterPiece(f, piece);
   ctx.globalAlpha = pieceAlpha(f, piece);
-  drawSprite(ctx, f.sprites.metrics, sprite);
-  if (remoteLockMeta || isActiveGroup || isHoverGroup) {
-    strokeOutline(f, piece, remoteLockMeta, isActiveGroup);
+  if (shadow) {
+    // Shadow sizes are in device pixels: the canvas transform does not apply to them.
+    ctx.shadowColor = shadow.color;
+    ctx.shadowBlur = shadow.blur * f.dpr;
+    ctx.shadowOffsetX = shadow.dx * f.dpr;
+    ctx.shadowOffsetY = shadow.dy * f.dpr;
   }
+  drawSprite(ctx, f.sprites.metrics, sprite);
   ctx.restore();
 }

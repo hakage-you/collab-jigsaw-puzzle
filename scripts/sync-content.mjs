@@ -15,6 +15,7 @@ const INDEX_HTML_PATH = path.join(ROOT_DIR, 'index.html');
 const CONTENT_ENTRIES = [
   { id: 'terms', file: 'content/terms.html' },
   { id: 'yt-guide', file: 'content/yt-guide.html' },
+  { id: 'credits', file: 'content/credits.html' },
 ];
 
 function normalizeHtml(str) {

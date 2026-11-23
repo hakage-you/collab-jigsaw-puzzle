@@ -3,6 +3,40 @@ import { drawBotanicalSample, drawGeometricSample, drawStarrySample } from './sa
 
 export const DEFAULT_SAMPLE_IMAGE_ID = PUZZLE_CONFIG.DEFAULT_SAMPLE_IMAGE_ID;
 
+/**
+ * Colour grading applied to every sample: more saturated and contrasty, like a picture book or
+ * a board game box. Same steps as the CSS filter `saturate(1.35) contrast(1.12)
+ * brightness(1.03)`, computed on the pixels so every browser (host and guests alike, since
+ * guests draw the sample themselves) gets the same colours.
+ */
+const VIVID = Object.freeze({ saturate: 1.35, contrast: 1.12, brightness: 1.03 });
+
+function clamp255(v) {
+  return v < 0 ? 0 : v > 255 ? 255 : v;
+}
+
+function gradeVivid(ctx, width, height) {
+  const img = ctx.getImageData(0, 0, width, height);
+  const px = img.data;
+  const s = VIVID.saturate;
+  // The W3C saturate() matrix.
+  const m = [
+    [0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s],
+    [0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s],
+    [0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s],
+  ];
+  const tone = (v) => clamp255(clamp255((v - 127.5) * VIVID.contrast + 127.5) * VIVID.brightness);
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i];
+    const g = px[i + 1];
+    const b = px[i + 2];
+    px[i] = tone(clamp255(m[0][0] * r + m[0][1] * g + m[0][2] * b));
+    px[i + 1] = tone(clamp255(m[1][0] * r + m[1][1] * g + m[1][2] * b));
+    px[i + 2] = tone(clamp255(m[2][0] * r + m[2][1] * g + m[2][2] * b));
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
 export const SAMPLE_IMAGE_PRESETS = Object.freeze([
   Object.freeze({ id: 'rainbow', name: 'サンプル：虹と街並み', hint: '標準' }),
   Object.freeze({ id: 'starry', name: 'サンプル：星空の街', hint: '雰囲気◎' }),
@@ -269,5 +303,6 @@ export function generateSampleImageCanvas(
   else if (resolvedId === 'botanical') drawBotanicalSample(ctx, width, height);
   else drawRainbowSample(ctx, width, height);
 
+  gradeVivid(ctx, width, height);
   return canvas;
 }

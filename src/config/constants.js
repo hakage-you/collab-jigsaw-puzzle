@@ -75,7 +75,31 @@ export const VIEWPORT_CONFIG = {
   ZOOM_STEP_WHEEL: 1.12,
   ZOOM_STEP_BUTTON: 1.2,
   DESK_GRID_STEP: 80,
+  /** How the reference image is shown when nothing is saved: 'underlay' | 'sheet' | 'floating' | 'none'. */
+  DEFAULT_REFERENCE_MODE: 'sheet',
 };
+
+/** The desk under the board, chosen per player (settings.deskStyle; src/render/deskTextures.js). */
+export const DESK_CONFIG = Object.freeze({
+  DEFAULT_STYLE: 'wood-b',
+  /** In the order shown in the menu. 'grid' is the plain grid with no texture. */
+  STYLES: Object.freeze([
+    'wood-b',
+    'wood-a',
+    'felt-green',
+    'felt-navy',
+    'cork-a',
+    'cork-b',
+    'grid',
+  ]),
+});
+
+/** The board's frame, chosen per player (settings.boardStyle; canvasOverlayRenderer.js). */
+export const BOARD_CONFIG = Object.freeze({
+  DEFAULT_STYLE: 'wood',
+  /** In the order shown in the menu. 'classic' is the plain board with a thin blue line. */
+  STYLES: Object.freeze(['wood', 'tray', 'gallery', 'classic']),
+});
 
 export const OJAMA_CONFIG = {
   SUPERCHAT_MAX_HP: 15,

@@ -1,3 +1,3 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`pixel reading moved out of core > the sample image signature is pinned 1`] = `"960x640_88bd5ef2"`;
+exports[`pixel reading moved out of core > the sample image signature is pinned 1`] = `"960x640_4ba6b4e9"`;

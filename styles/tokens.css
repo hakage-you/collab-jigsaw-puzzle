@@ -57,6 +57,8 @@ html[data-theme='light'] {
 
   --focus: var(--palette-primary);
   --overlay: rgb(15 23 42 / 48%);
+  /* The settings menu's backdrop: light, so the desk and board stay visible behind it */
+  --overlay-soft: rgb(15 23 42 / 14%);
 
   /* Switch & Canvas Tokens */
   --switch-track-off: #64748b;
@@ -66,6 +68,14 @@ html[data-theme='light'] {
   --canvas-cell-grid: rgb(15 23 42 / 12%);
   --canvas-sheet-bg: #f8fafc;
   --canvas-sheet-text: #1e293b;
+
+  /* The board's paper inside its frame (src/render/canvas2d/canvasOverlayRenderer.js) */
+  --board-paper: #fbfaf6;
+  /* Board frame tiles in the menu (styles/app.css .frame-tile) */
+  --frame-wood: #4a2618;
+  --frame-tray: #e8dfcf;
+  --frame-gallery: #2f2a26;
+  --frame-shadow: rgb(40 28 16 / 40%);
 
   /* Effect stamps (src/render/effects): body colours and the paper style's border and shadow */
   --fx-quiet: #8db4e8;
@@ -178,11 +188,14 @@ html[data-theme='dark'] {
   --danger-soft: color-mix(in srgb, var(--palette-error) 14%, var(--surface));
 
   --overlay: rgb(2 6 23 / 72%);
+  --overlay-soft: rgb(2 6 23 / 30%);
   --switch-track-off: #64748b;
   --switch-thumb: #f8fafc;
   --canvas-board-bg: rgb(15 23 42 / 78%);
   --canvas-grid: rgb(148 163 184 / 7%);
   --canvas-cell-grid: rgb(148 163 184 / 16%);
+  /* Dark: only the paper is toned down (a calm grey paper); the desk stays as chosen. */
+  --board-paper: #cfccc4;
   --dot-outline: rgb(255 255 255 / 25%);
   --fx-quiet: #4a72ad;
   --fx-smoke: #7b8798;

@@ -2,11 +2,11 @@ import { PUZZLE_CONFIG } from '../config/constants.js';
 import { buildPieceOutline } from './jigsawPath.js';
 
 /**
- * Scatters `count` piece positions around the board perimeter and shuffles them.
- * Consumes rng in the same order as before the extraction.
+ * The band round the board where a new puzzle's pieces are scattered: piece centres lie from
+ * `marginX` to `marginX + bandW` left and right of the board's centre (and `marginY`/`bandH`
+ * above and below). The reference sheet is placed outside it (render/viewState.js).
  */
-function generatePerimeterScatterPositions(engine, count, rng) {
-  const positions = [];
+export function scatterBand(engine, count = engine.cols * engine.rows) {
   const marginX = engine.boardW / 2 + engine.pieceW * 0.95;
   const marginY = engine.boardH / 2 + engine.pieceH * 0.95;
   const perimeterSpan = 2 * (engine.boardW + engine.boardH);
@@ -14,9 +14,19 @@ function generatePerimeterScatterPositions(engine, count, rng) {
   const idealBand = Math.ceil(neededArea / Math.max(1, perimeterSpan));
   const bandW = Math.max(engine.pieceW * 3.0, Math.min(engine.boardW * 0.48, idealBand));
   const bandH = Math.max(engine.pieceH * 2.4, Math.min(engine.boardH * 0.48, idealBand));
+  return { marginX, marginY, bandW, bandH };
+}
+
+/**
+ * Scatters `count` piece positions around the board perimeter and shuffles them.
+ * Consumes rng in the same order as before the extraction.
+ */
+function generatePerimeterScatterPositions(engine, count, rng) {
+  const positions = [];
+  const band = scatterBand(engine, count);
 
   for (let i = 0; i < count; i++) {
-    positions.push(scatterPoint(engine, i % 4, { marginX, marginY, bandW, bandH }, rng));
+    positions.push(scatterPoint(engine, i % 4, band, rng));
   }
 
   for (let i = positions.length - 1; i > 0; i--) {

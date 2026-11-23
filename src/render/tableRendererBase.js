@@ -33,6 +33,7 @@ function readThemePalette() {
     cellGrid: read('--canvas-cell-grid', 'rgb(15 23 42 / 12%)'),
     sheetBg: read('--canvas-sheet-bg', '#f8fafc'),
     sheetText: read('--canvas-sheet-text', '#1e293b'),
+    boardPaper: read('--board-paper', '#fbfaf6'),
     fx: Object.fromEntries(
       Object.entries(FX_COLOR_VARS).map(([role, name]) => [role, read(name, FX_FALLBACKS[role])]),
     ),

@@ -2,7 +2,8 @@
  * WebGL2 program that draws pieces as instanced quads, one draw call per frame.
  * Each instance: world position, quarter-turn rotation, mirror flag, the sprite's rectangle in
  * piece-local units, its UV rectangle, which texture it lives in (atlas / zoom / fake), the layer
- * of that texture array, and opacity.
+ * of that texture array, opacity, and a shadow strength (0 for the piece itself; above 0 draws
+ * the sprite's shape in black at that opacity, for a lifted piece's shadow).
  */
 
 const VERTEX_SHADER = `#version 300 es
@@ -10,12 +11,13 @@ layout(location = 0) in vec2 aCorner;   // 0..1 quad corner
 layout(location = 1) in vec4 aPlace;    // world x, y, quarter turns, flip (1 or -1)
 layout(location = 2) in vec4 aRect;     // local left, top, width, height
 layout(location = 3) in vec4 aUv;       // u0, v0, u1, v1
-layout(location = 4) in vec4 aMisc;     // texture (0 atlas, 1 zoom, 2 fake), layer, alpha, unused
+layout(location = 4) in vec4 aMisc;     // texture (0 atlas, 1 zoom, 2 fake), layer, alpha, shadow
 uniform vec3 uView;      // camera x, y, scale
 uniform vec2 uViewport;  // stage size in CSS px
 out vec3 vUv;
 flat out int vTex;
 out float vAlpha;
+out float vShadow;
 void main() {
   vec2 local = aRect.xy + aCorner * aRect.zw;
   local.x *= aPlace.w;
@@ -29,6 +31,7 @@ void main() {
   vUv = vec3(mix(aUv.xy, aUv.zw, aCorner), aMisc.y);
   vTex = int(aMisc.x + 0.5);
   vAlpha = aMisc.z;
+  vShadow = aMisc.w;
 }`;
 
 // All three textures are sampled and one is picked, so mipmap selection stays well defined.
@@ -41,13 +44,15 @@ uniform sampler2DArray uFake;
 in vec3 vUv;
 flat in int vTex;
 in float vAlpha;
+in float vShadow;
 out vec4 outColor;
 void main() {
   vec4 atlas = texture(uAtlas, vUv);
   vec4 zoom = texture(uZoom, vUv);
   vec4 fake = texture(uFake, vUv);
   vec4 color = vTex == 1 ? zoom : (vTex == 2 ? fake : atlas);
-  outColor = color * vAlpha;
+  // Premultiplied alpha: a shadow is black with the sprite's coverage.
+  outColor = vShadow > 0.0 ? vec4(0.0, 0.0, 0.0, color.a) * (vShadow * vAlpha) : color * vAlpha;
 }`;
 
 export const FLOATS_PER_INSTANCE = 16;

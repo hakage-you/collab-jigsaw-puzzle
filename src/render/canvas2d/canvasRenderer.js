@@ -5,9 +5,11 @@ import {
   drawBoardStage,
   drawDeskStage,
   drawLockBadgeStage,
+  drawOutlinesStage,
   drawPieceStage,
   enterWorld,
   leaveWorld,
+  liftedGroups,
   prepareCanvas,
 } from './renderStages.js';
 
@@ -46,6 +48,8 @@ export class CanvasRenderer extends TableRendererBase {
       hoveredPiece: vs.hoveredPiece,
       lockedCache: this._lockedCache,
       sprites: this.sprites,
+      lifted: liftedGroups({ viewState: vs, engine: this.engine, room: this.room }),
+      requestRender: () => vs.requestRender(),
     };
   }
 
@@ -56,10 +60,16 @@ export class CanvasRenderer extends TableRendererBase {
     drawDeskStage(frame);
     enterWorld(frame);
     drawBoardStage(frame);
-    const lodConfig = drawPieceStage(frame, collectVisiblePieces(frame));
+    const visible = collectVisiblePieces(frame);
+    const lodConfig = drawPieceStage(frame, visible);
     drawLockBadgeStage(frame);
     leaveWorld(frame);
     this._finishTable(lodConfig);
-    return null;
+    // Outlines go on the effects layer (they cut the pieces' shapes out of their layer).
+    return { ...frame, visibleLoose: visible.visibleLoose };
+  }
+
+  _drawOverlay(ctx, frame) {
+    drawOutlinesStage({ ...frame, ctx }, frame.visibleLoose);
   }
 }

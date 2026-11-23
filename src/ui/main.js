@@ -25,6 +25,7 @@ function createRenderer(app, getTopbar) {
     engine: app.engine,
     room: app.room,
     getSettings: () => app.getSettings(),
+    watchSettings: (fn) => app.on('settingsChange', fn),
     onChange: ({ kind, reason }) => {
       const fellBack = kind === 'canvas2d' && app.getSettings().rendererMode !== 'canvas2d';
       app.recordDiagnostic(
@@ -59,6 +60,12 @@ function setUpOjamaRules({ app, ojama, topbarUI, youtubeUI }) {
     if (requestedTab) return requestedTab;
     return youtubeUI.shouldPreferYoutubeTab() ? 'yt' : 'rules';
   };
+}
+
+/** The lobby footer's dialogs: the terms, and the credits (libraries and assets). */
+function setUpFooterDialogs() {
+  new TermsModal();
+  new TermsModal({ modalId: 'creditsModal', openId: 'btnOpenCredits', closeId: 'btnCloseCredits' });
 }
 
 function boot() {
@@ -115,7 +122,7 @@ function boot() {
 
   new SaveLoadUI({ app, showToast });
   const diagnosticsUI = new DiagnosticsUI({ app, showToast });
-  new TermsModal();
+  setUpFooterDialogs();
   new ResultModalUI({ app, renderer, loading, showToast });
 
   new CanvasInteraction({

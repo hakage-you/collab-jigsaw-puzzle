@@ -1,4 +1,11 @@
-import { PUZZLE_CONFIG, OJAMA_CONFIG, STORAGE_KEYS } from '../config/constants.js';
+import {
+  BOARD_CONFIG,
+  DESK_CONFIG,
+  PUZZLE_CONFIG,
+  OJAMA_CONFIG,
+  STORAGE_KEYS,
+  VIEWPORT_CONFIG,
+} from '../config/constants.js';
 import { normalizeCutComplexity } from '../core/jigsawPath.js';
 import { parseSaveText } from '../core/saveValidation.js';
 
@@ -7,6 +14,8 @@ export { parseSaveText };
 
 const DEFAULT_SETTINGS = {
   theme: 'light', // 'light' | 'dark'
+  deskStyle: DESK_CONFIG.DEFAULT_STYLE, // DESK_CONFIG.STYLES
+  boardStyle: BOARD_CONFIG.DEFAULT_STYLE, // BOARD_CONFIG.STYLES
   cols: PUZZLE_CONFIG.DEFAULT_COLS,
   rows: PUZZLE_CONFIG.DEFAULT_ROWS,
   seed: PUZZLE_CONFIG.DEFAULT_SEED,
@@ -15,8 +24,9 @@ const DEFAULT_SETTINGS = {
   allowFlip: false,
   showStats: true,
   soundEnabled: true,
+  reduceEffects: false, // "演出を控えめに": smaller effects, as with the OS's reduce motion
   rendererMode: 'auto', // 'auto' (WebGL2 when available) | 'canvas2d' (compatibility mode)
-  referenceMode: 'underlay', // 'underlay' | 'sheet' | 'floating' | 'none'
+  referenceMode: VIEWPORT_CONFIG.DEFAULT_REFERENCE_MODE, // 'underlay' | 'sheet' | 'floating' | 'none'
   guideOpacity: 14,
   playerName: 'ホスト（自分）',
   ojama: {

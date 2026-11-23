@@ -12,6 +12,15 @@ function isSmallScreen() {
   return globalThis.matchMedia?.(SMALL_SCREEN_QUERY).matches ?? false;
 }
 
+/** Marks the chosen button of a group of choice buttons (active class and aria-pressed). */
+function markChoice(buttons, isChosen) {
+  for (const btn of buttons) {
+    const on = isChosen(btn);
+    btn.classList.toggle('active', on);
+    btn.setAttribute('aria-pressed', String(on));
+  }
+}
+
 export class TopbarUI {
   constructor({ app, renderer, onOpenLobby }) {
     this.app = app;
@@ -28,7 +37,10 @@ export class TopbarUI {
     this.elToggleSound = document.getElementById('toggleSound');
     this.elToggleCompatRenderer = document.getElementById('toggleCompatRenderer');
     this.elRendererStatus = document.getElementById('rendererStatus');
-    this.elBtnToggleTheme = document.getElementById('btnToggleTheme');
+    this.elThemeButtons = document.querySelectorAll('#themeModeGroup [data-theme-mode]');
+    this.elDeskButtons = document.querySelectorAll('#deskStyleGroup [data-desk-style]');
+    this.elBoardButtons = document.querySelectorAll('#boardStyleGroup [data-board-style]');
+    this.elToggleReduceEffects = document.getElementById('toggleReduceEffects');
     this.elBtnOpenLobby = document.getElementById('btnOpenLobby');
     this.elBtnOpenSetupFromMenu = document.getElementById('btnOpenSetupFromMenu');
 
@@ -132,15 +144,23 @@ export class TopbarUI {
   applyTheme(theme) {
     const mode = theme === 'dark' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', mode);
-    const label = mode === 'dark' ? 'テーマ: ダーク' : 'テーマ: ライト';
-    if (this.elBtnToggleTheme) this.elBtnToggleTheme.textContent = label;
+    for (const btn of this.elThemeButtons) {
+      const on = btn.dataset.themeMode === mode;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', String(on));
+    }
     this.renderer.requestRender();
   }
 
   syncSettings(settings) {
     this.applyTheme(settings.theme);
+    markChoice(this.elDeskButtons, (btn) => btn.dataset.deskStyle === settings.deskStyle);
+    markChoice(this.elBoardButtons, (btn) => btn.dataset.boardStyle === settings.boardStyle);
     if (this.elToggleShowStats) this.elToggleShowStats.checked = settings.showStats;
     if (this.elToggleSound) this.elToggleSound.checked = settings.soundEnabled;
+    if (this.elToggleReduceEffects) {
+      this.elToggleReduceEffects.checked = Boolean(settings.reduceEffects);
+    }
     if (this.elToggleCompatRenderer) {
       this.elToggleCompatRenderer.checked = settings.rendererMode === 'canvas2d';
     }
@@ -197,8 +217,25 @@ export class TopbarUI {
     });
   }
 
-  _bindEvents() {
-    this.elBtnToggleTheme?.addEventListener('click', () => this.app.toggleTheme());
+  /** The menu's "表示・サウンド" settings (and the compatibility renderer switch). */
+  _bindDisplaySettings() {
+    for (const btn of this.elThemeButtons) {
+      btn.addEventListener('click', () => this.app.patchSettings({ theme: btn.dataset.themeMode }));
+    }
+    // Applied at once: the menu's backdrop is see-through, so the new desk shows around it.
+    for (const btn of this.elDeskButtons) {
+      btn.addEventListener('click', () =>
+        this.app.patchSettings({ deskStyle: btn.dataset.deskStyle }),
+      );
+    }
+    for (const btn of this.elBoardButtons) {
+      btn.addEventListener('click', () =>
+        this.app.patchSettings({ boardStyle: btn.dataset.boardStyle }),
+      );
+    }
+    this.elToggleReduceEffects?.addEventListener('change', () => {
+      this.app.patchSettings({ reduceEffects: this.elToggleReduceEffects.checked });
+    });
     this.elToggleShowStats?.addEventListener('change', () => {
       this.app.patchSettings({ showStats: this.elToggleShowStats.checked });
     });
@@ -211,6 +248,10 @@ export class TopbarUI {
     this.elToggleSound?.addEventListener('change', () => {
       this.app.patchSettings({ soundEnabled: this.elToggleSound.checked });
     });
+  }
+
+  _bindEvents() {
+    this._bindDisplaySettings();
 
     this.elBtnOpenLobby?.addEventListener('click', () => {
       this.closeMenuModal();

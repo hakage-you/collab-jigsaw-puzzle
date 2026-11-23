@@ -1,8 +1,12 @@
+/**
+ * A text dialog opened from the lobby footer: the terms (default) or the credits. Closes with
+ * its button, a click on the backdrop, or Escape.
+ */
 export class TermsModal {
-  constructor() {
-    this.elModal = document.getElementById('termsModal');
-    this.elBtnOpen = document.getElementById('btnOpenTerms');
-    this.elBtnClose = document.getElementById('btnCloseTerms');
+  constructor({ modalId = 'termsModal', openId = 'btnOpenTerms', closeId = 'btnCloseTerms' } = {}) {
+    this.elModal = document.getElementById(modalId);
+    this.elBtnOpen = document.getElementById(openId);
+    this.elBtnClose = document.getElementById(closeId);
 
     this._bindEvents();
   }

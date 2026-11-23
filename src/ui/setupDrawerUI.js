@@ -1,3 +1,4 @@
+import { referenceModeOf } from '../render/viewState.js';
 import { drawCanvasFit, loadImageFromFile } from '../services/imageLoader.js';
 import {
   generateSampleImageCanvas,
@@ -93,7 +94,7 @@ export class SetupDrawerUI {
   applyReferenceModeUI() {
     const settings = this.app.getSettings();
     const { canvas: srcCanvas } = this.app.getSourceImage();
-    const mode = settings.referenceMode || 'underlay';
+    const mode = referenceModeOf(settings);
     document.querySelectorAll('#referenceModeGroup .btn-seg').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.refMode === mode);
     });
@@ -110,7 +111,7 @@ export class SetupDrawerUI {
     const { canvas: srcCanvas, name } = this._image();
     const settings = this.app.getSettings();
     drawCanvasFit(this.elPreviewCanvas, srcCanvas);
-    if (!this.pendingImage && (settings.referenceMode || 'underlay') === 'floating') {
+    if (!this.pendingImage && referenceModeOf(settings) === 'floating') {
       drawCanvasFit(this.elFloatingRefCanvas, srcCanvas);
     }
     this.elImageSourceLabel.textContent = name;
@@ -189,7 +190,9 @@ export class SetupDrawerUI {
 
     document.querySelectorAll('#referenceModeGroup .btn-seg').forEach((btn) => {
       btn.addEventListener('click', () => {
-        this.app.patchSettings({ referenceMode: btn.dataset.refMode || 'underlay' });
+        this.app.patchSettings({
+          referenceMode: referenceModeOf({ referenceMode: btn.dataset.refMode }),
+        });
       });
     });
 

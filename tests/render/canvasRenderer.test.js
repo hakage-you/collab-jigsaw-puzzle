@@ -20,6 +20,9 @@ const BASE_SETTINGS = {
   theme: 'light',
   soundEnabled: false,
   referenceMode: 'underlay',
+  // A textured desk loads its image asynchronously; the grid draws the same on every frame.
+  deskStyle: 'grid',
+  boardStyle: 'classic',
 };
 
 let restoreDevicePixelRatio = () => {};

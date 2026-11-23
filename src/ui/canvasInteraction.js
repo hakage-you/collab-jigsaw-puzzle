@@ -438,6 +438,7 @@ export class CanvasInteraction {
     });
     this.app.on('heavyChange', ({ level }) => {
       this.vs.heavyLevel = level;
+      this.vs.requestRender(); // held pieces sink back to the desk (and lift again after)
       if (!level) this.heavy.catchUp();
     });
     this.app.on('snapEffect', ({ pieces }) => this.vs.addSnapFlashes(pieces));
