@@ -1,18 +1,67 @@
 import { formatDuration } from './topbarUI.js';
 
+const PUBLIC_GAME_URL = 'https://hakage-you.github.io/collab-jigsaw-puzzle/';
+
+export function formatShareText(payload) {
+  const lines = [
+    `🧩 協力ジグソーパズル（${payload.pieceCount}ピース）を完成させました！`,
+    `⏱ クリアタイム: ${formatDuration(payload.elapsedMs)}`,
+  ];
+  if (payload.ojamaTotal > 0) {
+    lines.push(`😈 乗り越えたお邪魔: ${payload.ojamaTotal}回`);
+  }
+  if (payload.isMultiplayer && Array.isArray(payload.roster) && payload.roster.length > 0) {
+    const sorted = [...payload.roster].sort((a, b) => b.contrib - a.contrib);
+    if (sorted[0]) {
+      lines.push(`👑 MVP: ${sorted[0].name}（${sorted[0].contrib}ピース）`);
+    }
+  }
+  lines.push(PUBLIC_GAME_URL);
+  return lines.join('\n');
+}
+
+async function writeClipboardText(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fallback below when Clipboard API is unavailable or denied.
+    }
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 export class ResultModalUI {
-  constructor({ app, renderer, loading }) {
+  constructor({ app, renderer, loading, showToast }) {
     this.app = app;
     this.renderer = renderer;
     this.loading = loading;
+    this.showToast = showToast;
+    this.lastPayload = null;
     this.elModal = document.getElementById('resultModal');
     this.elRankingList = document.getElementById('resultRankingList');
+    this.elBtnShare = document.getElementById('btnResultShare');
 
     this._bindEvents();
     this._subscribeApp();
   }
 
   showResult(payload) {
+    this.lastPayload = payload;
     this.renderer.launchConfetti();
     document.getElementById('resultTime').textContent = formatDuration(payload.elapsedMs);
     document.getElementById('resultSize').textContent =
@@ -58,6 +107,15 @@ export class ResultModalUI {
   }
 
   _bindEvents() {
+    this.elBtnShare?.addEventListener('click', async () => {
+      if (!this.lastPayload) return;
+      const ok = await writeClipboardText(formatShareText(this.lastPayload));
+      if (ok) {
+        this.showToast?.('戦績をクリップボードにコピーしました', 'success');
+      } else {
+        this.showToast?.('クリップボードへのコピーに失敗しました', 'ojama');
+      }
+    });
     document.getElementById('btnResultReplay').addEventListener('click', () => {
       this.loading.run(() => this.app.startNewPuzzle());
     });

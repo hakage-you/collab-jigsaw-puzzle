@@ -1,4 +1,9 @@
 import { drawCanvasFit, loadImageFromFile } from '../services/imageLoader.js';
+import {
+  generateSampleImageCanvas,
+  getSamplePreset,
+  normalizeSampleImageId,
+} from '../services/sampleImage.js';
 
 export class SetupDrawerUI {
   constructor({ app, renderer, loading, showToast }) {
@@ -17,6 +22,8 @@ export class SetupDrawerUI {
     this.elBtnOpenFromHost = document.getElementById('btnOpenSetupFromHost');
     this.elLobbySoloSummary = document.getElementById('lobbySoloPuzzleSummary');
     this.elLobbyHostSummary = document.getElementById('lobbyHostPuzzleSummary');
+    this.elLobbySoloPreview = document.getElementById('lobbySoloPreviewCanvas');
+    this.elLobbyHostPreview = document.getElementById('lobbyHostPreviewCanvas');
 
     this.elInputCols = document.getElementById('inputCols');
     this.elInputRows = document.getElementById('inputRows');
@@ -37,7 +44,9 @@ export class SetupDrawerUI {
 
     this._bindEvents();
     this._subscribeApp();
+    this._renderSamplePresetThumbnails();
     this.syncSettings(this.app.getSettings());
+    this.updatePreviewStrip();
   }
 
   openModal() {
@@ -106,15 +115,27 @@ export class SetupDrawerUI {
     }
     this.elImageSourceLabel.textContent = name;
     this.elImageDimLabel.textContent = `${srcCanvas.width} × ${srcCanvas.height} px`;
+    this.updateSamplePresetHighlight();
     this.updateLobbySummaries();
   }
 
+  updateSamplePresetHighlight() {
+    const img = this._image();
+    document.querySelectorAll('[data-sample-preset]').forEach((btn) => {
+      const active = Boolean(img?.isSample && img.sampleId === btn.dataset.samplePreset);
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+  }
+
   updateLobbySummaries() {
-    const { name } = this._image();
+    const { canvas: srcCanvas, name } = this._image();
     const s = this.app.getSettings();
     const summary = `現在の設定: ${name} / ${s.cols}×${s.rows}（${s.cols * s.rows}ピース）`;
     if (this.elLobbySoloSummary) this.elLobbySoloSummary.textContent = summary;
     if (this.elLobbyHostSummary) this.elLobbyHostSummary.textContent = summary;
+    if (this.elLobbySoloPreview && srcCanvas) drawCanvasFit(this.elLobbySoloPreview, srcCanvas);
+    if (this.elLobbyHostPreview && srcCanvas) drawCanvasFit(this.elLobbyHostPreview, srcCanvas);
   }
 
   updatePresetHighlight() {
@@ -224,7 +245,19 @@ export class SetupDrawerUI {
     });
   }
 
-  /** Picking a file or the sample only sets up the dialog; Start switches the puzzle to it. */
+  _renderSamplePresetThumbnails() {
+    for (const btn of document.querySelectorAll('[data-sample-preset]')) {
+      const thumb = btn.querySelector('canvas');
+      if (!thumb) continue;
+      const sampleId = normalizeSampleImageId(btn.dataset.samplePreset);
+      const sample = generateSampleImageCanvas(undefined, undefined, sampleId);
+      drawCanvasFit(thumb, sample);
+      sample.width = 0;
+      sample.height = 0;
+    }
+  }
+
+  /** Picking a file or a sample only sets up the dialog; Start switches the puzzle to it. */
   _bindImagePicks() {
     document.getElementById('imageFileInput').addEventListener('change', (e) => {
       const file = e.target.files?.[0];
@@ -238,13 +271,18 @@ export class SetupDrawerUI {
       e.target.value = '';
     });
 
-    document.getElementById('btnUseSampleImage').addEventListener('click', () => {
-      this._pickImage({
-        canvas: this.app.createSampleCanvas(),
-        name: 'サンプルテスト画像',
-        isSample: true,
+    for (const btn of document.querySelectorAll('[data-sample-preset]')) {
+      btn.addEventListener('click', () => {
+        const sampleId = normalizeSampleImageId(btn.dataset.samplePreset);
+        const preset = getSamplePreset(sampleId);
+        this._pickImage({
+          canvas: this.app.createSampleCanvas(sampleId),
+          name: preset.name,
+          isSample: true,
+          sampleId,
+        });
       });
-    });
+    }
   }
 
   _subscribeApp() {

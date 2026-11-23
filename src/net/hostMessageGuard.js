@@ -256,6 +256,7 @@ function validateWelcome(m) {
     roomRules: sanitizeRoomRules(m.roomRules),
     roster: sanitizeRoster(m.roster),
     isSampleImage: optional(m.isSampleImage, bool),
+    sampleImageId: optional(m.sampleImageId, (v) => text(v, MAX_ACTION_TEXT)),
     imageHash: optional(m.imageHash, token),
     totalChunks: optional(m.totalChunks, (v) => count(v, NET_LIMITS.MAX_IMAGE_CHUNKS)),
   };

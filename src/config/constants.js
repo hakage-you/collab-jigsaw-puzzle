@@ -35,6 +35,7 @@ export const PUZZLE_CONFIG = {
   MAX_UPLOAD_IMAGE_DIM: 2400,
   SAMPLE_IMAGE_WIDTH: 960,
   SAMPLE_IMAGE_HEIGHT: 640,
+  DEFAULT_SAMPLE_IMAGE_ID: 'rainbow',
 };
 
 export const CUT_COMPLEXITY_CONFIG = {
@@ -81,6 +82,14 @@ export const OJAMA_CONFIG = {
   /** Seconds a superchat stays unless driven off; 0 = until it is driven off. */
   DEFAULT_SUPERCHAT_DURATION_SEC: 0,
   AUTO_COMMENT_INTERVAL_MS: 1100,
+  DEFAULT_AUTO_COMMENT_PACE: 'normal',
+  AUTO_COMMENT_MIN_SEC: 3,
+  AUTO_COMMENT_MAX_SEC: 60,
+  AUTO_COMMENT_INTERVALS_MS: Object.freeze({
+    slow: 30000,
+    normal: 15000,
+    fast: 6000,
+  }),
   PRANK_DEFAULT_COUNT: 3,
   FAKE_PIECE_DURATION_SEC: 60,
   FAKE_PIECE_ADD_COUNT: 3,

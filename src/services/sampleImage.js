@@ -1,4 +1,23 @@
 import { PUZZLE_CONFIG } from '../config/constants.js';
+import { drawBotanicalSample, drawGeometricSample, drawStarrySample } from './sampleArtworks.js';
+
+export const DEFAULT_SAMPLE_IMAGE_ID = PUZZLE_CONFIG.DEFAULT_SAMPLE_IMAGE_ID;
+
+export const SAMPLE_IMAGE_PRESETS = Object.freeze([
+  Object.freeze({ id: 'rainbow', name: 'サンプル：虹と街並み', hint: '標準' }),
+  Object.freeze({ id: 'starry', name: 'サンプル：星空の街', hint: '雰囲気◎' }),
+  Object.freeze({ id: 'geometric', name: 'サンプル：カラフルアート', hint: '遊びやすい' }),
+  Object.freeze({ id: 'botanical', name: 'サンプル：花と幾何学模様', hint: '歯ごたえ' }),
+]);
+
+export function normalizeSampleImageId(sampleId) {
+  return SAMPLE_IMAGE_PRESETS.some((p) => p.id === sampleId) ? sampleId : DEFAULT_SAMPLE_IMAGE_ID;
+}
+
+export function getSamplePreset(sampleId) {
+  const id = normalizeSampleImageId(sampleId);
+  return SAMPLE_IMAGE_PRESETS.find((p) => p.id === id) || SAMPLE_IMAGE_PRESETS[0];
+}
 
 function drawSkyAndLand(ctx, width, height) {
   const skyGrad = ctx.createLinearGradient(0, 0, width, height * 0.58);
@@ -219,19 +238,7 @@ function drawFrameAndBadges(ctx, width, height) {
   ctx.fillText('COLLAB JIGSAW SAMPLE', width / 2, 47);
 }
 
-/**
- * Generates a colorful, high-contrast test illustration on an offscreen canvas
- * so users can play immediately without uploading an image.
- */
-export function generateSampleImageCanvas(
-  width = PUZZLE_CONFIG.SAMPLE_IMAGE_WIDTH,
-  height = PUZZLE_CONFIG.SAMPLE_IMAGE_HEIGHT,
-) {
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-
+function drawRainbowSample(ctx, width, height) {
   // Drawing order matters: later layers overlap earlier ones.
   drawSkyAndLand(ctx, width, height);
   drawSun(ctx, width, height);
@@ -240,6 +247,27 @@ export function generateSampleImageCanvas(
   drawHillsAndHouses(ctx, width, height);
   drawWavesAndBoat(ctx, width, height);
   drawFrameAndBadges(ctx, width, height);
+}
+
+/**
+ * Generates a colorful, high-contrast illustration on an offscreen canvas
+ * so users can play immediately without uploading an image.
+ */
+export function generateSampleImageCanvas(
+  width = PUZZLE_CONFIG.SAMPLE_IMAGE_WIDTH,
+  height = PUZZLE_CONFIG.SAMPLE_IMAGE_HEIGHT,
+  sampleId = DEFAULT_SAMPLE_IMAGE_ID,
+) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  const resolvedId = normalizeSampleImageId(sampleId);
+
+  if (resolvedId === 'starry') drawStarrySample(ctx, width, height);
+  else if (resolvedId === 'geometric') drawGeometricSample(ctx, width, height);
+  else if (resolvedId === 'botanical') drawBotanicalSample(ctx, width, height);
+  else drawRainbowSample(ctx, width, height);
 
   return canvas;
 }

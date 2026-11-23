@@ -47,6 +47,7 @@ export class PuzzleEngine {
     this.imageAnalyzer = imageAnalyzer;
     this.sourceCanvas = null;
     this.isSampleImage = true;
+    this.sampleImageId = PUZZLE_CONFIG.DEFAULT_SAMPLE_IMAGE_ID;
     this.imageHash = '';
     this.cols = PUZZLE_CONFIG.DEFAULT_COLS;
     this.rows = PUZZLE_CONFIG.DEFAULT_ROWS;
@@ -118,6 +119,7 @@ export class PuzzleEngine {
   initPuzzle({
     sourceCanvas,
     isSampleImage,
+    sampleImageId = PUZZLE_CONFIG.DEFAULT_SAMPLE_IMAGE_ID,
     cols,
     rows,
     seed,
@@ -128,6 +130,9 @@ export class PuzzleEngine {
     const prevSrc = this.sourceCanvas;
     this.sourceCanvas = sourceCanvas;
     this.isSampleImage = Boolean(isSampleImage);
+    this.sampleImageId = this.isSampleImage
+      ? sampleImageId || PUZZLE_CONFIG.DEFAULT_SAMPLE_IMAGE_ID
+      : null;
     this.imageHash = this.imageAnalyzer.signature(sourceCanvas);
     const clamped = clampGridDimensions(cols, rows);
     this.cols = clamped.cols;
@@ -175,6 +180,9 @@ export class PuzzleEngine {
     const pInfo = saveData.puzzle;
     this.sourceCanvas = sourceCanvas;
     this.isSampleImage = Boolean(isSampleImage);
+    this.sampleImageId = this.isSampleImage
+      ? pInfo.sampleImageId || PUZZLE_CONFIG.DEFAULT_SAMPLE_IMAGE_ID
+      : null;
     this.imageHash = this.imageAnalyzer.signature(sourceCanvas);
     const clamped = clampGridDimensions(pInfo.cols, pInfo.rows);
     this.cols = clamped.cols;

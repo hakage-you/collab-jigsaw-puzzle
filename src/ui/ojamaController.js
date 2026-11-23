@@ -1,6 +1,7 @@
 import { OJAMA_CONFIG, YOUTUBE_CONFIG } from '../config/constants.js';
 import { decideCommentOjama, pickRandomOjama } from '../app/ojamaRules.js';
 import { sound } from '../services/sound.js';
+import { CpuAutoCommentController } from './cpuAutoCommentController.js';
 import { SuperchatCard } from './superchatCard.js';
 import { TimedOjamaController } from './timedOjamaController.js';
 
@@ -23,7 +24,6 @@ export class OjamaController {
     this.commentCounter = 0;
     /** author -> when their keyword last set off an ojama (for the per-viewer wait). */
     this.viewerLastTimes = new Map();
-    this.autoCommentInterval = null;
 
     this.elVisualBanner = document.getElementById('visualSabotageBanner');
     this.elVisualLabel = document.getElementById('visualSabotageLabel');
@@ -36,11 +36,22 @@ export class OjamaController {
 
     this.elCommentTriggerCounter = document.getElementById('commentTriggerCounter');
     this.elMiniChatLog = document.getElementById('miniChatLog');
-    this.elBtnAutoComments = document.getElementById('btnToggleAutoComments');
+    this.autoComments = new CpuAutoCommentController({
+      guardIfCompleted: () => this.guardIfCompleted(),
+      onComment: (user, msg) => this.processIncomingComment(user, msg),
+    });
 
     this._bindEvents();
     this._subscribeApp();
     this.syncSettings(this.getSettings());
+  }
+
+  get onAutoCommentsChange() {
+    return this.autoComments.onChange;
+  }
+
+  set onAutoCommentsChange(fn) {
+    this.autoComments.onChange = fn;
   }
 
   syncSettings() {
@@ -79,30 +90,14 @@ export class OjamaController {
         document.getElementById('btnSendDummyComment').click();
       }
     });
+  }
 
-    this.elBtnAutoComments.addEventListener('click', () => {
-      if (this.autoCommentInterval) {
-        this.stopAutoComments();
-        return;
-      }
+  isAutoCommentsRunning() {
+    return this.autoComments.isRunning();
+  }
 
-      const samples = [
-        'がんばえー！',
-        'そこ右上の角じゃない？',
-        '!drop お邪魔いれちゃうぞｗ',
-        'きれいな色だね〜',
-        '!color 見づらくなれ！',
-        '!spin 回しちゃえ〜',
-        '!ghost 透明になっちゃえ！',
-        '!fake 偽ピース混ぜちゃうぞ！',
-      ];
-      this.elBtnAutoComments.textContent = '自動コメント停止';
-      this.autoCommentInterval = setInterval(() => {
-        const msg = samples[Math.floor(Math.random() * samples.length)];
-        const user = `視聴者${Math.floor(10 + Math.random() * 90)}`;
-        this.processIncomingComment(user, msg);
-      }, OJAMA_CONFIG.AUTO_COMMENT_INTERVAL_MS);
-    });
+  stopAutoComments() {
+    this.autoComments.stop();
   }
 
   updateSpotlightPosition(sx, sy) {
@@ -120,14 +115,6 @@ export class OjamaController {
     );
     this.elCommentTriggerCounter.textContent =
       settings.ojama.commentCountOn === false ? 'オフ' : `${this.commentCounter} / ${threshold}`;
-  }
-
-  stopAutoComments() {
-    if (this.autoCommentInterval) {
-      clearInterval(this.autoCommentInterval);
-      this.autoCommentInterval = null;
-    }
-    this.elBtnAutoComments.textContent = '自動コメント開始';
   }
 
   clearVisualSabotage(broadcast = false) {

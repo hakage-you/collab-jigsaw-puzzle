@@ -9,6 +9,7 @@ export class YouTubeUI {
     this.showToast = showToast;
 
     this.elApiKey = document.getElementById('ytApiKeyInput');
+    this.elBtnToggleKeyVisibility = document.getElementById('btnYtToggleKeyVisibility');
     this.elBtnClearKey = document.getElementById('btnYtClearKey');
     this.elRememberKeyToggle = document.getElementById('ytRememberKeyToggle');
     this.elRememberKeyConsent = document.getElementById('ytRememberKeyConsent');
@@ -55,10 +56,27 @@ export class YouTubeUI {
     });
 
     this.isLocalSaveEnabled = false;
+    this.isApiKeyVisible = false;
     this._initStoredKey();
+    this._syncKeyVisibilityUI();
     this._bindEvents();
     this._subscribeApp();
     this._updateQuotaUI(0);
+    this.syncLiveIndicators();
+  }
+
+  shouldPreferYoutubeTab() {
+    return this.client.isPolling || Boolean((this.elApiKey?.value || '').trim());
+  }
+
+  _syncKeyVisibilityUI() {
+    if (this.elApiKey) {
+      this.elApiKey.classList.toggle('api-key-masked', !this.isApiKeyVisible);
+    }
+    if (this.elBtnToggleKeyVisibility) {
+      this.elBtnToggleKeyVisibility.textContent = this.isApiKeyVisible ? '隠す' : '表示';
+      this.elBtnToggleKeyVisibility.setAttribute('aria-pressed', String(this.isApiKeyVisible));
+    }
   }
 
   _subscribeApp() {
@@ -158,9 +176,12 @@ export class YouTubeUI {
     this.client.apiKey = '';
     this.client.activeLiveChatId = null;
     this.elApiKey.value = '';
+    this.isApiKeyVisible = false;
+    this._syncKeyVisibilityUI();
     this.elBtnTogglePoll.disabled = true;
     this.elPreview.classList.add('hidden');
     this._disableLocalSave({ silent: true });
+    this.syncLiveIndicators();
     this.setStatus('入力されていたAPIキーを消去しました', false);
     this.showToast('APIキーを消去しました', 'info');
   }
@@ -175,11 +196,16 @@ export class YouTubeUI {
     this.elPreview.classList.add('hidden');
   }
 
+  syncLiveIndicators() {
+    const active = this.client.isPolling || Boolean(this.ojama.isAutoCommentsRunning?.());
+    for (const el of this.elLiveIndicators) el.classList.toggle('hidden', !active);
+  }
+
   _syncPollButton(isPolling) {
     this.elBtnTogglePoll.textContent = isPolling ? '連動を停止' : 'コメント連動を開始';
     this.elBtnTogglePoll.classList.toggle('btn-danger', isPolling);
     this.elBtnTogglePoll.classList.toggle('btn-primary', !isPolling);
-    for (const el of this.elLiveIndicators) el.classList.toggle('hidden', !isPolling);
+    this.syncLiveIndicators();
   }
 
   _updateQuotaUI(units) {
@@ -216,6 +242,11 @@ export class YouTubeUI {
     this.elApiKey.addEventListener('input', () => {
       this._resetVerification();
       this._persistKeyIfEnabled();
+    });
+
+    this.elBtnToggleKeyVisibility?.addEventListener('click', () => {
+      this.isApiKeyVisible = !this.isApiKeyVisible;
+      this._syncKeyVisibilityUI();
     });
 
     this.elBtnClearKey.addEventListener('click', () => {

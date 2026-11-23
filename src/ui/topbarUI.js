@@ -22,8 +22,6 @@ export class TopbarUI {
     this.elProgressBarFill = document.getElementById('progressBarFill');
     this.elTimerText = document.getElementById('timerText');
     this.elContributionCount = document.getElementById('contributionCount');
-    this.elOjamaTotalCount = document.getElementById('ojamaTotalCount');
-    this.elOjamaBreakdownText = document.getElementById('ojamaBreakdownText');
     this.elRoomRoleBadge = document.getElementById('roomRoleBadge');
 
     this.elToggleShowStats = document.getElementById('toggleShowStats');
@@ -76,8 +74,7 @@ export class TopbarUI {
   }
 
   openStreamModal(tabName = null) {
-    // Coming back from a test (palette or "今すぐ出す"): those close, on the ojama rules.
-    const tab = this.onStreamModalOpen?.() ?? tabName;
+    const tab = this.onStreamModalOpen?.({ requestedTab: tabName }) ?? tabName;
     if (tab) this.selectStreamTab(tab);
     this.elStreamModal?.classList.remove('hidden');
   }
@@ -178,9 +175,6 @@ export class TopbarUI {
     this.elTimerText.textContent = formatDuration(engine.stats.elapsedMs);
 
     this.elContributionCount.textContent = String(this.app.getMyContribution());
-    this.elOjamaTotalCount.textContent = String(engine.stats.ojamaTotal);
-    const bd = engine.stats.ojamaBreakdown;
-    this.elOjamaBreakdownText.textContent = `（落:${bd.drop} 視:${bd.visual} ス:${bd.superchat} 悪:${bd.prank} 偽:${bd.fake || 0} 重:${bd.heavy || 0} 逃:${bd.runaway || 0}）`;
   }
 
   renderKnockBanner(knockQueue) {

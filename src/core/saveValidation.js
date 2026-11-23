@@ -118,6 +118,7 @@ function readPuzzleHeader(src) {
       imageHeight: optional(src.imageHeight, readImageDim),
       imageHash: optional(src.imageHash, readBoundedString(MAX_HASH_LENGTH)),
       imageName: optional(src.imageName, readBoundedString(MAX_IMAGE_NAME_LENGTH)),
+      sampleImageId: optional(src.sampleImageId, readBoundedString(32)),
     }),
   };
 }

@@ -39,7 +39,7 @@ function createRenderer(app, getTopbar) {
 }
 
 /** The ojama rules tab, its "今すぐ出す" and the test palette ("動作確認"). */
-function setUpOjamaRules({ app, ojama, topbarUI }) {
+function setUpOjamaRules({ app, ojama, topbarUI, youtubeUI }) {
   const closeStreamModal = () => topbarUI.closeStreamModal();
   const openRules = () => topbarUI.openStreamModal('rules');
   const palette = new TestPalette({ app, closeStreamModal, openRules });
@@ -49,12 +49,15 @@ function setUpOjamaRules({ app, ojama, topbarUI }) {
     tryNow: (type) => peek.show(type),
     openTest: () => palette.open(),
   });
+  ojama.onAutoCommentsChange = () => youtubeUI.syncLiveIndicators();
   // Whichever way the stream modal comes back during a test, the test ends the same way.
-  topbarUI.onStreamModalOpen = () => {
+  topbarUI.onStreamModalOpen = ({ requestedTab } = {}) => {
     const testing = palette.isOpen() || peek.isShown();
     palette.close();
     peek.hide();
-    return testing ? 'rules' : null;
+    if (testing) return 'rules';
+    if (requestedTab) return requestedTab;
+    return youtubeUI.shouldPreferYoutubeTab() ? 'yt' : 'rules';
   };
 }
 
@@ -108,12 +111,12 @@ function boot() {
   });
 
   const youtubeUI = new YouTubeUI({ app, ojama, showToast });
-  setUpOjamaRules({ app, ojama, topbarUI });
+  setUpOjamaRules({ app, ojama, topbarUI, youtubeUI });
 
   new SaveLoadUI({ app, showToast });
   const diagnosticsUI = new DiagnosticsUI({ app, showToast });
   new TermsModal();
-  new ResultModalUI({ app, renderer, loading });
+  new ResultModalUI({ app, renderer, loading, showToast });
 
   new CanvasInteraction({
     app,
@@ -144,7 +147,7 @@ function boot() {
     refSheet: renderer.viewState.refSheet,
     getSettings: () => app.getSettings(),
     setCustomImage: (canvas, name) => app.setCustomImage(canvas, name),
-    useSampleImage: () => app.useSampleImage(),
+    useSampleImage: (sampleId) => app.useSampleImage(sampleId),
     fitView: () => setupDrawerUI.fitViewAndSync(),
     screenToWorld: (sx, sy) => renderer.viewState.screenToWorld(sx, sy),
   };

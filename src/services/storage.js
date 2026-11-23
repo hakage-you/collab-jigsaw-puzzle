@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS = {
   seed: PUZZLE_CONFIG.DEFAULT_SEED,
   cutComplexity: 'standard',
   allowRotation: true,
-  allowFlip: true,
+  allowFlip: false,
   showStats: true,
   soundEnabled: true,
   rendererMode: 'auto', // 'auto' (WebGL2 when available) | 'canvas2d' (compatibility mode)

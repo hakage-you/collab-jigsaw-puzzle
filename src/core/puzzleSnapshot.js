@@ -178,6 +178,9 @@ export function exportSaveDataOp(engine, settings, contributions = null) {
       imageHeight: engine.sourceCanvas.height,
       imageHash: engine.imageHash,
       isSampleImage: engine.isSampleImage,
+      ...(engine.isSampleImage && engine.sampleImageId
+        ? { sampleImageId: engine.sampleImageId }
+        : {}),
     },
     settings: structuredClone(settings),
     stats: structuredClone(engine.stats),

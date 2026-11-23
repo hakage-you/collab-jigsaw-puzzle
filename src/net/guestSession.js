@@ -1,5 +1,9 @@
 import { NET_LIMITS } from '../config/constants.js';
-import { generateSampleImageCanvas } from '../services/sampleImage.js';
+import {
+  generateSampleImageCanvas,
+  getSamplePreset,
+  normalizeSampleImageId,
+} from '../services/sampleImage.js';
 import { validateSaveData } from '../core/saveValidation.js';
 import { recordDiagnostic } from '../services/diagnostics.js';
 import { MSG, computeChallengeHash } from './protocol.js';
@@ -235,8 +239,9 @@ export class GuestSession {
     });
 
     if (msg.isSampleImage) {
-      const sampleCanvas = generateSampleImageCanvas();
-      room.cb.onReceiveImage(sampleCanvas, 'サンプルテスト画像', true);
+      const sampleId = normalizeSampleImageId(msg.sampleImageId);
+      const sampleCanvas = generateSampleImageCanvas(undefined, undefined, sampleId);
+      room.cb.onReceiveImage(sampleCanvas, getSamplePreset(sampleId).name, true, sampleId);
       room.transport.sendToHost({ type: MSG.IMAGE_ACK, needImage: false });
       return;
     }

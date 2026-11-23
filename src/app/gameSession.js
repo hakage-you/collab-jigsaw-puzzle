@@ -14,7 +14,6 @@ import {
   computeGridForPieceCount,
   normalizeCutComplexity,
 } from '../core/jigsawPath.js';
-import { validateSaveData } from '../core/saveValidation.js';
 import {
   clearAutoBackup,
   loadSavedSettings,
@@ -24,9 +23,19 @@ import {
 } from '../services/storage.js';
 import { sound } from '../services/sound.js';
 import { computeImageSignature, imageAnalyzer } from '../services/imagePixels.js';
-import { generateSampleImageCanvas } from '../services/sampleImage.js';
+import {
+  DEFAULT_SAMPLE_IMAGE_ID,
+  generateSampleImageCanvas,
+  getSamplePreset,
+  normalizeSampleImageId,
+} from '../services/sampleImage.js';
 import { RoomController } from '../net/roomController.js';
 import { createRoomCallbacks } from './roomCallbacks.js';
+import {
+  buildRestoredSettingsPatch,
+  resolveRestoredImage,
+  validateSaveOrToast,
+} from './sessionRestore.js';
 
 export class GameSession {
   constructor() {
@@ -38,9 +47,10 @@ export class GameSession {
     sound.enabled = this.settings.soundEnabled;
 
     this.sourceImage = {
-      canvas: generateSampleImageCanvas(),
-      name: 'サンプルテスト画像',
+      canvas: generateSampleImageCanvas(undefined, undefined, DEFAULT_SAMPLE_IMAGE_ID),
+      name: getSamplePreset(DEFAULT_SAMPLE_IMAGE_ID).name,
       isSample: true,
+      sampleId: DEFAULT_SAMPLE_IMAGE_ID,
     };
     this.knockQueue = [];
     this.highlightFilter = 'all';
@@ -51,6 +61,7 @@ export class GameSession {
       getSourceState: () => ({
         sourceCanvas: this.sourceImage.canvas,
         isSampleImage: this.sourceImage.isSample,
+        sampleImageId: this.sourceImage.isSample ? this.sourceImage.sampleId : undefined,
       }),
       callbacks: createRoomCallbacks(this),
     });
@@ -136,21 +147,26 @@ export class GameSession {
 
   // ---------- Puzzle & Image Lifecycle ----------
 
-  createSampleCanvas() {
-    return generateSampleImageCanvas();
+  createSampleCanvas(sampleId = DEFAULT_SAMPLE_IMAGE_ID) {
+    return generateSampleImageCanvas(undefined, undefined, sampleId);
   }
 
   getSourceImage() {
     return this.sourceImage;
   }
 
-  _replaceSourceImage(canvas, name, isSample) {
+  _replaceSourceImage(canvas, name, isSample, sampleId = DEFAULT_SAMPLE_IMAGE_ID) {
     const prev = this.sourceImage?.canvas;
     if (prev && prev !== canvas && prev !== this.engine.sourceCanvas) {
       prev.width = 0;
       prev.height = 0;
     }
-    this.sourceImage = { canvas, name, isSample };
+    this.sourceImage = {
+      canvas,
+      name,
+      isSample,
+      sampleId: isSample ? normalizeSampleImageId(sampleId) : null,
+    };
   }
 
   _syncGridToSourceAspect(canvas) {
@@ -169,25 +185,28 @@ export class GameSession {
     this.emit('toast', { message: `「${name}」でパズルを開始しました`, kind: 'success' });
   }
 
-  useSampleImage() {
-    const sample = generateSampleImageCanvas();
-    this._replaceSourceImage(sample, 'サンプルテスト画像', true);
+  useSampleImage(sampleId = DEFAULT_SAMPLE_IMAGE_ID) {
+    const normalizedId = normalizeSampleImageId(sampleId);
+    const preset = getSamplePreset(normalizedId);
+    const sample = generateSampleImageCanvas(undefined, undefined, normalizedId);
+    this._replaceSourceImage(sample, preset.name, true, normalizedId);
     this._syncGridToSourceAspect(sample);
     this.startNewPuzzle();
-    this.emit('toast', { message: 'サンプルテスト画像を生成しました', kind: 'success' });
+    this.emit('toast', { message: `「${preset.name}」を選択しました`, kind: 'success' });
   }
 
   /**
    * Cuts a new puzzle from the current settings, first switching to `image` when given
-   * ({ canvas, name, isSample }: one picked in the setup dialog, used only once Start is pressed).
+   * ({ canvas, name, isSample, sampleId }: one picked in the setup dialog, used only once Start is pressed).
    */
   startNewPuzzle(image = null) {
-    if (image) this._replaceSourceImage(image.canvas, image.name, image.isSample);
+    if (image) this._replaceSourceImage(image.canvas, image.name, image.isSample, image.sampleId);
     this.highlightFilter = 'all';
     this.room.resetContributions();
     this.engine.initPuzzle({
       sourceCanvas: this.sourceImage.canvas,
       isSampleImage: this.sourceImage.isSample,
+      sampleImageId: this.sourceImage.isSample ? this.sourceImage.sampleId : undefined,
       cols: this.settings.cols,
       rows: this.settings.rows,
       seed: this.settings.seed,
@@ -231,40 +250,25 @@ export class GameSession {
   }
 
   restoreFromSaveData(rawSaveData, customCanvas, useSample, imgName) {
-    const checked = validateSaveData(rawSaveData);
-    if (!checked.ok) {
-      this.emit('toast', { message: checked.error, kind: 'ojama' });
-      return;
-    }
-    const saveData = checked.data;
-    const srcCanvas = useSample ? generateSampleImageCanvas() : customCanvas;
+    const saveData = validateSaveOrToast(this, rawSaveData);
+    if (!saveData) return;
+    const {
+      canvas: srcCanvas,
+      name: baseName,
+      sampleId,
+    } = resolveRestoredImage(saveData, customCanvas, useSample, imgName || 'ローカル画像（復元）');
     if (!srcCanvas) return;
-    const resolvedName = useSample
-      ? 'サンプルテスト画像（復元）'
-      : imgName || 'ローカル画像（復元）';
-
-    if (saveData.settings) {
-      this.patchSettings({
-        ...saveData.settings,
-        cutComplexity: normalizeCutComplexity(
-          saveData.puzzle?.cutComplexity || saveData.settings.cutComplexity,
-        ),
-        ojama: {
-          ...this.settings.ojama,
-          ...(saveData.settings.ojama || {}),
-        },
-      });
-    }
+    const resolvedName = useSample ? `${baseName}（復元）` : baseName;
+    const settingsPatch = buildRestoredSettingsPatch(saveData, this.settings.ojama);
+    if (settingsPatch) this.patchSettings(settingsPatch);
 
     this.engine.restoreFromSave(saveData, srcCanvas, useSample);
     this.room.applySavedContributions(saveData.contributions, this.engine.stats.placedCount);
-    this._replaceSourceImage(srcCanvas, resolvedName, useSample);
+    this._replaceSourceImage(srcCanvas, resolvedName, useSample, sampleId);
     this.highlightFilter = 'all';
     this.emit('puzzleReset', { ...this.sourceImage, resetEffects: true, fitView: true });
     this.emit('hudUpdate');
-    if (this.room.role === 'host') {
-      this.room.broadcastFullState();
-    }
+    if (this.room.role === 'host') this.room.broadcastFullState();
     this.emit('toast', { message: 'セーブデータからパズルを復元しました', kind: 'success' });
   }
 
@@ -426,13 +430,17 @@ export class GameSession {
     return this.room.shouldWarnBeforeUnload();
   }
 
-  startSolo() {
-    this.emit('stopYoutubePolling', { reason: null });
-    this.room.close();
+  _resetLobbyState() {
     this.knockQueue.length = 0;
     this.emit('knockChange', []);
     this._emitRoleChange();
     this.emit('hudUpdate');
+  }
+
+  startSolo() {
+    this.emit('stopYoutubePolling', { reason: null });
+    this.room.close();
+    this._resetLobbyState();
     this.emit('renderNeeded');
   }
 
@@ -440,10 +448,7 @@ export class GameSession {
     this.emit('stopYoutubePolling', { reason: null });
     this.patchSettings({ playerName: displayName });
     await this.room.startHostRoom({ passcode, requireApproval, capacity });
-    this.knockQueue.length = 0;
-    this.emit('knockChange', []);
-    this._emitRoleChange();
-    this.emit('hudUpdate');
+    this._resetLobbyState();
     this.emit('toast', { message: 'マルチプレイ部屋を作成しました', kind: 'success' });
   }
 
@@ -453,32 +458,31 @@ export class GameSession {
     isSample,
     { displayName, passcode, requireApproval, capacity },
   ) {
-    const checked = validateSaveData(rawBackup);
-    if (!checked.ok) {
-      this.emit('toast', { message: checked.error, kind: 'ojama' });
-      return;
-    }
-    const backup = checked.data;
+    const backup = validateSaveOrToast(this, rawBackup);
+    if (!backup) return;
     this.emit('stopYoutubePolling', { reason: null });
-    const resolvedCanvas = isSample ? generateSampleImageCanvas() : imgCanvas;
-    const imgName = isSample
-      ? 'サンプルテスト画像'
-      : imgCanvas?._fileName || backup.puzzle?.imageName || '復元画像';
+    const {
+      canvas: resolvedCanvas,
+      name: imgName,
+      sampleId,
+    } = resolveRestoredImage(
+      backup,
+      imgCanvas,
+      isSample,
+      imgCanvas?._fileName || backup.puzzle?.imageName || '復元画像',
+    );
     this.engine.restoreFromSave(backup, resolvedCanvas, isSample);
     this.room.applySavedContributions(backup.contributions, this.engine.stats.placedCount);
-    if (backup.settings) {
-      this.patchSettings({ ...backup.settings, playerName: displayName });
-    } else {
-      this.patchSettings({ playerName: displayName });
-    }
-    this._replaceSourceImage(resolvedCanvas, imgName, isSample);
+    this.patchSettings(
+      backup.settings
+        ? { ...backup.settings, playerName: displayName }
+        : { playerName: displayName },
+    );
+    this._replaceSourceImage(resolvedCanvas, imgName, isSample, sampleId);
     this.highlightFilter = 'all';
     this.emit('puzzleReset', { ...this.sourceImage, resetEffects: true, fitView: true });
     await this.room.startHostRoom({ passcode, requireApproval, capacity });
-    this.knockQueue.length = 0;
-    this.emit('knockChange', []);
-    this._emitRoleChange();
-    this.emit('hudUpdate');
+    this._resetLobbyState();
     this.emit('toast', { message: '自動バックアップから部屋を再開しました', kind: 'success' });
   }
 

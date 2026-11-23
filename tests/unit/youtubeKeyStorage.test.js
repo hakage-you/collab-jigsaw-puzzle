@@ -4,7 +4,8 @@ import { YouTubeUI } from '../../src/ui/youtubeUI.js';
 
 function mountYouTubeDom() {
   document.body.innerHTML = `
-    <input type="password" id="ytApiKeyInput" />
+    <input type="text" id="ytApiKeyInput" class="api-key-masked" />
+    <button type="button" id="btnYtToggleKeyVisibility" aria-pressed="false">表示</button>
     <button type="button" id="btnYtClearKey">消去</button>
     <input type="checkbox" id="ytRememberKeyToggle" />
     <div id="ytRememberKeyConsent" class="hidden">
@@ -123,5 +124,31 @@ describe('YouTubeUI API key browser storage option', () => {
     expect(document.getElementById('ytRememberKeyToggle').checked).toBe(false);
     expect(localStorage.getItem(STORAGE_KEYS.YOUTUBE_API_KEY)).toBeNull();
     expect(localStorage.getItem(STORAGE_KEYS.YOUTUBE_STORAGE_MODE)).toBeNull();
+  });
+
+  it('toggles API key mask visibility and prefers YouTube tab only when key or polling is active', () => {
+    const { ui } = createYouTubeUI();
+    const input = document.getElementById('ytApiKeyInput');
+    const toggleBtn = document.getElementById('btnYtToggleKeyVisibility');
+
+    expect(input.type).toBe('text');
+    expect(input.classList.contains('api-key-masked')).toBe(true);
+    expect(toggleBtn.textContent).toBe('表示');
+    expect(toggleBtn.getAttribute('aria-pressed')).toBe('false');
+    expect(ui.shouldPreferYoutubeTab()).toBe(false);
+
+    toggleBtn.click();
+    expect(input.classList.contains('api-key-masked')).toBe(false);
+    expect(toggleBtn.textContent).toBe('隠す');
+    expect(toggleBtn.getAttribute('aria-pressed')).toBe('true');
+
+    input.value = 'AIzaSyVisibleKey';
+    expect(ui.shouldPreferYoutubeTab()).toBe(true);
+
+    document.getElementById('btnYtClearKey').click();
+    expect(input.classList.contains('api-key-masked')).toBe(true);
+    expect(toggleBtn.textContent).toBe('表示');
+    expect(toggleBtn.getAttribute('aria-pressed')).toBe('false');
+    expect(ui.shouldPreferYoutubeTab()).toBe(false);
   });
 });

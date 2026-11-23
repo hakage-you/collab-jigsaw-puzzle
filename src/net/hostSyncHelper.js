@@ -33,7 +33,7 @@ export function buildRoomRules(room) {
 }
 
 export function sendWelcomeToGuest(room, guest, roster) {
-  const { isSampleImage } = room.getSourceState();
+  const { isSampleImage, sampleImageId } = room.getSourceState();
   const eng = room.engine;
   room.transport.sendTo(guest.connId, {
     type: MSG.WELCOME,
@@ -41,6 +41,7 @@ export function sendWelcomeToGuest(room, guest, roster) {
     reconnectToken: guest.reconnectToken,
     color: guest.color,
     isSampleImage,
+    ...(isSampleImage && sampleImageId ? { sampleImageId } : {}),
     imageHash: eng.imageHash,
     imageWidth: eng.sourceCanvas?.width || PUZZLE_CONFIG.SAMPLE_IMAGE_WIDTH,
     imageHeight: eng.sourceCanvas?.height || PUZZLE_CONFIG.SAMPLE_IMAGE_HEIGHT,

@@ -56,8 +56,8 @@ function boardCallbacks(session) {
       session.emit('renderNeeded');
     },
     onImageProgress: (received, total) => session.emit('imageProgress', { received, total }),
-    onReceiveImage: (srcCanvas, imgName, isSample) => {
-      session._replaceSourceImage(srcCanvas, imgName, isSample);
+    onReceiveImage: (srcCanvas, imgName, isSample, sampleId) => {
+      session._replaceSourceImage(srcCanvas, imgName, isSample, sampleId);
       session.emit('puzzleReset', { ...session.sourceImage, resetEffects: false });
     },
     onFullStateSynced: () => {

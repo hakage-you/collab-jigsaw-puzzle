@@ -61,13 +61,6 @@
             <span class="stat-label">ハマったピース数</span>
             <strong id="contributionCount">0</strong>
           </div>
-          <div class="stat-chip stat-chip-ojama" title="発動したお邪魔の合計と内訳">
-            <span class="stat-label">お邪魔</span>
-            <strong id="ojamaTotalCount">0</strong>
-            <span class="ojama-mini-breakdown" id="ojamaBreakdownText"
-              >（落:0 視:0 ス:0 悪:0 偽:0）</span
-            >
-          </div>
         </div>
 
         <div class="topbar-right">
@@ -498,44 +491,147 @@
             <button
               type="button"
               class="modal-tab active"
-              data-stream-tab="yt"
+              data-stream-tab="rules"
               role="tab"
               aria-selected="true"
             >
-              YouTube 連動
+              お邪魔ルール
             </button>
             <button
               type="button"
               class="modal-tab"
-              data-stream-tab="rules"
+              data-stream-tab="yt"
               role="tab"
               aria-selected="false"
             >
-              お邪魔ルール
+              YouTube 連動
             </button>
           </div>
 
           <div class="modal-body">
-            <!-- Sub-tab 1: YouTube Connect -->
-            <div class="modal-tab-panel active" id="stream-tab-yt">
+            <!-- Sub-tab 1: Ojama Rules (built by src/ui/ojamaRulesPanel.js) -->
+            <div class="modal-tab-panel active" id="stream-tab-rules">
+              <div class="cpu-ojama-card">
+                <label class="md-switch md-switch-row">
+                  <span class="md-switch-label">
+                    <span>CPU自動お邪魔（疑似配信モード）</span>
+                    <span class="md-switch-sub">
+                      APIキー不要。疑似コメントを自動で流してソロや身内でもお邪魔を楽しめます
+                    </span>
+                  </span>
+                  <input type="checkbox" class="md-switch-input" id="toggleCpuAutoOjama" />
+                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+                </label>
+                <div class="cpu-ojama-pace-row">
+                  <span class="cpu-ojama-pace-label">発生頻度</span>
+                  <div
+                    class="cpu-ojama-pace-group"
+                    id="cpuAutoOjamaPace"
+                    role="group"
+                    aria-label="CPU自動お邪魔の発生頻度"
+                  >
+                    <button type="button" class="btn btn-xs btn-seg" data-cpu-pace="slow">
+                      ゆるめ（30秒）
+                    </button>
+                    <button type="button" class="btn btn-xs btn-seg active" data-cpu-pace="normal">
+                      標準（15秒）
+                    </button>
+                    <button type="button" class="btn btn-xs btn-seg" data-cpu-pace="fast">
+                      激しめ（6秒）
+                    </button>
+                  </div>
+                </div>
+                <label class="range-row cpu-ojama-range-row">
+                  <span class="cpu-ojama-range-head">
+                    <span>コメント間隔（開始後も調整可）</span>
+                    <strong id="cpuAutoOjamaIntervalValue">15秒ごと</strong>
+                  </span>
+                  <input
+                    type="range"
+                    id="cpuAutoOjamaIntervalRange"
+                    min="3"
+                    max="60"
+                    step="1"
+                    value="15"
+                  />
+                </label>
+              </div>
+              <p class="rules-intro">
+                コメントのキーワード・コメントの数・スパチャで、盤面にお邪魔が出ます。変更はすぐに反映されます。
+              </p>
+              <div class="rules-split" id="ojamaRules">
+                <nav class="rules-list" id="ojamaRulesList" aria-label="お邪魔の一覧"></nav>
+                <section
+                  class="rules-detail"
+                  id="ojamaRulesDetail"
+                  aria-label="選んだ項目の設定"
+                ></section>
+              </div>
+            </div>
+
+            <!-- Sub-tab 2: YouTube Connect -->
+            <div class="modal-tab-panel" id="stream-tab-yt">
               <div class="drawer-section" id="youtubeConnectSection">
+                <div class="yt-trust-box">
+                  <p class="yt-trust-title">
+                    安全に視聴者参加型配信を行うために（YouTube 公式API連動）
+                  </p>
+                  <p class="yt-trust-body">
+                    不特定多数のリスナーに<strong>配信者のIPアドレスが露出するのを防ぎ</strong>、YouTubeの利用規約を順守して安全に連動するため、ホストご自身の
+                    <strong>YouTube Data API キー（無料枠）</strong>
+                    を使用する方式を採用しています。
+                  </p>
+                  <p class="yt-trust-body">
+                    入力されたキーや画像はブラウザ内のみで処理され、外部へ送信されることはありません。裏サーバーは一切持たず、<a
+                      href="https://github.com/hakage-you/collab-jigsaw-puzzle"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      >GitHub の公開ソースコード</a
+                    >から、<a
+                      href="https://x.com/hakage_you"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      >開発者（@hakage_you）</a
+                    >を含め誰にもデータが渡らないことを技術的に検証できます。
+                  </p>
+                  <details class="yt-trust-details">
+                    <summary>
+                      なぜ配信URLを入れるだけではコメントを読めないの？（クリックで開く）
+                    </summary>
+                    <p>
+                      公式APIを通さずチャット画面から直接コメントを抜き出す行為（スクレイピングや非公式ツールの利用）は、YouTubeの利用規約で禁止されておりアカウントがペナルティを受けるリスクがあります。また、視聴者と直接通信（P2P）すると配信者のIPアドレスが視聴者に露出してしまいます。配信アカウントとプライバシーの両方を守るため、Google公式の正規手順（YouTube
+                      Data API v3）のみを使用しています。
+                    </p>
+                  </details>
+                </div>
+
                 <button
                   type="button"
-                  class="btn btn-secondary btn-sm btn-block"
+                  class="btn btn-secondary btn-sm btn-block mt-2"
                   id="btnOpenYtGuide"
                 >
-                  APIキーの取得・設定ガイド
+                  APIキーとは？ / 取得・設定ガイド
                 </button>
 
                 <div class="field mt-2">
                   <label for="ytApiKeyInput">YouTube APIキー</label>
                   <div class="input-with-btn">
                     <input
-                      type="password"
+                      type="text"
                       id="ytApiKeyInput"
+                      class="api-key-masked"
                       autocomplete="off"
+                      spellcheck="false"
                       placeholder="AIza..."
                     />
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      id="btnYtToggleKeyVisibility"
+                      aria-pressed="false"
+                    >
+                      表示
+                    </button>
                     <button type="button" class="btn btn-secondary btn-sm" id="btnYtClearKey">
                       消去
                     </button>
@@ -624,21 +720,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- Sub-tab 2: Ojama Rules (built by src/ui/ojamaRulesPanel.js) -->
-            <div class="modal-tab-panel" id="stream-tab-rules">
-              <p class="rules-intro">
-                コメントのキーワード・コメントの数・スパチャで、盤面にお邪魔が出ます。変更はすぐに反映されます。
-              </p>
-              <div class="rules-split" id="ojamaRules">
-                <nav class="rules-list" id="ojamaRulesList" aria-label="お邪魔の一覧"></nav>
-                <section
-                  class="rules-detail"
-                  id="ojamaRulesDetail"
-                  aria-label="選んだ項目の設定"
-                ></section>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -690,7 +771,7 @@
               <div class="switch-list">
                 <label
                   class="md-switch md-switch-row host-only"
-                  title="ハマったピース数・お邪魔カウントの表示を切り替え"
+                  title="ハマったピース数の表示を切り替え"
                 >
                   <span class="md-switch-label">カウント表示</span>
                   <input type="checkbox" class="md-switch-input" id="toggleShowStats" checked />
@@ -701,16 +782,7 @@
                   <input type="checkbox" class="md-switch-input" id="toggleSound" checked />
                   <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
                 </label>
-                <label
-                  class="md-switch md-switch-row"
-                  title="表示がおかしいときに、WebGL2 を使わない描画に切り替えます（動きは重くなります）"
-                >
-                  <span class="md-switch-label">互換描画モード</span>
-                  <input type="checkbox" class="md-switch-input" id="toggleCompatRenderer" />
-                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
-                </label>
               </div>
-              <p class="hint-text mt-2" id="rendererStatus"></p>
               <button type="button" class="btn btn-secondary btn-block mt-2" id="btnToggleTheme">
                 テーマ: ライト
               </button>
@@ -753,32 +825,62 @@
                   </div>
                 </div>
               </details>
-
-              <button type="button" class="btn btn-secondary btn-block mt-2" id="btnResetSettings">
-                設定を初期値にリセット
-              </button>
             </div>
 
             <div class="drawer-section">
-              <h3>診断ログ（テスト用）</h3>
-              <details class="drawer-details" id="diagnosticsDetails">
-                <summary class="drawer-details-summary">診断ログを開く</summary>
+              <details class="drawer-details" id="troubleshootingDetails">
+                <summary class="drawer-details-summary">
+                  うまく動かないときは（トラブルシューティング）
+                </summary>
                 <div class="drawer-details-body">
-                  <div class="diag-summary-text" id="diagSummaryText">エラー 0件 / 記録 0件</div>
-                  <p class="hint-text">
-                    外部送信は行いません。不具合時はコピーまたはJSON保存して共有してください（秘密情報は自動マスクされます）。
-                  </p>
-                  <div class="btn-row">
-                    <button type="button" class="btn btn-outline-accent btn-xs" id="btnCopyDiagLog">
-                      診断ログをコピー
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-xs" id="btnDownloadDiagJson">
-                      JSONで保存
-                    </button>
-                  </div>
-                  <button type="button" class="btn btn-xs btn-ghost" id="btnClearDiagLog">
-                    ログをクリア
+                  <label
+                    class="md-switch md-switch-row"
+                    title="表示がおかしいときに、WebGL2 を使わない描画に切り替えます（動きは重くなります）"
+                  >
+                    <span class="md-switch-label">互換描画モード</span>
+                    <input type="checkbox" class="md-switch-input" id="toggleCompatRenderer" />
+                    <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+                  </label>
+                  <p class="hint-text" id="rendererStatus"></p>
+
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-block host-only"
+                    id="btnResetSettings"
+                  >
+                    設定を初期値にリセット
                   </button>
+
+                  <details class="drawer-details" id="diagnosticsDetails">
+                    <summary class="drawer-details-summary">診断ログを開く</summary>
+                    <div class="drawer-details-body">
+                      <div class="diag-summary-text" id="diagSummaryText">
+                        エラー 0件 / 記録 0件
+                      </div>
+                      <p class="hint-text">
+                        外部送信は行いません。不具合時はコピーまたはJSON保存して共有してください（秘密情報は自動マスクされます）。
+                      </p>
+                      <div class="btn-row">
+                        <button
+                          type="button"
+                          class="btn btn-outline-accent btn-xs"
+                          id="btnCopyDiagLog"
+                        >
+                          診断ログをコピー
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-xs"
+                          id="btnDownloadDiagJson"
+                        >
+                          JSONで保存
+                        </button>
+                      </div>
+                      <button type="button" class="btn btn-xs btn-ghost" id="btnClearDiagLog">
+                        ログをクリア
+                      </button>
+                    </div>
+                  </details>
                 </div>
               </details>
             </div>
@@ -856,11 +958,18 @@
             <!-- Solo Mode -->
             <div class="lobby-panel active" id="lobby-panel-solo">
               <p class="lobby-desc">
-                自分のブラウザだけでジグソーパズルと各種お邪魔テストをすぐにプレイできます。通信は一切発生しません。
+                自分のブラウザだけでジグソーパズルとたのしいお邪魔ギミックをすぐに体験できます！
               </p>
               <div class="lobby-puzzle-summary-box">
+                <canvas
+                  id="lobbySoloPreviewCanvas"
+                  class="lobby-summary-thumb"
+                  width="60"
+                  height="40"
+                  aria-hidden="true"
+                ></canvas>
                 <div class="lobby-puzzle-summary-text" id="lobbySoloPuzzleSummary">
-                  現在の設定: サンプルテスト画像 / 6×4（24ピース）
+                  現在の設定: サンプル：虹と街並み / 6×4（24ピース）
                 </div>
                 <button type="button" class="btn btn-secondary btn-xs" id="btnOpenSetupFromSolo">
                   画像・ルールを変更
@@ -909,19 +1018,26 @@
                 </label>
               </div>
 
-              <div class="transparency-box">
-                <strong>プライバシーと通信について</strong>
-                <ul>
-                  <li>
-                    パズル画像・セーブデータ・API
-                    キーはブラウザ内でのみ扱われ、外部サーバーへ保存されません。
-                  </li>
-                  <li>P2P 通信に API キーやアカウント情報等の機密データは送信されません。</li>
-                  <li>
-                    P2P 通信の性質上、接続元 IP アドレスやパズル画像が参加者間で共有されます。
-                  </li>
-                </ul>
-              </div>
+              <details class="privacy-notice-details">
+                <summary class="privacy-notice-summary">プライバシーと通信について</summary>
+                <div class="privacy-notice-body">
+                  <ul>
+                    <li>
+                      サーバーを介さずブラウザ同士で直接通信（P2P）するため、外部にパズル画像・セーブデータ・APIキーが保存されず高速に遊べます。
+                    </li>
+                    <li>
+                      P2P通信にAPIキーやアカウント情報などの機密データは送信されません。また、YouTubeコメント連動は視聴者と直接通信しないため、誰がコメントしても安全です。
+                    </li>
+                    <li>
+                      仕組み上、同じ部屋に入ったメンバー同士では通信先（IPアドレス）やパズル画像が直接やり取りされるため、部屋の招待IDは<strong>信頼できるフレンドやコラボ相手</strong>とのみ共有してください。
+                    </li>
+                  </ul>
+                  <p class="privacy-vpn-tip">
+                    <strong>Tips:</strong>
+                    初対面の相手とのコラボなどで通信元のIPアドレスを相手に知らせたくない場合は、VPNサービスを併用する方法もあります（導入・設定方法は各自でご確認ください。※VPN環境によってはP2P接続が不安定になったり繋がりにくくなる場合があります）。
+                  </p>
+                </div>
+              </details>
 
               <div class="backup-resume-box hidden" id="lobbyBackupSection">
                 <div class="backup-header">
@@ -951,8 +1067,15 @@
               </div>
 
               <div class="lobby-puzzle-summary-box">
+                <canvas
+                  id="lobbyHostPreviewCanvas"
+                  class="lobby-summary-thumb"
+                  width="60"
+                  height="40"
+                  aria-hidden="true"
+                ></canvas>
                 <div class="lobby-puzzle-summary-text" id="lobbyHostPuzzleSummary">
-                  現在の設定: サンプルテスト画像 / 6×4（24ピース）
+                  現在の設定: サンプル：虹と街並み / 6×4（24ピース）
                 </div>
                 <button type="button" class="btn btn-secondary btn-xs" id="btnOpenSetupFromHost">
                   画像・ルールを変更
@@ -986,10 +1109,18 @@
                   />
                 </label>
               </div>
-              <p class="hint-text mt-2">
-                P2P 通信の性質上、接続元 IP
-                アドレスやパズル画像が参加者間で共有されます。信頼できるホストの部屋にのみ参加してください。
-              </p>
+              <details class="privacy-notice-details mt-2">
+                <summary class="privacy-notice-summary">プライバシーと通信について</summary>
+                <div class="privacy-notice-body">
+                  <p>
+                    ※サーバーを介さずホストと直接通信（P2P）するため、同じ部屋のメンバー同士では通信先（IPアドレス）やパズル画像が直接やり取りされます。信頼できるホストの部屋にのみ参加してください。
+                  </p>
+                  <p class="privacy-vpn-tip">
+                    <strong>Tips:</strong>
+                    通信元のIPアドレスを相手に知らせたくない場合は、VPNサービスを併用する方法もあります（導入・設定方法は各自でご確認ください。※VPN環境によってはP2P接続が不安定になったり繋がりにくくなる場合があります）。
+                  </p>
+                </div>
+              </details>
               <div class="guest-status-box hidden" id="lobbyGuestStatus"></div>
               <div class="transfer-progress-wrap hidden" id="lobbyTransferWrap">
                 <div class="progress-bar-wrap transfer-bar-outer">
@@ -1240,17 +1371,59 @@
               </p>
               <div class="btn-row">
                 <label class="btn btn-outline-accent file-btn">
-                  画像を選択
+                  自分の画像を選ぶ
                   <input type="file" id="imageFileInput" accept="image/*" hidden />
                 </label>
-                <button type="button" class="btn btn-secondary" id="btnUseSampleImage">
-                  サンプル画像を生成
-                </button>
+              </div>
+              <div class="sample-preset-section mt-2">
+                <span class="sample-preset-heading">またはサンプル画像から選ぶ</span>
+                <div class="sample-preset-grid" role="group" aria-label="サンプル画像プリセット">
+                  <button
+                    type="button"
+                    class="sample-preset-btn active"
+                    data-sample-preset="rainbow"
+                    aria-pressed="true"
+                  >
+                    <canvas width="90" height="60" aria-hidden="true"></canvas>
+                    <span class="sample-preset-title">虹と街並み</span>
+                    <span class="sample-preset-hint">標準</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="sample-preset-btn"
+                    data-sample-preset="starry"
+                    aria-pressed="false"
+                  >
+                    <canvas width="90" height="60" aria-hidden="true"></canvas>
+                    <span class="sample-preset-title">星空の街</span>
+                    <span class="sample-preset-hint">雰囲気◎</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="sample-preset-btn"
+                    data-sample-preset="geometric"
+                    aria-pressed="false"
+                  >
+                    <canvas width="90" height="60" aria-hidden="true"></canvas>
+                    <span class="sample-preset-title">カラフルアート</span>
+                    <span class="sample-preset-hint">遊びやすい</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="sample-preset-btn"
+                    data-sample-preset="botanical"
+                    aria-pressed="false"
+                  >
+                    <canvas width="90" height="60" aria-hidden="true"></canvas>
+                    <span class="sample-preset-title">花と幾何学模様</span>
+                    <span class="sample-preset-hint">歯ごたえ</span>
+                  </button>
+                </div>
               </div>
               <div class="preview-strip">
                 <canvas id="previewCanvas" width="160" height="106"></canvas>
                 <div class="preview-info">
-                  <div id="imageSourceLabel" class="preview-title">サンプルテスト画像</div>
+                  <div id="imageSourceLabel" class="preview-title">サンプル：虹と街並み</div>
                   <div id="imageDimLabel" class="preview-sub">960 × 640 px</div>
                 </div>
               </div>
@@ -1278,6 +1451,16 @@
                   3000ピース
                 </button>
               </div>
+              <ul class="preset-guide-list">
+                <li><strong>9〜48ピース</strong>: サクッと（1〜5分 / お試し・ソロ向け）</li>
+                <li>
+                  <strong>100〜200ピース</strong>: 標準（15〜30分 /
+                  友達と協力・1枠の配信企画におすすめ）
+                </li>
+                <li>
+                  <strong>500〜3000ピース</strong>: 耐久（1時間〜 / 大人数コラボ・長期戦向け）
+                </li>
+              </ul>
 
               <div class="switch-list">
                 <label class="md-switch md-switch-row">
@@ -1293,7 +1476,7 @@
                     <span>裏返しモード</span>
                     <span class="md-switch-sub">一部ピースが裏面で開始</span>
                   </span>
-                  <input type="checkbox" class="md-switch-input" id="optAllowFlip" checked />
+                  <input type="checkbox" class="md-switch-input" id="optAllowFlip" />
                   <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
                 </label>
               </div>
@@ -1407,6 +1590,9 @@
           <ul class="result-ranking-list result-countable hidden" id="resultRankingList"></ul>
 
           <div class="modal-actions">
+            <button type="button" class="btn btn-outline-accent" id="btnResultShare">
+              戦績をコピーしてシェア
+            </button>
             <button type="button" class="btn btn-primary guest-hide" id="btnResultReplay">
               同じ画像でもう一度
             </button>

@@ -18,6 +18,53 @@
   color: var(--text-muted);
 }
 
+.cpu-ojama-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+
+.cpu-ojama-pace-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.cpu-ojama-pace-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.cpu-ojama-pace-group {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.cpu-ojama-range-row {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+
+.cpu-ojama-range-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.cpu-ojama-range-head strong {
+  color: var(--text);
+}
+
 .rules-split {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
