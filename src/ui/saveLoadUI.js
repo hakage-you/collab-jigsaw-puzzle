@@ -111,7 +111,9 @@ export class SaveLoadUI {
       ],
       [
         `元画像種別: ${
-          puz.isSampleImage ? 'サンプル画像' : `ローカル画像 (${puz.imageWidth}×${puz.imageHeight})`
+          puz.isSampleImage
+            ? 'サンプル画像'
+            : `ローカル画像（${puz.imageWidth}×${puz.imageHeight}）`
         }`,
       ],
     ];

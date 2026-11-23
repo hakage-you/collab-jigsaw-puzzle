@@ -213,14 +213,14 @@ describe('YouTubeLiveClient', () => {
     it('maps keyInvalid to the invalid API key message', async () => {
       fake.videoResponses.push(apiError(400, 'keyInvalid', 'bad key'));
 
-      await expect(client.verifyBroadcast(KEY, VIDEO_ID)).rejects.toThrow('API キーが無効です');
+      await expect(client.verifyBroadcast(KEY, VIDEO_ID)).rejects.toThrow('APIキーが無効です');
     });
 
     it('maps a 403 forbidden response to the forbidden message', async () => {
       fake.videoResponses.push(apiError(403, 'forbidden', 'forbidden'));
 
       await expect(client.verifyBroadcast(KEY, VIDEO_ID)).rejects.toThrow(
-        'API リクエストが拒否されました（403',
+        'YouTubeへの接続が拒否されました（403',
       );
     });
 
@@ -236,7 +236,7 @@ describe('YouTubeLiveClient', () => {
       fake.videoResponses.push(apiError(500, 'backendError', 'boom'));
 
       await expect(client.verifyBroadcast(KEY, VIDEO_ID)).rejects.toThrow(
-        'YouTube API エラー (500): boom',
+        'YouTube APIエラー（500）: boom',
       );
     });
 
@@ -400,7 +400,7 @@ describe('YouTubeLiveClient', () => {
   describe('errors during polling', () => {
     it.each([
       ['quota exhausted', apiError(403, 'quotaExceeded', 'quota'), '本日の無料枠'],
-      ['invalid API key', apiError(400, 'keyInvalid', 'bad key'), 'API キーが無効です'],
+      ['invalid API key', apiError(400, 'keyInvalid', 'bad key'), 'APIキーが無効です'],
       ['chat disabled', apiError(403, 'liveChatDisabled', 'disabled'), 'ライブチャットが無効'],
     ])('stops polling on %s and reports the reason', async (_label, response, expectedText) => {
       vi.useFakeTimers();

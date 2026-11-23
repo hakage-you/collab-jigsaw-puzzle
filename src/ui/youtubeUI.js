@@ -209,7 +209,7 @@ export class YouTubeUI {
   }
 
   _updateQuotaUI(units) {
-    this.elQuotaReadout.textContent = `セッション消費: ${units} ユニット（無料枠 ${YOUTUBE_CONFIG.QUOTA_DAILY_LIMIT.toLocaleString()}/日）`;
+    this.elQuotaReadout.textContent = `セッション消費: ${units}ユニット（無料枠 ${YOUTUBE_CONFIG.QUOTA_DAILY_LIMIT.toLocaleString()}/日）`;
   }
 
   openGuideModal() {

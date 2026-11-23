@@ -24,7 +24,7 @@
   </li>
 </ul>
 <p class="guide-note">
-  ※2026年11月21日時点の YouTube Data API v3 仕様および動作確認に基づく内容です。
+  ※2026年11月21日時点の YouTube Data API v3仕様および動作確認に基づく内容です。
 </p>
 
 <h3>3. このゲームでは何に使うの？（データの扱いと保存オプション）</h3>
@@ -48,7 +48,7 @@
     </li>
     <li>
       <strong>保存時の注意</strong>:
-      ブラウザ（localStorage）に保存したキーは、<strong>手動でオフまたは消去するまで期限なく残ります</strong>。また、共有PCの別ユーザーやブラウザ拡張機能などから読み取られるリスクがあります。共有PCでは使わず、必ず「YouTube
+      ブラウザ（localStorage）に保存したキーは、オフにするか消去するまで残ります。共有PCでは使わず、必ず「YouTube
       Data API v3 のみ」に制限したキーをご使用ください。
     </li>
     <li>
@@ -60,8 +60,8 @@
 
 <h3>4. 料金はかかる？（無料枠と配信時間の目安）</h3>
 <p>
-  YouTube Data API v3 には1日あたり<strong>10,000ユニットの無料枠</strong>があります。Google Cloud
-  で課金設定（請求先アカウントの登録）を行わない限り、自動的に料金が発生することはありません。
+  YouTube Data API v3には1日あたり<strong>10,000ユニットの無料枠</strong>があります。Google
+  Cloudで課金設定（請求先アカウントの登録）を行わない限り、自動的に料金が発生することはありません。
 </p>
 <ul class="guide-list">
   <li>取得間隔 5秒: 約2.7時間／日</li>
@@ -73,8 +73,8 @@
 <h3>5. 取得・設定手順（初回のみ）</h3>
 <ol class="guide-steps">
   <li>
-    Google Cloud Console
-    にGoogleアカウントでログインし、新しいプロジェクトを作成します（プロジェクト名は何でも構いません）。
+    Google Cloud
+    ConsoleにGoogleアカウントでログインし、新しいプロジェクトを作成します（プロジェクト名は何でも構いません）。
   </li>
   <li>
     左メニューの「APIとサービス」→「ライブラリ」から<strong>「YouTube Data API v3」</strong
@@ -92,19 +92,19 @@
   </li>
 </ol>
 <p class="guide-note">
-  ※手順内のメニュー名称は2026年11月21日時点の Google Cloud Console
-  の表示に基づきます。Google側のアップデートにより表記が変わる場合があります。
+  ※手順内のメニュー名称は2026年11月21日時点の Google Cloud
+  Consoleの表示に基づきます。Google側のアップデートにより表記が変わる場合があります。
 </p>
 
 <h3>6. 配信時の注意点（漏洩対策・対応条件）</h3>
 <ul class="guide-list">
   <li>
-    <strong>配信画面にキーを映さない</strong>: 入力欄は伏せ字になりますが、Google Cloud Console
-    の画面やコピー操作をOBS等の配信画面に映さないようご注意ください。
+    <strong>配信画面にキーを映さない</strong>: 入力欄は伏せ字になりますが、Google Cloud
+    Consoleの画面やコピー操作をOBS等の配信画面に映さないようご注意ください。
   </li>
   <li>
-    <strong>万が一映ってしまったら</strong>: Google Cloud Console
-    の「認証情報」から該当のAPIキーを削除し、新しく作り直せばすぐに無効化できます。
+    <strong>万が一映ってしまったら</strong>: Google Cloud
+    Consoleの「認証情報」から該当のAPIキーを削除し、新しく作り直せばすぐに無効化できます。
   </li>
   <li>
     <strong>対応する配信</strong>:

@@ -46,12 +46,12 @@ export function extractVideoId(input) {
 const API_ERROR_RULES = [
   {
     match: ({ reason }) => reason === 'quotaExceeded' || reason === 'dailyLimitExceeded',
-    message: 'YouTube API の本日の無料枠（クォータ上限）に達したため自動停止しました',
+    message: 'YouTube APIの本日の無料枠（クォータ上限）に達したため自動停止しました',
   },
   {
     match: ({ reason, status, rawMessage }) =>
       reason === 'keyInvalid' || (status === 400 && rawMessage.toLowerCase().includes('api key')),
-    message: 'API キーが無効です。Google Cloud Console のキー設定を確認してください',
+    message: 'APIキーが無効です。Google Cloud Consoleのキー設定を確認してください',
   },
   {
     match: ({ reason }) => reason === 'liveChatDisabled',
@@ -60,7 +60,7 @@ const API_ERROR_RULES = [
   {
     match: ({ reason, status }) => reason === 'forbidden' || status === 403,
     message:
-      'API リクエストが拒否されました（403: 権限・API制限・配信の公開設定を確認してください）',
+      'YouTubeへの接続が拒否されました（403: APIの有効化・キー制限・配信の公開設定を確認してください）',
   },
   {
     match: ({ reason, status }) => reason === 'liveChatEnded' || status === 404,
@@ -75,7 +75,7 @@ function mapApiError(status, body) {
 
   const rule = API_ERROR_RULES.find((r) => r.match(context));
   if (rule) return rule.message;
-  return `YouTube API エラー (${status}): ${rawMessage || '通信に失敗しました'}`;
+  return `YouTube APIエラー（${status}）: ${rawMessage || '通信に失敗しました'}`;
 }
 
 function buildVideosUrl(videoId, apiKey) {
@@ -293,7 +293,7 @@ export class YouTubeLiveClient {
       res = await this._fetchJson(url);
     } catch {
       if (!this.isPolling) return;
-      const msg = 'YouTube API への接続でネットワークエラーが発生したため停止しました';
+      const msg = 'YouTube APIへの接続でネットワークエラーが発生したため停止しました';
       this.stopPolling(msg);
       this.onError(msg);
       return;
