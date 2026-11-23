@@ -121,7 +121,7 @@ function matchCard(ojama, patch) {
   const current = ojama.matchMode || OJAMA_CONFIG.DEFAULT_MATCH_MODE;
   return card(
     'キーワードの一致のしかた',
-    '大文字・小文字、全角・半角は区別しません。',
+    '大文字・小文字、全角・半角は区別しません。（例はキーワードが「落」のとき）',
     h(
       'div',
       { class: 'rules-radios', role: 'radiogroup', 'aria-label': 'キーワードの一致のしかた' },

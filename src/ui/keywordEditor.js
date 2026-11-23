@@ -26,8 +26,8 @@ export class KeywordEditor {
     this.elInput = h('input', {
       type: 'text',
       class: 'kw-input',
-      placeholder: 'キーワードを入れて Enter',
-      'aria-label': 'キーワードを足す',
+      placeholder: 'キーワードを入力してEnter',
+      'aria-label': 'キーワードを追加',
       onKeydown: (e) => {
         if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
           e.preventDefault();
@@ -70,7 +70,8 @@ export class KeywordEditor {
     } else {
       this.save([...this.words(), word].join(', '));
       this.note = {
-        text: raw === word ? `「${word}」を足しました` : `「${raw}」を「${word}」として足しました`,
+        text:
+          raw === word ? `「${word}」を追加しました` : `「${raw}」を「${word}」として追加しました`,
       };
       this.elInput.value = '';
     }
@@ -111,8 +112,8 @@ export class KeywordEditor {
             type: 'button',
             class: 'kw-del',
             text: '×',
-            title: '消す',
-            'aria-label': `${w}を消す`,
+            title: '削除',
+            'aria-label': `${w}を削除`,
             onClick: () => this.remove(w),
           }),
         ),
@@ -124,7 +125,7 @@ export class KeywordEditor {
   _messages(words) {
     const out = [];
     if (words.length === 0) {
-      out.push(h('p', { class: 'kw-msg is-warn', text: 'コメントでは出ません' }));
+      out.push(h('p', { class: 'kw-msg is-warn', text: 'コメントからは発動しません' }));
     }
     if (this.note) {
       const cls = this.note.warn ? 'kw-msg is-warn' : 'kw-msg';
@@ -135,7 +136,7 @@ export class KeywordEditor {
         h(
           'p',
           { class: 'kw-msg' },
-          `「${this.undo.word}」を消しました`,
+          `「${this.undo.word}」を削除しました`,
           h('button', {
             type: 'button',
             class: 'kw-undo',

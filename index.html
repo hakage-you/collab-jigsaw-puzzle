@@ -563,7 +563,7 @@
               role="tab"
               aria-selected="false"
             >
-              YouTube 連動
+              YouTube連動
             </button>
           </div>
 
@@ -575,7 +575,7 @@
                   <span class="md-switch-label">
                     <span>CPU自動お邪魔（疑似配信モード）</span>
                     <span class="md-switch-sub">
-                      APIキー不要。疑似コメントを自動で流してソロや身内でもお邪魔を楽しめます
+                      APIキー不要。疑似コメントを自動で流して、ソロや身内でもお邪魔を楽しめます。
                     </span>
                   </span>
                   <input type="checkbox" class="md-switch-input" id="toggleCpuAutoOjama" />
@@ -633,11 +633,11 @@
               <div class="drawer-section" id="youtubeConnectSection">
                 <div class="yt-trust-box">
                   <p class="yt-trust-title">
-                    安全に視聴者参加型配信を行うために（YouTube 公式API連動）
+                    安全に視聴者参加型配信を行うために（YouTube公式API連動）
                   </p>
                   <p class="yt-trust-body">
-                    不特定多数のリスナーに<strong>配信者のIPアドレスが露出するのを防ぎ</strong>、YouTubeの利用規約を順守して安全に連動するため、ホストご自身の
-                    <strong>YouTube Data API キー（無料枠）</strong>
+                    不特定多数の視聴者に<strong>配信者のIPアドレスが露出するのを防ぎ</strong>、YouTubeの利用規約を順守して安全に連動するため、ホストご自身の
+                    <strong>YouTube Data APIキー（無料枠）</strong>
                     を使用する方式を採用しています。
                   </p>
                   <p class="yt-trust-body">
@@ -645,7 +645,7 @@
                       href="https://github.com/hakage-you/collab-jigsaw-puzzle"
                       target="_blank"
                       rel="noopener noreferrer"
-                      >GitHub の公開ソースコード</a
+                      >GitHubの公開ソースコード</a
                     >から、<a
                       href="https://x.com/hakage_you"
                       target="_blank"
@@ -654,9 +654,7 @@
                     >を含め誰にもデータが渡らないことを技術的に検証できます。
                   </p>
                   <details class="yt-trust-details">
-                    <summary>
-                      なぜ配信URLを入れるだけではコメントを読めないの？（クリックで開く）
-                    </summary>
+                    <summary>なぜ配信URLを入れるだけではコメントを読めないの？</summary>
                     <p>
                       公式APIを通さずチャット画面から直接コメントを抜き出す行為（スクレイピングや非公式ツールの利用）は、YouTubeの利用規約で禁止されておりアカウントがペナルティを受けるリスクがあります。また、視聴者と直接通信（P2P）すると配信者のIPアドレスが視聴者に露出してしまいます。配信アカウントとプライバシーの両方を守るため、Google公式の正規手順（YouTube
                       Data API v3）のみを使用しています。
@@ -1107,7 +1105,7 @@
                 <div class="drawer-details-body">
                   <label
                     class="md-switch md-switch-row"
-                    title="表示がおかしいときに、WebGL2 を使わない描画に切り替えます（動きは重くなります）"
+                    title="表示がおかしいときに、WebGL2を使わない描画に切り替えます（動きは重くなります）"
                   >
                     <span class="md-switch-label">互換描画モード</span>
                     <input type="checkbox" class="md-switch-input" id="toggleCompatRenderer" />
@@ -1230,7 +1228,7 @@
             <!-- Solo Mode -->
             <div class="lobby-panel active" id="lobby-panel-solo">
               <p class="lobby-desc">
-                自分のブラウザだけでジグソーパズルとたのしいお邪魔ギミックをすぐに体験できます！
+                自分のブラウザだけで、ジグソーパズルとお邪魔ギミックをすぐに体験できます。
               </p>
               <div class="lobby-puzzle-summary-box">
                 <canvas
@@ -1241,7 +1239,7 @@
                   aria-hidden="true"
                 ></canvas>
                 <div class="lobby-puzzle-summary-text" id="lobbySoloPuzzleSummary">
-                  現在の設定: サンプル：虹と街並み / 6×4（24ピース）
+                  現在の設定: サンプル（虹と街並み） / 6×4（24ピース）
                 </div>
                 <button type="button" class="btn btn-secondary btn-xs" id="btnOpenSetupFromSolo">
                   画像・ルールを変更
@@ -1347,7 +1345,7 @@
                   aria-hidden="true"
                 ></canvas>
                 <div class="lobby-puzzle-summary-text" id="lobbyHostPuzzleSummary">
-                  現在の設定: サンプル：虹と街並み / 6×4（24ピース）
+                  現在の設定: サンプル（虹と街並み） / 6×4（24ピース）
                 </div>
                 <button type="button" class="btn btn-secondary btn-xs" id="btnOpenSetupFromHost">
                   画像・ルールを変更
@@ -1773,7 +1771,7 @@
               <div class="preview-strip">
                 <canvas id="previewCanvas" width="160" height="106"></canvas>
                 <div class="preview-info">
-                  <div id="imageSourceLabel" class="preview-title">サンプル：虹と街並み</div>
+                  <div id="imageSourceLabel" class="preview-title">サンプル（虹と街並み）</div>
                   <div id="imageDimLabel" class="preview-sub">960 × 640 px</div>
                 </div>
               </div>

@@ -111,9 +111,9 @@ export class ResultModalUI {
       if (!this.lastPayload) return;
       const ok = await writeClipboardText(formatShareText(this.lastPayload));
       if (ok) {
-        this.showToast?.('戦績をクリップボードにコピーしました', 'success');
+        this.showToast?.('戦績をコピーしました', 'success');
       } else {
-        this.showToast?.('クリップボードへのコピーに失敗しました', 'ojama');
+        this.showToast?.('戦績のコピーに失敗しました', 'ojama');
       }
     });
     document.getElementById('btnResultReplay').addEventListener('click', () => {

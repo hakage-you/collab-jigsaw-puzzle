@@ -6,7 +6,7 @@ exports[`CanvasRenderer pixel snapshots > fresh puzzle with default underlay ref
 
 exports[`CanvasRenderer pixel snapshots > fresh puzzle with reference mode none 1`] = `"1db325645fb8ba49"`;
 
-exports[`CanvasRenderer pixel snapshots > fresh puzzle with reference sheet, view widened to include the sheet 1`] = `"d0f763051353ff49"`;
+exports[`CanvasRenderer pixel snapshots > fresh puzzle with reference sheet, view widened to include the sheet 1`] = `"bf42611de3d81fe4"`;
 
 exports[`CanvasRenderer pixel snapshots > ghost pieces active with fake pieces present 1`] = `"ae6e02f8b9837141"`;
 

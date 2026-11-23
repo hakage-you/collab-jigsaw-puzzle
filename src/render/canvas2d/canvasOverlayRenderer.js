@@ -346,7 +346,7 @@ export function drawReferenceSheet(ctx, { settings, sourceCanvas, refSheet, pal 
   ctx.font = `bold ${font}px sans-serif`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('お手本シート（ドラッグ移動可）', x, y - 13 * k);
+  ctx.fillText('お手本', x, y - 13 * k);
 
   ctx.drawImage(sourceCanvas, x, y, refSheet.w, refSheet.h);
   ctx.strokeStyle = pal.borderStrong;

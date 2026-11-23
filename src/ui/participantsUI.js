@@ -61,7 +61,7 @@ export class ParticipantsUI {
       if (!url) return;
       try {
         await navigator.clipboard.writeText(url);
-        this.showToast('招待URLをクリップボードにコピーしました', 'success');
+        this.showToast('招待URLをコピーしました', 'success');
       } catch {
         this.showToast('招待URLをコピーできませんでした', 'ojama');
       }

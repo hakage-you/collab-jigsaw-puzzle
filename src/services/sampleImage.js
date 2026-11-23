@@ -38,10 +38,10 @@ function gradeVivid(ctx, width, height) {
 }
 
 export const SAMPLE_IMAGE_PRESETS = Object.freeze([
-  Object.freeze({ id: 'rainbow', name: 'サンプル：虹と街並み', hint: '標準' }),
-  Object.freeze({ id: 'starry', name: 'サンプル：星空の街', hint: '雰囲気◎' }),
-  Object.freeze({ id: 'geometric', name: 'サンプル：カラフルアート', hint: '遊びやすい' }),
-  Object.freeze({ id: 'botanical', name: 'サンプル：花と幾何学模様', hint: '歯ごたえ' }),
+  Object.freeze({ id: 'rainbow', name: 'サンプル（虹と街並み）', hint: '標準' }),
+  Object.freeze({ id: 'starry', name: 'サンプル（星空の街）', hint: '雰囲気◎' }),
+  Object.freeze({ id: 'geometric', name: 'サンプル（カラフルアート）', hint: '遊びやすい' }),
+  Object.freeze({ id: 'botanical', name: 'サンプル（花と幾何学模様）', hint: '歯ごたえ' }),
 ]);
 
 export function normalizeSampleImageId(sampleId) {
