@@ -6,6 +6,7 @@ function lobbyCallbacks(session) {
   return {
     onError: (msg) => session.emit('toast', { message: msg, kind: 'ojama' }),
     onToast: (msg, kind) => session.emit('toast', { message: msg, kind }),
+    onOjamaNotice: (notice) => session.emit('ojamaNotice', notice),
     onRenderNeeded: () => session.emit('renderNeeded'),
     onRosterUpdate: () => session.emit('hudUpdate'),
     onRecruitChange: (status) => session.emit('recruitChange', status),

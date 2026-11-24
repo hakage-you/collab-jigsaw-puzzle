@@ -22,6 +22,8 @@ export function createPuzzleRenderer({ engine, room, getSettings, onChange, watc
   const applyMotion = () => {
     const reduced = reduceMotion.matches || Boolean(getSettings().reduceEffects);
     host.viewState.effectIntensity = reduced ? 'reduced' : 'normal';
+    // The page's own small motions (styles: .effects-reduced) follow the same switch.
+    document.documentElement.classList.toggle('effects-reduced', reduced);
   };
   applyMotion();
   reduceMotion.addEventListener('change', applyMotion);

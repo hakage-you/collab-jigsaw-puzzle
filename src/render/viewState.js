@@ -3,6 +3,9 @@ import { scatterBand } from '../core/pieceFactory.js';
 import { spawnEffect } from './effects/effectPlayer.js';
 import { PieceMotion } from './effects/pieceMotion.js';
 
+/** How far the completion sticker's middle stays from the stage's sides (CSS px): it fits. */
+const COMPLETION_SPOT_MARGIN = Object.freeze({ x: 170, y: 60 });
+
 /** The reference mode in effect (settings without one use the default). */
 export function referenceModeOf(settings) {
   return settings?.referenceMode || VIEWPORT_CONFIG.DEFAULT_REFERENCE_MODE;
@@ -325,13 +328,33 @@ export class ViewState {
     this.playOverlayEffect('superchatBurstStars', x, y);
   }
 
-  /** Confetti across the whole stage (the result screen plays it on completion). */
+  /**
+   * Completion (the result screen plays it): confetti across the whole stage, and stars bursting
+   * from its middle, from under the big "かんせい！" sticker.
+   */
   launchConfetti() {
     const { width, height } = this.getViewportSize();
     spawnEffect(this.particles, 'confetti', 0, 0, {
       intensity: this.effectIntensity,
       area: { width, height },
     });
+    const spot = this.completionSpot();
+    this.playOverlayEffect('superchatBurstStars', spot.x, spot.y);
+  }
+
+  /**
+   * Where the completion sticker sticks (CSS px on the stage): the middle of the board's top
+   * edge, so it hides little of the finished picture; kept on screen when that edge is not.
+   */
+  completionSpot() {
+    const { width, height } = this.getViewportSize();
+    const p = this.worldToScreen(0, -this.engine.boardH / 2);
+    const mx = Math.min(COMPLETION_SPOT_MARGIN.x, width / 2);
+    const my = Math.min(COMPLETION_SPOT_MARGIN.y, height / 2);
+    return {
+      x: Math.min(width - mx, Math.max(mx, p.x)),
+      y: Math.min(height - my, Math.max(my, p.y)),
+    };
   }
 
   /**

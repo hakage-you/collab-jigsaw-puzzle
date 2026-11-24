@@ -46,6 +46,8 @@ const ROSTER_ROLES = ['host', 'guest'];
 const COUNTER_KEYS = ['elapsedMs', 'placedCount', 'ojamaTotal'];
 const BREAKDOWN_KEYS = ['drop', 'visual', 'superchat', 'prank', 'fake', 'heavy', 'runaway'];
 const TIMED_KINDS = ['heavy', 'runaway'];
+/** Ojama types an ojama notice may name (its sticker). */
+const NOTICE_KINDS = ['drop', 'visual', 'ghost', 'prank', 'fake', 'heavy', 'runaway'];
 const HEAVY_LEVELS = Object.keys(OJAMA_CONFIG.HEAVY_LEVELS);
 
 /** Thrown by a field check. Every validator turns it into a rejected message. */
@@ -419,8 +421,11 @@ function validateSuperchatState(m) {
   return { type: m.type, hp: hitPoints(m.hp), maxHp: hitPoints(m.maxHp) };
 }
 
+/** An ojama notice; its type is kept only when it is one this version knows (else plain text). */
 function validateNotice(m) {
-  return { type: m.type, text: text(m.text, MAX_TEXT) };
+  const out = { type: m.type, text: text(m.text, MAX_TEXT) };
+  if (NOTICE_KINDS.includes(m.kind)) out.kind = m.kind;
+  return out;
 }
 
 /** Every host -> guest message type the guest handles, with its field validator. */

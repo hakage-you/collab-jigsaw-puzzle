@@ -101,6 +101,30 @@
   border-left: 1px solid var(--border);
 }
 
+/* A number that just went up pops (topbarUI.js popNumber); none when effects are reduced. */
+.hud-pop {
+  animation: hud-pop 0.36s ease-out;
+}
+
+.effects-reduced .hud-pop {
+  animation: none;
+}
+
+@keyframes hud-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.45) rotate(-6deg);
+  }
+  65% {
+    transform: scale(0.92) rotate(2deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .stat-chip {
   display: flex;
   align-items: center;
@@ -411,29 +435,221 @@
 }
 
 /* Visual Sabotage Banner */
+/* An ojama that lasts a while: a small sticker left above the board with its time. */
 .sabotage-banner {
   position: absolute;
   top: var(--space-4);
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) rotate(-1.5deg);
   z-index: 14;
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-pill);
-  background: var(--sabotage-bg);
-  color: var(--sabotage-text);
+  padding: var(--space-1) var(--space-3);
+  border: 3px solid var(--sticker-paper);
+  border-radius: var(--radius-card);
+  background: var(--sticker-status);
+  color: var(--sticker-text);
   font-weight: 700;
-  box-shadow: var(--shadow-md);
+  box-shadow: 3px 4px 0 var(--sticker-shadow);
 }
 
 .sabotage-timer {
   font-variant-numeric: tabular-nums;
-  background: var(--sabotage-pill-bg);
+  background: var(--sticker-timer-bg);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-pill);
   font-size: var(--font-size-sm);
+}
+
+/* Ojama notices (ojamaStickers.js): slapped on at a slight angle, peeled off a moment later. */
+.ojama-stickers {
+  position: absolute;
+  top: calc(var(--space-4) + 28px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 16;
+  width: min(460px, calc(100% - 2 * var(--space-4)));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.ojama-sticker {
+  --tilt: 0deg;
+  --sticker-bg: var(--sticker-other);
+
+  max-width: 100%;
+  padding: var(--space-2) var(--space-4);
+  border: 4px solid var(--sticker-paper);
+  border-radius: var(--radius-lg);
+  background: var(--sticker-bg);
+  color: var(--sticker-text);
+  box-shadow: 4px 6px 0 var(--sticker-shadow);
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  line-height: 1.4;
+  text-align: center;
+  transform: rotate(var(--tilt));
+  animation: sticker-slap 0.24s ease-out;
+}
+
+.ojama-sticker + .ojama-sticker {
+  margin-top: var(--space-1);
+}
+
+.ojama-sticker.is-peeling {
+  animation: sticker-peel 0.35s ease-in forwards;
+}
+
+.effects-reduced .ojama-sticker {
+  animation: none;
+}
+
+.ojama-sticker.is-drop {
+  --sticker-bg: var(--sticker-drop);
+}
+
+.ojama-sticker.is-visual {
+  --sticker-bg: var(--sticker-visual);
+}
+
+.ojama-sticker.is-ghost {
+  --sticker-bg: var(--sticker-ghost);
+}
+
+.ojama-sticker.is-prank {
+  --sticker-bg: var(--sticker-prank);
+}
+
+.ojama-sticker.is-fake {
+  --sticker-bg: var(--sticker-fake);
+}
+
+.ojama-sticker.is-heavy {
+  --sticker-bg: var(--sticker-heavy);
+}
+
+.ojama-sticker.is-runaway {
+  --sticker-bg: var(--sticker-runaway);
+}
+
+@keyframes sticker-slap {
+  0% {
+    opacity: 0;
+    transform: rotate(calc(var(--tilt) - 8deg)) scale(1.3);
+  }
+  70% {
+    opacity: 1;
+    transform: rotate(var(--tilt)) scale(0.98);
+  }
+  100% {
+    transform: rotate(var(--tilt)) scale(1);
+  }
+}
+
+/* Completion (completionCelebration.js): a big sticker stuck on the board's top edge for a
+   moment (--x, --y). The layer takes the clicks meanwhile, and a click goes on to the result.
+   Under the top effects layer, so the stars burst over the sticker. */
+.complete-celebration {
+  --x: 50%;
+  --y: 50%;
+
+  position: absolute;
+  inset: 0;
+  z-index: 14;
+  cursor: pointer;
+}
+
+.complete-sticker {
+  --tilt: -4deg;
+
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  translate: -50% -50%;
+  padding: var(--space-2) var(--space-5);
+  border: 6px solid var(--sticker-paper);
+  border-radius: var(--radius-lg);
+  background: var(--sticker-visual);
+  color: var(--sticker-text);
+  box-shadow: 6px 9px 0 var(--sticker-shadow);
+  font-size: var(--font-size-display);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  transform: rotate(var(--tilt));
+  animation: sticker-slap 0.3s ease-out;
+}
+
+.complete-celebration.is-peeling .complete-sticker {
+  animation: sticker-peel 0.35s ease-in forwards;
+}
+
+.effects-reduced .complete-celebration .complete-sticker {
+  animation: none;
+}
+
+/* The result card: a sheet of paper on the finished picture (the backdrop does not blur it). */
+.modal-card.result-card {
+  --tilt: -1deg;
+
+  border: 4px solid var(--sticker-paper);
+  box-shadow: 6px 9px 0 var(--sticker-shadow);
+  transform: rotate(var(--tilt));
+  animation: sticker-slap 0.24s ease-out;
+}
+
+.effects-reduced .result-card {
+  animation: none;
+}
+
+.result-card h2 {
+  display: inline-block;
+  padding: var(--space-1) var(--space-4);
+  border: 3px solid var(--sticker-paper);
+  border-radius: var(--radius-card);
+  background: var(--sticker-visual);
+  color: var(--sticker-text);
+  box-shadow: 3px 4px 0 var(--sticker-shadow);
+  transform: rotate(-2deg);
+}
+
+.result-card .result-stat {
+  border: 3px solid var(--sticker-paper);
+  color: var(--sticker-text);
+  box-shadow: 3px 4px 0 var(--sticker-shadow);
+}
+
+.result-card .result-stat .label {
+  color: var(--sticker-text);
+}
+
+.result-card .result-stat:nth-child(1) {
+  background: var(--sticker-runaway);
+  transform: rotate(-1.5deg);
+}
+
+.result-card .result-stat:nth-child(2) {
+  background: var(--sticker-ghost);
+  transform: rotate(1deg);
+}
+
+.result-card .result-stat:nth-child(3) {
+  background: var(--sticker-fake);
+  transform: rotate(-1deg);
+}
+
+.result-card .result-breakdown {
+  color: var(--text-muted);
+}
+
+@keyframes sticker-peel {
+  100% {
+    opacity: 0;
+    transform: translateY(-14px) rotate(calc(var(--tilt) + 10deg)) scale(0.96);
+  }
 }
 
 /* Giant SuperChat Overlay */
@@ -602,6 +818,7 @@
 /* Heavy / runaway pieces: under the visual sabotage banner, so both can show at once. */
 .timed-ojama-banner {
   top: calc(var(--space-4) + 48px);
+  transform: translateX(-50%) rotate(1.5deg);
 }
 
 /* While a new puzzle is prepared: above everything, painted before the work starts. */
@@ -1111,18 +1328,6 @@
   padding: var(--space-5);
   text-align: center;
   box-shadow: var(--shadow-lg);
-}
-
-.result-badge-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--success-soft);
-  color: var(--success);
-  margin-bottom: var(--space-2);
 }
 
 .modal-card h2 {

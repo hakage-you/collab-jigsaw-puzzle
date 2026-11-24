@@ -86,6 +86,20 @@ html[data-theme='light'] {
   --fx-mint: #34d399;
   --fx-paper: #fffdf7;
   --fx-shadow: rgb(15 23 42 / 30%);
+  /* Ojama stickers (ojamaStickers.js): a colour per ojama, the same in both themes (paper). */
+  --sticker-paper: #fff;
+  --sticker-text: #1f2937;
+  --sticker-shadow: rgb(15 23 42 / 32%);
+  --sticker-status: #fef3c7;
+  --sticker-timer-bg: rgb(31 41 55 / 12%);
+  --sticker-drop: #fdba74;
+  --sticker-visual: #fde047;
+  --sticker-ghost: #7dd3fc;
+  --sticker-prank: #c4b5fd;
+  --sticker-fake: #f9a8d4;
+  --sticker-heavy: #a5b4fc;
+  --sticker-runaway: #86efac;
+  --sticker-other: #e5e7eb;
 
   /* Status & Sabotage Tokens */
   --online-dot: var(--palette-success);
@@ -124,6 +138,8 @@ html[data-theme='light'] {
   --font-size-heading: 16px;
   --font-size-lg: 18px;
   --font-size-xl: 22px;
+  /* The completion sticker's word ("かんせい！"): big on a wide stage, still on one line on a phone. */
+  --font-size-display: clamp(30px, 5vw, 52px);
 
   /* 4px / 8px Spacing Grid */
   --space-1: 4px;

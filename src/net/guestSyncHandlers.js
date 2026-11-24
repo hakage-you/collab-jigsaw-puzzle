@@ -171,7 +171,14 @@ export const REALTIME_HANDLERS = new Map([
   [MSG.OJAMA_SUPERCHAT, (s, msg) => s.room.cb.onRemoteSuperchat(msg)],
   [MSG.SUPERCHAT_STATE, (s, msg) => s.room.cb.onRemoteSuperchatState(msg.hp, msg.maxHp)],
   [MSG.SUPERCHAT_DISMISS, (s) => s.room.cb.onRemoteSuperchatDismiss()],
-  [MSG.OJAMA_NOTICE, (s, msg) => s.room.cb.onToast(msg.text, 'ojama')],
+  // With the ojama's type (newer hosts) it is shown as its sticker, else as a plain notice.
+  [
+    MSG.OJAMA_NOTICE,
+    (s, msg) =>
+      msg.kind && s.room.cb.onOjamaNotice
+        ? s.room.cb.onOjamaNotice({ kind: msg.kind, text: msg.text })
+        : s.room.cb.onToast(msg.text, 'ojama'),
+  ],
   [MSG.PUZZLE_COMPLETED, (s) => s.room.cb.onRemoteCompleted()],
   [MSG.OJAMA_TIMED, (s, msg) => s.room.cb.onRemoteTimedOjama(msg)],
   [MSG.PIECE_HOP, handlePieceHop],

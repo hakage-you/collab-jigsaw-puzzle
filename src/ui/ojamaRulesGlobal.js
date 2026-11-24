@@ -29,6 +29,29 @@ export function buildGlobalDetail({ ojama, patch, keywordEditor, open }) {
     waitCard(number),
     randomCard({ ojama, patch, keywordEditor, open, number }),
     matchCard(ojama, patch),
+    nameCard(ojama, patch),
+  );
+}
+
+/** Whether an ojama's sticker says who set it off (settings.ojama.showTriggerName). */
+function nameCard(ojama, patch) {
+  return card(
+    '名前の表示',
+    '配信者の画面にだけ出ます（参加者の画面には出ません）。',
+    h(
+      'div',
+      { class: 'rules-line' },
+      switchEl({
+        checked: ojama.showTriggerName === true,
+        label: 'お邪魔を出した視聴者の名前をステッカーに出す',
+        onChange: (v) => patch({ showTriggerName: v }),
+      }),
+      ' お邪魔を出した視聴者の名前をステッカーに出す',
+    ),
+    h('p', {
+      class: 'rules-note',
+      text: '配信中は N キーでもすぐに切り替えられます（設定画面を映さずに済みます）。名前は12文字まで。',
+    }),
   );
 }
 

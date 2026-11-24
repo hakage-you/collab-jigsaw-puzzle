@@ -79,7 +79,7 @@ export class OjamaRulesPanel {
       h('div', { class: 'rules-list-head', text: '全体' }),
       this._item(COMMON, [
         h('span', { class: 'rules-item-icon', 'aria-hidden': 'true', text: '⚙' }),
-        this._itemText('全体の設定', '連発の制限・ランダム発動・キーワードの一致のしかた'),
+        this._itemText('全体の設定', '連発の制限・ランダム発動・キーワード・名前の表示'),
       ]),
       h(
         'div',

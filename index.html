@@ -459,6 +459,14 @@
             </button>
           </div>
 
+          <!-- Completion: a big sticker over the finished picture, then the result (completionCelebration.js) -->
+          <div id="completeCelebration" class="complete-celebration hidden" role="status">
+            <div class="complete-sticker">かんせい！</div>
+          </div>
+
+          <!-- Ojama notices: paper stickers slapped on above the board (ojamaStickers.js) -->
+          <div id="ojamaStickers" class="ojama-stickers" aria-live="polite"></div>
+
           <!-- Toast Notifications -->
           <div id="toastContainer" class="toast-container" aria-live="polite"></div>
         </div>
@@ -1925,27 +1933,12 @@
       <!-- Completion Result Modal -->
       <div
         id="resultModal"
-        class="modal-backdrop hidden"
+        class="modal-backdrop modal-backdrop-see-through hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="resultTitle"
       >
-        <div class="modal-card">
-          <div class="result-badge-icon" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              width="36"
-              height="36"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-          </div>
+        <div class="modal-card result-card">
           <h2 id="resultTitle">パズル完成！</h2>
           <p class="result-subtitle" id="resultSubtitle">
             すべてのピースが正しい位置にはまりました。

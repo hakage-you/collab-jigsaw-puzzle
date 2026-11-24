@@ -219,6 +219,7 @@ const OJAMA_SCHEMA = {
   superchatScaleByTier: { type: 'boolean' },
   commentCountOn: { type: 'boolean' },
   perViewerCooldownSec: { type: 'number' },
+  showTriggerName: { type: 'boolean' },
   matchMode: { type: 'string', max: MAX_TEXT_LENGTH, values: OJAMA_CONFIG.MATCH_MODES },
   enabled: { section: perTypeBooleans() },
   randomPool: { section: perTypeBooleans() },

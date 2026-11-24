@@ -120,7 +120,7 @@ export const EFFECTS = Object.freeze({
     scale: 'pop',
     travel: 'out',
   }),
-  /** Stars flying out of the smoke when the superchat card is driven off. */
+  /** Stars flying out of the smoke when the superchat card is driven off, and on completion. */
   superchatBurstStars: Object.freeze({
     shape: 'star',
     colors: ['gold', 'rose', 'mint'],

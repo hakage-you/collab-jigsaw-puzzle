@@ -400,6 +400,16 @@ describe('sanitizeHostMessage: ojama values', () => {
     expect(notice.text).toHaveLength(NET_LIMITS.MAX_TEXT_LENGTH);
   });
 
+  it("keeps an ojama notice's type only when it is a known one (its sticker)", () => {
+    expect(sanitizeHostMessage({ type: MSG.OJAMA_NOTICE, text: 'a', kind: 'prank' })).toEqual({
+      type: MSG.OJAMA_NOTICE,
+      text: 'a',
+      kind: 'prank',
+    });
+    const unknown = sanitizeHostMessage({ type: MSG.OJAMA_NOTICE, text: 'a', kind: 'boom' });
+    expect(unknown).toEqual({ type: MSG.OJAMA_NOTICE, text: 'a' });
+  });
+
   it('bounds fake piece specs in count and coordinates', () => {
     const spec = {
       fakeId: -1,

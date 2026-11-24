@@ -1,3 +1,4 @@
+import { CompletionCelebration } from './completionCelebration.js';
 import { formatDuration } from './topbarUI.js';
 
 const PUBLIC_GAME_URL = 'https://hakage-you.github.io/collab-jigsaw-puzzle/';
@@ -55,14 +56,23 @@ export class ResultModalUI {
     this.elModal = document.getElementById('resultModal');
     this.elRankingList = document.getElementById('resultRankingList');
     this.elBtnShare = document.getElementById('btnResultShare');
+    /** The "かんせい！" sticker shown over the finished picture before this card. */
+    this.celebration = new CompletionCelebration();
 
     this._bindEvents();
     this._subscribeApp();
   }
 
+  /** Completion: confetti and the big sticker first, then this card (CompletionCelebration). */
   showResult(payload) {
     this.lastPayload = payload;
+    this._fill(payload);
     this.renderer.launchConfetti();
+    this.renderer.requestRender();
+    this.celebration.play(() => this._open(), this.renderer.completionSpot());
+  }
+
+  _fill(payload) {
     document.getElementById('resultTime').textContent = formatDuration(payload.elapsedMs);
     document.getElementById('resultSize').textContent =
       `${payload.cols} × ${payload.rows} (${payload.pieceCount})`;
@@ -97,12 +107,14 @@ export class ResultModalUI {
     } else {
       this.elRankingList.classList.add('hidden');
     }
+  }
 
+  _open() {
     this.elModal.classList.remove('hidden');
-    this.renderer.requestRender();
   }
 
   hide() {
+    this.celebration.cancel();
     this.elModal.classList.add('hidden');
   }
 

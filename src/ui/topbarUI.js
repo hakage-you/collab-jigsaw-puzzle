@@ -12,6 +12,12 @@ function isSmallScreen() {
   return globalThis.matchMedia?.(SMALL_SCREEN_QUERY).matches ?? false;
 }
 
+/** Makes a number that just went up pop (styles/app.css .hud-pop), restarting a pop in progress. */
+function popNumber(el) {
+  el.classList.remove('hud-pop');
+  requestAnimationFrame(() => el.classList.add('hud-pop'));
+}
+
 /** Marks the chosen button of a group of choice buttons (active class and aria-pressed). */
 function markChoice(buttons, isChosen) {
   for (const btn of buttons) {
@@ -31,6 +37,8 @@ export class TopbarUI {
     this.elProgressBarFill = document.getElementById('progressBarFill');
     this.elTimerText = document.getElementById('timerText');
     this.elContributionCount = document.getElementById('contributionCount');
+    /** The counts last shown ({ total, locked, mine }), to pop a number that went up. */
+    this.lastHud = null;
     this.elRoomRoleBadge = document.getElementById('roomRoleBadge');
 
     this.elToggleShowStats = document.getElementById('toggleShowStats');
@@ -194,7 +202,15 @@ export class TopbarUI {
     this.elProgressBarFill.style.width = `${pct.toFixed(1)}%`;
     this.elTimerText.textContent = formatDuration(engine.stats.elapsedMs);
 
-    this.elContributionCount.textContent = String(this.app.getMyContribution());
+    const mine = this.app.getMyContribution();
+    this.elContributionCount.textContent = String(mine);
+    // Only a rise in the same puzzle pops (not a new puzzle, nor a piece knocked off).
+    const last = this.lastHud;
+    if (last?.total === total) {
+      if (locked > last.locked) popNumber(this.elProgressText);
+      if (mine > last.mine) popNumber(this.elContributionCount);
+    }
+    this.lastHud = { total, locked, mine };
   }
 
   renderKnockBanner(knockQueue) {

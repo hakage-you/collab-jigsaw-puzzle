@@ -52,6 +52,8 @@ const DEFAULT_SETTINGS = {
     superchatScaleByTier: true,
     commentCountOn: true,
     perViewerCooldownSec: 0,
+    /** Put the name of the viewer who set an ojama off on its sticker (off: names are opt-in). */
+    showTriggerName: false,
     matchMode: OJAMA_CONFIG.DEFAULT_MATCH_MODE,
     triggers: { ...OJAMA_CONFIG.DEFAULT_TRIGGERS },
     /** Types in use (false: never fires, from keywords, random, superchats or test buttons). */

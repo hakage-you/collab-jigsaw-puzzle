@@ -442,9 +442,11 @@ export class HostSession {
    * `kind` tells guests what happened, so they play the same effect: 'ojama_drop' (smoke),
    * 'ojama_prank' (curled arrows); other interference: 'ojama'.
    */
-  broadcastPhysicalOjama(noticeText, changedPieces, kind = 'ojama') {
+  broadcastPhysicalOjama(noticeText, changedPieces, kind = 'ojama', ojamaType = null) {
     this._broadcastPiecesPatch(changedPieces, { type: kind }, 'host');
-    this.room.transport?.broadcast({ type: MSG.OJAMA_NOTICE, text: noticeText });
+    const notice = { type: MSG.OJAMA_NOTICE, text: noticeText };
+    if (ojamaType) notice.kind = ojamaType;
+    this.room.transport?.broadcast(notice);
     this.scheduleAutoBackup();
   }
 

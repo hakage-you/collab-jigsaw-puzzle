@@ -367,7 +367,7 @@ export class RoomController {
         stats: structuredClone(this.engine.stats),
       });
       if (noticeText) {
-        this.transport?.broadcast({ type: MSG.OJAMA_NOTICE, text: noticeText });
+        this.transport?.broadcast({ type: MSG.OJAMA_NOTICE, text: noticeText, kind: 'fake' });
       }
     }
   }
@@ -401,9 +401,10 @@ export class RoomController {
   }
 
   /** Sends the pieces a physical interference changed (not the whole board) plus its notice. */
-  broadcastPhysicalOjama(noticeText, changedPieces, kind = 'ojama') {
+  /** `ojamaType`: the ojama ('drop', 'prank'), for the guests' sticker. */
+  broadcastPhysicalOjama(noticeText, changedPieces, kind = 'ojama', ojamaType = null) {
     if (this.role === 'host') {
-      this.hostSession.broadcastPhysicalOjama(noticeText, changedPieces, kind);
+      this.hostSession.broadcastPhysicalOjama(noticeText, changedPieces, kind, ojamaType);
     }
   }
 

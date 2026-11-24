@@ -26,11 +26,17 @@ const TEXTS = {
  * lasts, the room makes small groups hop away when grabbed (room.setRunaway).
  */
 export class TimedOjamaController {
-  constructor({ app, showToast }) {
+  /**
+   * @param {object} deps
+   * @param {(kind: string, text: string, author: string|null) => void} deps.announce  shows the
+   *   start of one (the ojama sticker); its end is a plain notice (`showToast`)
+   */
+  constructor({ app, showToast, announce }) {
     this.app = app;
     this.room = app.room;
     this.engine = app.engine;
     this.showToast = showToast;
+    this.announce = announce;
     this.clock = new TimedOjamaClock();
     this.placedSeen = 0;
     this.sinceResend = 0;
@@ -43,7 +49,7 @@ export class TimedOjamaController {
   }
 
   /** Host or solo: starts `kind` ('heavy' or 'runaway') with the current settings. */
-  start(kind) {
+  start(kind, author = null) {
     const o = this.app.getSettings().ojama;
     const C = OJAMA_CONFIG;
     const wasActive = this.clock.isActive(kind);
@@ -62,7 +68,7 @@ export class TimedOjamaController {
     this.engine.recordTimedOjama(kind);
     this.placedSeen = this.engine.stats.placedCount;
     this._send(kind);
-    this._apply(kind, true, !wasActive);
+    this._apply(kind, true, !wasActive, author);
     this._ensureTimer();
   }
 
@@ -129,15 +135,17 @@ export class TimedOjamaController {
   }
 
   /** Turns the effect of `kind` on or off, with its notice when `announce`. */
-  _apply(kind, on, announce) {
+  _apply(kind, on, announce, author = null) {
     if (kind === 'heavy') {
       this.app.emit('heavyChange', { level: on ? this.clock.get('heavy').level : null });
     } else if (this.room.role !== 'guest') {
       this.room.setRunaway(on ? this._runawayRules() : null);
     }
-    if (announce) {
-      if (on) sound.playOjama();
-      this.showToast(on ? TEXTS[kind].start : TEXTS[kind].end, on ? 'ojama' : 'success');
+    if (announce && on) {
+      sound.playOjama();
+      this.announce(kind, TEXTS[kind].start, author);
+    } else if (announce) {
+      this.showToast(TEXTS[kind].end, 'success');
     }
     this._render();
   }

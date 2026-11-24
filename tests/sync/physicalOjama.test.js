@@ -73,4 +73,16 @@ describe('physical interference in multiplayer', () => {
       list.map((p) => [p.id, was.get(p.id), p.rotation, p.isFlipped]).sort();
     expect(states(got.pieces, got.before)).toEqual(states(changed, before));
   });
+
+  it("tells the guests which ojama it was, so they show its sticker (never a viewer's name)", async () => {
+    const { host, roomId } = await startHost();
+    const guest = await joinGuest(roomId, { name: 'A' });
+    lockOnHost(host, 3);
+    await waitForConvergence([host, guest]);
+
+    const notice = nextEvent(guest, 'ojamaNotice', { timeout: 5000 });
+    const dropped = host.engine.dropLockedPieces(1, false);
+    host.room.broadcastPhysicalOjama('drop test', dropped, 'ojama_drop', 'drop');
+    expect(await notice).toEqual({ kind: 'drop', text: 'drop test' });
+  });
 });

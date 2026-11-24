@@ -231,6 +231,14 @@ const CHECK_PAIRS = [
     label: 'Outlined input/button border on --surface',
   },
   { fg: '--switch-track-off', bg: '--surface', min: 3.0, label: 'Off switch track on --surface' },
+  ...['status', 'drop', 'visual', 'ghost', 'prank', 'fake', 'heavy', 'runaway', 'other'].map(
+    (name) => ({
+      fg: '--sticker-text',
+      bg: `--sticker-${name}`,
+      min: 4.5,
+      label: `Ojama sticker text on --sticker-${name}`,
+    }),
+  ),
   { fg: '--focus', bg: '--surface', min: 3.0, label: 'Focus ring on --surface' },
 ];
 

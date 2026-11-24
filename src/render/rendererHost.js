@@ -131,6 +131,11 @@ export class RendererHost {
     this.current.launchConfetti();
   }
 
+  /** Where the completion sticker goes on the stage (ViewState.completionSpot). */
+  completionSpot() {
+    return this.viewState.completionSpot();
+  }
+
   getStats() {
     return { ...this.current.getStats(), mode: this.mode, fallbackReason: this.reason };
   }
