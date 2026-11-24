@@ -42,7 +42,7 @@ export class TopbarUI {
     this.elRoomRoleBadge = document.getElementById('roomRoleBadge');
 
     this.elToggleShowStats = document.getElementById('toggleShowStats');
-    this.elToggleCompatRenderer = document.getElementById('toggleCompatRenderer');
+    this.elSelectRendererMode = document.getElementById('selectRendererMode');
     this.elRendererStatus = document.getElementById('rendererStatus');
     this.elThemeButtons = document.querySelectorAll('#themeModeGroup [data-theme-mode]');
     this.elDeskButtons = document.querySelectorAll('#deskStyleGroup [data-desk-style]');
@@ -128,16 +128,18 @@ export class TopbarUI {
     setTimeout(() => div.remove(), 3200);
   }
 
-  /** Shows which renderer draws the table, and why when WebGL2 could not be used. */
+  /** Shows which renderer draws the table, and why if a fallback occurred. */
   updateRendererStatus() {
     if (!this.elRendererStatus) return;
     const { renderer: kind, mode, fallbackReason } = this.renderer.getStats();
-    let text = '描画: 高速（WebGL2）';
-    if (kind !== 'webgl2') {
+    let text = '描画: 互換モード（Canvas 2D）';
+    if (kind === 'webgpu') {
+      text = '描画: 最高速（WebGPU）';
+    } else if (kind === 'webgl2') {
       text =
-        mode === 'canvas2d'
-          ? '描画: 互換モード（Canvas 2D）'
-          : '描画: 互換モード（Canvas 2D・WebGL2非対応環境）';
+        mode === 'webgpu' ? '描画: 高速（WebGL2・WebGPUフォールバック）' : '描画: 高速（WebGL2）';
+    } else if (mode !== 'canvas2d') {
+      text = '描画: 互換モード（Canvas 2D・フォールバック）';
     }
     this.elRendererStatus.textContent = text;
     this.elRendererStatus.title = fallbackReason || '';
@@ -163,8 +165,8 @@ export class TopbarUI {
     markChoice(this.elDeskButtons, (btn) => btn.dataset.deskStyle === settings.deskStyle);
     markChoice(this.elBoardButtons, (btn) => btn.dataset.boardStyle === settings.boardStyle);
     if (this.elToggleShowStats) this.elToggleShowStats.checked = settings.showStats;
-    if (this.elToggleCompatRenderer) {
-      this.elToggleCompatRenderer.checked = settings.rendererMode === 'canvas2d';
+    if (this.elSelectRendererMode) {
+      this.elSelectRendererMode.value = settings.rendererMode || 'auto';
     }
     this.updateRendererStatus();
     if (!this.app.room.isGuest()) {
@@ -246,8 +248,8 @@ export class TopbarUI {
     this.elToggleShowStats?.addEventListener('change', () => {
       this.app.patchSettings({ showStats: this.elToggleShowStats.checked });
     });
-    this.elToggleCompatRenderer?.addEventListener('change', () => {
-      const rendererMode = this.elToggleCompatRenderer.checked ? 'canvas2d' : 'auto';
+    this.elSelectRendererMode?.addEventListener('change', () => {
+      const rendererMode = this.elSelectRendererMode.value;
       this.app.patchSettings({ rendererMode });
       this.renderer.setMode(rendererMode);
       this.updateRendererStatus();

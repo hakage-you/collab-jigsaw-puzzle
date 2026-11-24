@@ -1099,12 +1099,16 @@
                 </summary>
                 <div class="drawer-details-body">
                   <label
-                    class="md-switch md-switch-row"
-                    title="表示がおかしいときに、WebGL2を使わない描画に切り替えます（動きは重くなります）"
+                    class="field"
+                    title="表示がおかしいときや動作確認時に、描画バックエンドを切り替えます"
                   >
-                    <span class="md-switch-label">互換描画モード</span>
-                    <input type="checkbox" class="md-switch-input" id="toggleCompatRenderer" />
-                    <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
+                    <span>描画エンジン</span>
+                    <select id="selectRendererMode" class="md-select">
+                      <option value="auto" selected>自動（WebGPU 優先）</option>
+                      <option value="webgpu">WebGPU（テスト・強制）</option>
+                      <option value="webgl2">WebGL2</option>
+                      <option value="canvas2d">互換モード（Canvas 2D）</option>
+                    </select>
                   </label>
                   <p class="hint-text" id="rendererStatus"></p>
 

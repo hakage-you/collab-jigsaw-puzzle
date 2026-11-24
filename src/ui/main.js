@@ -28,11 +28,15 @@ function createRenderer(app, getTopbar) {
     getSettings: () => app.getSettings(),
     watchSettings: (fn) => app.on('settingsChange', fn),
     onChange: ({ kind, reason }) => {
-      const fellBack = kind === 'canvas2d' && app.getSettings().rendererMode !== 'canvas2d';
+      const desiredMode = app.getSettings().rendererMode;
+      const fellBack =
+        (desiredMode === 'auto' && kind === 'canvas2d') ||
+        (desiredMode === 'webgpu' && kind !== 'webgpu') ||
+        (desiredMode === 'webgl2' && kind !== 'webgl2');
       app.recordDiagnostic(
         'render',
         'renderer_selected',
-        { kind, reason },
+        { kind, mode: desiredMode, reason },
         fellBack ? 'warn' : 'info',
       );
       getTopbar()?.updateRendererStatus();

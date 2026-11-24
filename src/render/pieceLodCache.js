@@ -186,6 +186,7 @@ export class PieceLodCache {
     const physH = Math.min(this.slotStep - 2, Math.ceil(logicalH * lodScale));
     const slot = { pageIdx, canvas: page.canvas, sx, sy, sw: physW, sh: physH };
 
+    const bakeBevel = store.bakeBevel ?? true;
     if (isFlipped) {
       drawBackPieceToSlot(page.ctx, slot, {
         path,
@@ -198,6 +199,7 @@ export class PieceLodCache {
         renderScale: lodScale,
         pattern: this._getBackPattern(page.ctx, store.backPatternCanvas),
         isLod: true,
+        bakeBevel,
       });
     } else {
       drawFrontPieceToSlot(page.ctx, slot, {
@@ -214,6 +216,7 @@ export class PieceLodCache {
         logicalH,
         renderScale: lodScale,
         isLod: true,
+        bakeBevel,
       });
     }
 

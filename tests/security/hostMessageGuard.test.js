@@ -342,6 +342,8 @@ describe('sanitizeHostMessage: ojama values', () => {
   it('accepts only the known visual types and bounded durations', () => {
     const visual = (visualType, duration) => ({ type: MSG.OJAMA_VISUAL, visualType, duration });
     expect(sanitizeHostMessage(visual('hue', 8))).toEqual(visual('hue', 8));
+    expect(sanitizeHostMessage(visual('mist', 8))).toEqual(visual('mist', 8));
+    expect(sanitizeHostMessage(visual('ripple', 8))).toBeNull();
     expect(sanitizeHostMessage(visual('random', 8))).toBeNull();
     expect(sanitizeHostMessage(visual('<img src=x>', 8))).toBeNull();
     expect(sanitizeHostMessage(visual('hue', NET_LIMITS.MAX_OJAMA_DURATION_SEC + 1))).toBeNull();

@@ -154,6 +154,7 @@ export function drawFrontPieceToSlot(
     logicalH,
     renderScale,
     isLod = false,
+    bakeBevel = true,
   },
 ) {
   const physW = slot.sw;
@@ -199,17 +200,21 @@ export function drawFrontPieceToSlot(
     const destY = visTop - boardH / 2 - piece.targetY;
     ctx.drawImage(sourceCanvas, srcX, srcY, srcW, srcH, destX, destY, visW, visH);
   }
-  ctx.lineWidth = innerWidth;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-  ctx.stroke(path);
+  if (bakeBevel) {
+    ctx.lineWidth = innerWidth;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.stroke(path);
+  }
   ctx.restore();
 
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.lineWidth = outerWidth;
-  ctx.strokeStyle = 'rgba(15, 23, 42, 0.55)';
-  ctx.stroke(path);
-  ctx.restore();
+  if (bakeBevel) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.lineWidth = outerWidth;
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.55)';
+    ctx.stroke(path);
+    ctx.restore();
+  }
 
   ctx.restore();
 }
@@ -220,7 +225,19 @@ export function drawFrontPieceToSlot(
 export function drawBackPieceToSlot(
   ctx,
   slot,
-  { path, halfW, halfH, pieceW, pieceH, logicalW, logicalH, renderScale, pattern, isLod = false },
+  {
+    path,
+    halfW,
+    halfH,
+    pieceW,
+    pieceH,
+    logicalW,
+    logicalH,
+    renderScale,
+    pattern,
+    isLod = false,
+    bakeBevel = true,
+  },
 ) {
   const physW = slot.sw;
   const physH = slot.sh;
@@ -259,12 +276,14 @@ export function drawBackPieceToSlot(
   }
   ctx.restore();
 
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.lineWidth = backOuterWidth;
-  ctx.strokeStyle = 'rgba(203, 213, 225, 0.55)';
-  ctx.stroke(path);
-  ctx.restore();
+  if (bakeBevel) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.lineWidth = backOuterWidth;
+    ctx.strokeStyle = 'rgba(203, 213, 225, 0.55)';
+    ctx.stroke(path);
+    ctx.restore();
+  }
 
   ctx.restore();
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DESK_CONFIG } from '../../src/config/constants.js';
-import { DESK_TEXTURES, drawTexturedDesk } from '../../src/render/deskTextures.js';
+import { DESK_TEXTURES, deskTextureSpec, drawTexturedDesk } from '../../src/render/deskTextures.js';
 
 // Every desk a player can pick has its texture, and the texture loads and is drawn.
 
@@ -22,6 +22,8 @@ describe('desk textures', () => {
     const ctx = document.createElement('canvas').getContext('2d');
     expect(drawTexturedDesk(ctx, { rect: RECT, view: VIEW, style: 'grid' })).toBe(false);
     expect(drawTexturedDesk(ctx, { rect: RECT, view: VIEW, style: undefined })).toBe(false);
+    expect(deskTextureSpec('grid')).toBeNull();
+    expect(deskTextureSpec('wood-b')?.base).toBe(DESK_TEXTURES['wood-b'].base);
   });
 
   it.each(Object.keys(DESK_TEXTURES))('%s loads and is drawn', async (style) => {

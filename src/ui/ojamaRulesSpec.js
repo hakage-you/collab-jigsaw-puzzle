@@ -34,6 +34,7 @@ export const EFFECT_FIELDS = Object.freeze({
         ['sepia', 'セピア色'],
         ['hue', '色相シャッフル'],
         ['spotlight', '暗闇スポットライト'],
+        ['mist', '濃霧'],
       ],
     },
     { key: 'visualDuration', label: '続く時間（秒）', min: 2, max: 30 },

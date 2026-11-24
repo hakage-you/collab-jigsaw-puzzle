@@ -26,7 +26,7 @@ export const HOST_TRANSFER_TYPES = new Set([
 ]);
 
 // Visual sabotage types applied by ojamaController.applyVisualEffect.
-const VISUAL_TYPES = ['grayscale', 'sepia', 'hue', 'spotlight', 'ghost'];
+const VISUAL_TYPES = ['grayscale', 'sepia', 'hue', 'spotlight', 'ghost', 'mist'];
 // Largest ojamaFakeMaxCount offered in the settings (index.html) and the engine's fake slot count.
 const MAX_FAKE_SPECS = 16;
 const MAX_ROSTER = MULTIPLAYER_CONFIG.MAX_CAPACITY;

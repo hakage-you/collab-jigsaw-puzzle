@@ -34,7 +34,8 @@ function createAtlasCanvas(size) {
  * puzzle-wide `metrics` size ({ logicalW, logicalH, halfW, halfH, spriteScale }).
  */
 export class PieceSpriteStore {
-  constructor() {
+  constructor({ bakeBevel = true } = {}) {
+    this.bakeBevel = bakeBevel;
     this.engine = null;
     this.generation = null;
     this.metrics = null;
@@ -136,6 +137,7 @@ export class PieceSpriteStore {
       path: this.pathOf(piece),
       renderScale,
       isLod: false,
+      bakeBevel: this.bakeBevel,
     });
     return { canvas: slot.canvas, sx: slot.sx, sy: slot.sy, sw: physW, sh: physH };
   }
@@ -150,9 +152,14 @@ export class PieceSpriteStore {
     return path;
   }
 
+  fakeSprite(piece) {
+    if (!this.metrics) return null;
+    return this._fakeFront(piece);
+  }
+
   frontSprite(piece) {
     if (!this.metrics) return null;
-    return piece.isFake ? this._fakeFront(piece) : this.front.get(piece.id) || null;
+    return piece.isFake ? this.fakeSprite(piece) : this.front.get(piece.id) || null;
   }
 
   /** Back sprite, drawn into the main atlas the first time a piece is shown flipped. */
@@ -183,6 +190,7 @@ export class PieceSpriteStore {
       renderScale: scale,
       pattern: this.atlas.getBackPattern(slot.ctx, this.backPatternCanvas),
       isLod: false,
+      bakeBevel: this.bakeBevel,
     });
     const sprite = { canvas: slot.canvas, sx: slot.sx, sy: slot.sy, sw: physW, sh: physH };
     this.atlas.pages.forEach((p, i) => {
@@ -233,6 +241,7 @@ export class PieceSpriteStore {
       path: this.pathOf(piece),
       renderScale,
       isLod: false,
+      bakeBevel: this.bakeBevel,
     });
     this.fakeSprites.set(piece.id, { key, slotIdx, sprite: slot });
     this.onRegionDrawn?.(slot);

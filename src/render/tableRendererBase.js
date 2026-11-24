@@ -26,6 +26,7 @@ function readThemePalette() {
     warning: read('--warning', '#92400e'),
     danger: read('--danger', '#c62828'),
     surface: read('--surface', '#ffffff'),
+    deskBg: read('--desk-bg', '#eef2f6'),
     text: read('--text', '#0f172a'),
     borderStrong: read('--border-strong', '#64748b'),
     boardBg: read('--canvas-board-bg', 'rgb(255 255 255 / 92%)'),
@@ -55,7 +56,15 @@ function readThemePalette() {
  * renderer needs on top of it are created here and removed by dispose().
  */
 export class TableRendererBase {
-  constructor({ canvasStage, canvas, engine, room, getSettings, viewState = null }) {
+  constructor({
+    canvasStage,
+    canvas,
+    engine,
+    room,
+    getSettings,
+    viewState = null,
+    bakeBevel = true,
+  }) {
     if (!canvasStage || !canvas) throw new Error('A renderer needs canvasStage and canvas');
     this.canvasStage = canvasStage;
     this.canvas = canvas;
@@ -96,7 +105,7 @@ export class TableRendererBase {
 
     this.lastFrameTime = performance.now();
     this._paletteCache = { key: null, palette: null };
-    this.sprites = new PieceSpriteStore();
+    this.sprites = new PieceSpriteStore({ bakeBevel });
   }
 
   /** The camera ({ x, y, scale }); kept for callers that read or set it directly. */

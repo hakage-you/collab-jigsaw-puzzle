@@ -158,7 +158,12 @@ export class OjamaController {
       clearInterval(this.visualSabotageTimerId);
       this.visualSabotageTimerId = null;
     }
-    this.canvas.classList.remove('sabotage-grayscale', 'sabotage-sepia', 'sabotage-hue');
+    this.canvas.classList.remove(
+      'sabotage-grayscale',
+      'sabotage-sepia',
+      'sabotage-hue',
+      'sabotage-mist',
+    );
     this.setGhostPiecesActive(false);
     this.elSpotlight.classList.add('hidden');
     this.elVisualBanner.classList.add('hidden');
@@ -250,6 +255,7 @@ export class OjamaController {
       hue: '色相シャッフル妨害',
       spotlight: '暗闇スポットライト妨害',
       ghost: 'ピース透明化妨害',
+      mist: '濃霧視覚妨害',
     };
     const toastMap = {
       grayscale: '世界から色が消えてしまった！',
@@ -257,6 +263,7 @@ export class OjamaController {
       hue: '色がごちゃまぜになってしまった！',
       spotlight: '明かりが消えた！手元しか見えない！',
       ghost: 'ピースたちが透けて見えなくなった！',
+      mist: '濃い霧が立ち込めてきた！',
     };
 
     if (chosen === 'spotlight') {
@@ -290,7 +297,7 @@ export class OjamaController {
     if (this.guardIfCompleted()) return false;
     const o = this.getSettings().ojama;
     // Ghost pieces are their own ojama now; the visual one picks among the colour/light kinds.
-    const types = ['grayscale', 'sepia', 'hue', 'spotlight'];
+    const types = ['grayscale', 'sepia', 'hue', 'spotlight', 'mist'];
     const wanted = forcedType || o.visualType;
     const chosen =
       wanted === 'ghost' && forcedType

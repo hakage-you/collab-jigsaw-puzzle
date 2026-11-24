@@ -10,6 +10,7 @@ import { computeGridForPieceCount } from '../../src/core/jigsawPath.js';
 import { mulberry32 } from '../../src/core/prng.js';
 import { CanvasRenderer } from '../../src/render/canvas2d/canvasRenderer.js';
 import { WebGL2Renderer } from '../../src/render/webgl2/webgl2Renderer.js';
+import { WebGPURenderer } from '../../src/render/webgpu/webgpuRenderer.js';
 import { seedMathRandom } from '../../tests/helpers/determinism.js';
 import { EffectsOverlay, MinimalCanvas2DPieces } from './benchLayers.js';
 import { SCENES } from './benchScenes.js';
@@ -20,6 +21,7 @@ const MODES = {
   app: 'ゲーム本体の Canvas 2D 描画',
   c2d: 'Canvas 2D 最小版（ピースだけ）',
   webgl2: 'ゲーム本体の WebGL2 描画',
+  webgpu: 'ゲーム本体（WebGPU）',
 };
 
 const nextFrame = () =>
@@ -38,6 +40,7 @@ function percentile(values, p) {
 }
 
 const round = (v) => Math.round(v * 10) / 10;
+const round2 = (v) => Math.round(v * 100) / 100;
 
 /** Pins window.devicePixelRatio (the game renderer reads it every frame). Returns a restore fn. */
 function pinDevicePixelRatio(value) {
@@ -102,20 +105,32 @@ function createMinimalLayer({ app, stage, pieceCanvas }) {
       const r = stage.getBoundingClientRect();
       layer.render(view, r.width, r.height, window.devicePixelRatio);
     },
+    getGpuMs: () => null,
+    dispose: () => {},
   };
 }
 
-/** Creates the piece layer for a mode. Returns { render(now), view, setDragging }. */
-function createPieceLayer(mode, { app, stage, pieceCanvas }) {
+/** Creates the piece layer for a mode. Returns { render(now), view, setDragging, getGpuMs, dispose }. */
+async function createPieceLayer(mode, { app, stage, pieceCanvas, powerPreference }) {
   if (mode === 'c2d') return createMinimalLayer({ app, stage, pieceCanvas });
-  const Renderer = mode === 'webgl2' ? WebGL2Renderer : CanvasRenderer;
-  const renderer = new Renderer({
+  const baseOpts = {
     canvasStage: stage,
     canvas: pieceCanvas,
     engine: app.engine,
     room: app.room,
     getSettings: () => app.getSettings(),
-  });
+  };
+  let renderer;
+  if (mode === 'webgpu') {
+    renderer = await WebGPURenderer.create({
+      ...baseOpts,
+      powerPreference: powerPreference || undefined,
+      allowFallbackAdapter: true,
+    });
+  } else {
+    const Renderer = mode === 'webgl2' ? WebGL2Renderer : CanvasRenderer;
+    renderer = new Renderer(baseOpts);
+  }
   renderer.fitView();
   return {
     view: renderer.view,
@@ -124,6 +139,8 @@ function createPieceLayer(mode, { app, stage, pieceCanvas }) {
       renderer.requestRender();
       renderer.renderFrame(now, () => {});
     },
+    getGpuMs: () => renderer.getStats().lastGpuMs ?? null,
+    dispose: () => renderer.dispose(),
   };
 }
 
@@ -150,6 +167,7 @@ async function runScene(scene, ctx) {
   scene.setup(s);
   const intervals = [];
   const work = [];
+  const gpuTimes = [];
   const start = performance.now();
   let last = start;
   for (let frame = 0; ; frame++) {
@@ -165,6 +183,8 @@ async function runScene(scene, ctx) {
     if (frame >= WARMUP_FRAMES) {
       intervals.push(now - last);
       work.push(performance.now() - t0);
+      const gpuMs = layer.getGpuMs?.();
+      if (typeof gpuMs === 'number' && Number.isFinite(gpuMs)) gpuTimes.push(gpuMs);
     }
     last = now;
     if (frame >= WARMUP_FRAMES && now - start > MEASURE_MS) break;
@@ -181,6 +201,8 @@ async function runScene(scene, ctx) {
     ),
     workMsMedian: round(median(work)),
     workMsP95: round(percentile(work, 95)),
+    gpuMsMedian: gpuTimes.length > 0 ? round2(median(gpuTimes)) : null,
+    gpuMsP95: gpuTimes.length > 0 ? round2(percentile(gpuTimes, 95)) : null,
   };
 }
 
@@ -197,12 +219,21 @@ async function measureRefresh() {
 }
 
 /** Runs every scene for one mode. `onProgress(text)` reports what is running. */
-export async function runMode({ mode, pieceCount, dpr, stage, refreshMs, onProgress }) {
+export async function runMode({
+  mode,
+  pieceCount,
+  dpr,
+  stage,
+  refreshMs,
+  powerPreference = '',
+  onProgress,
+}) {
   const restoreDpr = pinDevicePixelRatio(dpr);
+  let layer = null;
   try {
     const app = buildPuzzle(pieceCount);
     const { pieceCanvas, overlayCanvas } = freshCanvases(stage);
-    const layer = createPieceLayer(mode, { app, stage, pieceCanvas });
+    layer = await createPieceLayer(mode, { app, stage, pieceCanvas, powerPreference });
     const overlay = new EffectsOverlay(overlayCanvas);
     const ctx = { app, layer, overlay, stage, refreshMs, pieceCanvas };
     const results = [];
@@ -217,6 +248,7 @@ export async function runMode({ mode, pieceCount, dpr, stage, refreshMs, onProgr
     }
     return { results };
   } finally {
+    layer?.dispose?.();
     restoreDpr();
   }
 }

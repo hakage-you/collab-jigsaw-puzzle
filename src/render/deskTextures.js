@@ -44,7 +44,7 @@ function textureImage(file, onReady) {
       entry.failed = true;
       entry.waiting.clear();
     };
-    img.src = `assets/textures/${file}.webp`;
+    img.src = new URL(`../../assets/textures/${file}.webp`, import.meta.url).href;
   }
   if (!entry.ready && !entry.failed && onReady) entry.waiting.add(onReady);
   return entry.ready ? entry.img : null;
@@ -72,6 +72,16 @@ export function deskTexturePattern(ctx, style, onReady) {
   const spec = DESK_TEXTURES[style];
   const img = spec ? textureImage(spec.file, onReady) : null;
   return img ? patternFor(ctx, img) : null;
+}
+
+/**
+ * Returns `{ img, base }` for a textured desk style (`img` is null while loading, and
+ * `onReady` is called once loaded), or null for `'grid'` / unknown styles.
+ */
+export function deskTextureSpec(style, onReady) {
+  const spec = DESK_TEXTURES[style];
+  if (!spec) return null;
+  return { img: textureImage(spec.file, onReady), base: spec.base };
 }
 
 /**

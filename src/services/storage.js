@@ -13,6 +13,8 @@ import { parseSaveText } from '../core/saveValidation.js';
 export { MAX_SAVE_TEXT_LENGTH } from '../core/saveValidation.js';
 export { parseSaveText };
 
+const RENDERER_MODES = ['auto', 'webgpu', 'webgl2', 'canvas2d'];
+
 const DEFAULT_SETTINGS = {
   theme: 'light', // 'light' | 'dark'
   deskStyle: DESK_CONFIG.DEFAULT_STYLE, // DESK_CONFIG.STYLES
@@ -27,7 +29,7 @@ const DEFAULT_SETTINGS = {
   // "演出と音": this player's own, never in a save (COMFORT_CONFIG). null follows the OS.
   effectStrength: null, // null | 'normal' | 'reduced' | 'off'
   volume: { normal: COMFORT_CONFIG.DEFAULT_VOLUME, ojama: COMFORT_CONFIG.DEFAULT_VOLUME },
-  rendererMode: 'auto', // 'auto' (WebGL2 when available) | 'canvas2d' (compatibility mode)
+  rendererMode: 'auto', // 'auto' | 'webgpu' | 'webgl2' | 'canvas2d'
   referenceMode: VIEWPORT_CONFIG.DEFAULT_REFERENCE_MODE, // 'underlay' | 'sheet' | 'floating' | 'none'
   guideOpacity: 14,
   playerName: 'ホスト（自分）',
@@ -120,6 +122,7 @@ export function loadSavedSettings() {
       ...DEFAULT_SETTINGS,
       ...rest,
       ...readComfortSettings(parsed),
+      rendererMode: RENDERER_MODES.includes(parsed.rendererMode) ? parsed.rendererMode : 'auto',
       cutComplexity: normalizeCutComplexity(parsed.cutComplexity),
       ojama: mergeOjama(parsed.ojama),
     };

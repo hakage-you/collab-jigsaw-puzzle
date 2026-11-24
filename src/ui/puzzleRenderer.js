@@ -2,8 +2,8 @@ import { OS_REDUCE_MOTION_QUERY, resolveEffectStrength } from '../app/comfortSet
 import { RendererHost } from '../render/rendererHost.js';
 
 /**
- * Creates the renderer for the game page's puzzle canvas: WebGL2 when available, Canvas 2D
- * otherwise or when the player chose compatibility mode (settings.rendererMode).
+ * Creates the renderer for the game page's puzzle canvas: WebGPU -> WebGL2 -> Canvas 2D
+ * according to settings.rendererMode.
  * `onChange({ kind, reason })` is told which renderer is in use, also after a fallback.
  * `watchSettings(fn)` calls `fn` whenever the settings change.
  */

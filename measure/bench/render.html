@@ -40,13 +40,25 @@
       <label><input type="checkbox" id="mode-app" checked /> ゲーム本体（Canvas 2D）</label>
       <label><input type="checkbox" id="mode-c2d" checked /> Canvas 2D 最小版</label>
       <label><input type="checkbox" id="mode-webgl2" checked /> ゲーム本体（WebGL2）</label>
+      <label><input type="checkbox" id="mode-webgpu" checked /> ゲーム本体（WebGPU）</label>
+      <label>
+        GPU 優先
+        <select id="powerPreference">
+          <option value="" selected>既定</option>
+          <option value="low-power">省電力（内蔵 GPU）</option>
+          <option value="high-performance">高性能（外付け GPU）</option>
+        </select>
+      </label>
       <label>
         メモ（機種・低速化の倍率など）
         <input type="text" id="note" maxlength="200" />
       </label>
       <button type="button" id="btnRun">計測を開始</button>
     </div>
-    <p>GPU: <span id="gpu"></span> ／ CPU: <span id="cpu"></span></p>
+    <p>
+      GPU: <span id="gpu"></span> ／ WebGPU: <span id="webgpuGpu">確認中…</span> ／ CPU:
+      <span id="cpu"></span>
+    </p>
     <p id="status" class="bench-status">未実行</p>
     <div id="benchStage" class="bench-stage"></div>
     <table class="bench-table">
@@ -61,6 +73,8 @@
           <th>落ちたフレーム</th>
           <th>JS 処理 中央値 ms</th>
           <th>p95 ms</th>
+          <th>GPU 処理 中央値 ms</th>
+          <th>GPU p95 ms</th>
         </tr>
       </thead>
       <tbody id="results"></tbody>

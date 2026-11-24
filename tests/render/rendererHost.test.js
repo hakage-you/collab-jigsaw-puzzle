@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GameSession } from '../../src/app/gameSession.js';
-import { RendererHost } from '../../src/render/rendererHost.js';
+import { PieceSpriteStore } from '../../src/render/pieceSpriteStore.js';
+import { RENDERER_MODES, RendererHost } from '../../src/render/rendererHost.js';
 import { seedMathRandom } from '../helpers/determinism.js';
 import { SMALL_PUZZLE } from '../helpers/puzzle.js';
 import { waitFor } from '../helpers/wait.js';
@@ -20,6 +21,7 @@ function setup({
   restoreWaitMs = 3000,
   prepare = () => {},
   referenceMode = 'none',
+  createWebGPU = null,
 } = {}) {
   localStorage.clear();
   const restoreRandom = seedMathRandom(0x5eed);
@@ -43,6 +45,7 @@ function setup({
     getSettings: () => app.getSettings(),
     mode,
     restoreWaitMs,
+    createWebGPU,
     onChange: (info) => changes.push(info),
   });
   cleanups.push(() => {
@@ -61,6 +64,32 @@ function composite(stage) {
   const ctx = out.getContext('2d');
   for (const layer of stage.querySelectorAll('canvas')) ctx.drawImage(layer, 0, 0, W, H);
   return ctx.getImageData(0, 0, W, H).data;
+}
+
+function createMockGpuRenderer(opts) {
+  const pieces = document.createElement('canvas');
+  pieces.className = 'webgpu-pieces-canvas';
+  opts.canvas.after(pieces);
+  return {
+    kind: 'webgpu',
+    onContextLost: opts.onContextLost,
+    onGpuError: opts.onGpuError,
+    renderFrame: vi.fn(),
+    resizeCanvas: vi.fn(),
+    launchConfetti: vi.fn(),
+    getStats: () => ({ renderer: 'webgpu', gpuTextureBytes: 1024, lastGpuMs: 0.4 }),
+    dispose: vi.fn(() => pieces.remove()),
+  };
+}
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
 }
 
 describe('RendererHost', () => {
@@ -197,5 +226,137 @@ describe('RendererHost', () => {
       if (d > 64) far++;
     }
     expect(far / (a.length / 4)).toBeLessThan(0.01);
+  });
+
+  it('supports switching across auto, webgpu, webgl2, and canvas2d modes', async () => {
+    expect(RENDERER_MODES).toEqual(['auto', 'webgpu', 'webgl2', 'canvas2d']);
+    const createWebGPU = vi.fn((opts) => Promise.resolve(createMockGpuRenderer(opts)));
+    const { host, changes } = setup({ mode: 'webgl2', createWebGPU });
+    expect(host.kind).toBe('webgl2');
+    expect(createWebGPU).not.toHaveBeenCalled();
+
+    host.setMode('webgpu');
+    await waitFor(() => host.kind === 'webgpu', { message: 'did not promote in webgpu mode' });
+    expect(changes.at(-1)).toEqual({ kind: 'webgpu', reason: null });
+
+    host.setMode('canvas2d');
+    expect(host.kind).toBe('canvas2d');
+    expect(changes.at(-1)).toEqual({ kind: 'canvas2d', reason: 'compatibility mode selected' });
+  });
+
+  it('falls back to WebGL2 with reason when forced webgpu fails', async () => {
+    const createWebGPU = vi.fn(() => Promise.reject(new Error('No WebGPU adapter')));
+    const { host, changes } = setup({ mode: 'webgpu', createWebGPU });
+    await waitFor(() => Boolean(host.reason), { message: 'fallback reason was not set' });
+    expect(host.kind).toBe('webgl2');
+    expect(changes.at(-1)).toEqual({ kind: 'webgl2', reason: 'No WebGPU adapter' });
+  });
+
+  it('promotes asynchronously to WebGPU in auto mode while keeping camera and cleaning old layers', async () => {
+    const d = deferred();
+    let mockGpu = null;
+    const createWebGPU = vi.fn(async (opts) => {
+      await d.promise;
+      mockGpu = createMockGpuRenderer(opts);
+      return mockGpu;
+    });
+    const { host, stage, changes } = setup({ mode: 'auto', createWebGPU });
+    expect(host.kind).toBe('webgl2');
+    Object.assign(host.view, { x: 45, y: -22, scale: 1.35 });
+    expect(stage.querySelectorAll('canvas')).toHaveLength(4);
+
+    d.resolve();
+    await waitFor(() => host.kind === 'webgpu', { message: 'did not promote to webgpu' });
+
+    expect(host.view).toMatchObject({ x: 45, y: -22, scale: 1.35 });
+    expect(stage.querySelector('canvas.webgl-pieces-canvas')).toBeNull();
+    expect(stage.querySelector('canvas.webgpu-pieces-canvas')).not.toBeNull();
+    expect(changes.at(-1)).toEqual({ kind: 'webgpu', reason: null });
+    expect(mockGpu.getStats().lastGpuMs).toBe(0.4);
+  });
+
+  it('guards against setMode and dispose races while WebGPU initialization is pending', async () => {
+    const d1 = deferred();
+    const created = [];
+    const createWebGPU = vi.fn(async (opts) => {
+      await d1.promise;
+      const r = createMockGpuRenderer(opts);
+      created.push(r);
+      return r;
+    });
+    const first = setup({ mode: 'auto', createWebGPU });
+    first.host.setMode('canvas2d');
+    d1.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(first.host.kind).toBe('canvas2d');
+    expect(created[0].dispose).toHaveBeenCalledTimes(1);
+    expect(first.stage.querySelector('canvas.webgpu-pieces-canvas')).toBeNull();
+
+    const d2 = deferred();
+    const secondCreated = [];
+    const second = setup({
+      mode: 'webgpu',
+      createWebGPU: async (opts) => {
+        await d2.promise;
+        const r = createMockGpuRenderer(opts);
+        secondCreated.push(r);
+        return r;
+      },
+    });
+    const changesBeforeDispose = second.changes.length;
+    second.host.dispose();
+    d2.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(secondCreated[0].dispose).toHaveBeenCalledTimes(1);
+    expect(second.changes.length).toBe(changesBeforeDispose);
+  });
+
+  it('automatically downgrades from WebGPU to WebGL2 when device.lost fires', async () => {
+    let mockGpu = null;
+    const createWebGPU = vi.fn((opts) => {
+      mockGpu = createMockGpuRenderer(opts);
+      return Promise.resolve(mockGpu);
+    });
+    const { host, stage, changes } = setup({ mode: 'auto', createWebGPU });
+    await waitFor(() => host.kind === 'webgpu');
+    Object.assign(host.view, { x: -18, y: 77, scale: 0.65 });
+
+    mockGpu.onContextLost();
+    expect(mockGpu.dispose).toHaveBeenCalledTimes(1);
+    expect(host.kind).toBe('webgl2');
+    expect(host.view).toMatchObject({ x: -18, y: 77, scale: 0.65 });
+    expect(stage.querySelector('canvas.webgpu-pieces-canvas')).toBeNull();
+    expect(stage.querySelector('canvas.webgl-pieces-canvas')).not.toBeNull();
+    expect(changes.at(-1).reason).toMatch(/lost/);
+  });
+
+  it('automatically downgrades from WebGPU to WebGL2 on uncapturederror and records reason', async () => {
+    let mockGpu = null;
+    const createWebGPU = vi.fn((opts) => {
+      mockGpu = createMockGpuRenderer(opts);
+      return Promise.resolve(mockGpu);
+    });
+    const { host, stage, changes } = setup({ mode: 'auto', createWebGPU });
+    await waitFor(() => host.kind === 'webgpu');
+
+    mockGpu.onGpuError(new Error('Validation failed'));
+    expect(mockGpu.dispose).toHaveBeenCalledTimes(1);
+    expect(host.kind).toBe('webgl2');
+    expect(stage.querySelector('canvas.webgpu-pieces-canvas')).toBeNull();
+    expect(changes.at(-1)).toEqual({ kind: 'webgl2', reason: 'WebGPU error: Validation failed' });
+    expect(host.getStats().fallbackReason).toBe('WebGPU error: Validation failed');
+  });
+
+  it('PieceSpriteStore({ bakeBevel: false }) builds sprites without baked border lines', () => {
+    const { app } = setup({ mode: 'canvas2d' });
+    const withBevel = new PieceSpriteStore({ bakeBevel: true });
+    const noBevel = new PieceSpriteStore({ bakeBevel: false });
+    withBevel.sync(app.engine);
+    noBevel.sync(app.engine);
+    expect(noBevel.bakeBevel).toBe(false);
+    expect(noBevel.front.size).toBe(withBevel.front.size);
+    expect(noBevel.metrics).toEqual(withBevel.metrics);
   });
 });

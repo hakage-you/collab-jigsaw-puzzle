@@ -303,7 +303,8 @@
   transition: filter 0.35s ease;
 }
 
-/* Pieces drawn with WebGL2, above the desk/board canvas (#puzzleCanvas keeps receiving input). */
+/* Pieces drawn with WebGPU or WebGL2, above the desk/board canvas (#puzzleCanvas keeps receiving input). */
+.webgpu-pieces-canvas,
 .webgl-pieces-canvas,
 /* Cursors, snap flashes and confetti, drawn over the table without redrawing it. */
 .effects-canvas {
@@ -337,6 +338,11 @@
 #puzzleCanvas.sabotage-hue,
 .sabotage-hue ~ .webgl-pieces-canvas {
   filter: hue-rotate(165deg) saturate(1.8);
+}
+
+.sabotage-mist,
+.sabotage-mist ~ .webgl-pieces-canvas {
+  filter: blur(2.5px) brightness(1.08) contrast(0.86) saturate(0.75);
 }
 
 /* Ojama test palette: floats over the board (above the superchat card) and is moved by its header.

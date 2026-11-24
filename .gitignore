@@ -9,3 +9,4 @@ docs/
 .vitest/
 measure/.latest/
 .claude
+.agents/
