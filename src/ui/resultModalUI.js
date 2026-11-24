@@ -69,7 +69,11 @@ export class ResultModalUI {
     this._fill(payload);
     this.renderer.launchConfetti();
     this.renderer.requestRender();
-    this.celebration.play(() => this._open(), this.renderer.completionSpot());
+    this.celebration.play(
+      () => this._open(),
+      this.renderer.completionSpot(),
+      this.renderer.viewState.effectIntensity,
+    );
   }
 
   _fill(payload) {

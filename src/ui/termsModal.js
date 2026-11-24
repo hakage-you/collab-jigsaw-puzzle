@@ -1,5 +1,5 @@
 /**
- * A text dialog opened from the lobby footer: the terms (default) or the credits. Closes with
+ * A dialog opened from the lobby: the terms (default), the credits, or "演出と音". Closes with
  * its button, a click on the backdrop, or Escape.
  */
 export class TermsModal {
@@ -25,12 +25,18 @@ export class TermsModal {
         }
       });
     }
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.elModal && !this.elModal.classList.contains('hidden')) {
-        e.preventDefault();
-        this.hide();
-      }
-    });
+    // In the capture phase, so the lobby under it (which closes on an Escape nobody took) sees
+    // the key already taken.
+    window.addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key === 'Escape' && this.elModal && !this.elModal.classList.contains('hidden')) {
+          e.preventDefault();
+          this.hide();
+        }
+      },
+      true,
+    );
   }
 
   show() {

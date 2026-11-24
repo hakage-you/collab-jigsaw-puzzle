@@ -18,7 +18,7 @@ const FRAME_TIME = 1000; // fixed `now` for renderFrame; animations are frozen b
 const BASE_SETTINGS = {
   ...SMALL_PUZZLE,
   theme: 'light',
-  soundEnabled: false,
+  volume: { normal: 0, ojama: 0 },
   referenceMode: 'underlay',
   // A textured desk loads its image asynchronously; the grid draws the same on every frame.
   deskStyle: 'grid',

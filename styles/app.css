@@ -680,6 +680,11 @@
   animation: shake-hit 0.16s ease;
 }
 
+.effects-reduced .superchat-card,
+.effects-reduced .superchat-card.hit-shake {
+  animation: none;
+}
+
 @keyframes superchat-pop {
   from {
     transform: scale(0.6);
@@ -1279,6 +1284,10 @@
   animation: toast-in 0.2s ease;
 }
 
+.effects-reduced .toast {
+  animation: none;
+}
+
 .toast.ojama {
   border-left-color: var(--warning);
 }
@@ -1401,23 +1410,27 @@
   text-align: left;
 }
 
+/* On a narrow phone the buttons go down a line (to the right) rather than break the title. */
 .lobby-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
   margin-bottom: var(--space-4);
 }
 
 .lobby-header h2 {
   margin: 0;
   font-size: var(--font-size-lg);
+  white-space: nowrap;
 }
 
 .lobby-header-actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin-left: auto;
 }
 
 .lobby-tabs {
@@ -1863,6 +1876,46 @@
   margin: 0;
 }
 
+/* "演出と音" (src/ui/comfortControls.js): the lobby's dialog and the menu's box */
+.terms-card.comfort-card {
+  width: min(440px, 94vw);
+}
+
+.comfort-controls {
+  margin-top: var(--space-2);
+}
+
+.comfort-controls .setting-row {
+  margin-top: 0;
+}
+
+.comfort-hint {
+  margin-top: var(--space-1);
+}
+
+.comfort-volumes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.comfort-volume-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.comfort-volume-value {
+  flex: none;
+  color: var(--text);
+}
+
+/* The browser's own side margins would push a full-width slider out of the menu's box. */
+.comfort-volume input {
+  margin-inline: 0;
+}
+
 .guide-steps {
   margin: 0;
   padding-left: var(--space-4);
@@ -2183,8 +2236,9 @@
     overflow: hidden;
   }
 
-  /* The stream button moves into the menu (.menu-stream-entry): no room for it up here. */
-  .brand,
+  /* The stream button moves into the menu (.menu-stream-entry): no room for it up here.
+     Only the top bar's brand goes: the lobby's title (also a .brand) stays. */
+  .topbar .brand,
   .topbar-center,
   .pill-label,
   .progress-bar-wrap,

@@ -1,5 +1,6 @@
 import { GameSession } from '../app/gameSession.js';
 import { CanvasInteraction } from './canvasInteraction.js';
+import { ComfortControls } from './comfortControls.js';
 import { DiagnosticsUI } from './diagnosticsUI.js';
 import { LobbyUI } from './lobbyUI.js';
 import { OjamaController } from './ojamaController.js';
@@ -62,10 +63,15 @@ function setUpOjamaRules({ app, ojama, topbarUI, youtubeUI }) {
   };
 }
 
-/** The lobby footer's dialogs: the terms, and the credits (libraries and assets). */
-function setUpFooterDialogs() {
+/**
+ * The lobby's dialogs: the terms and the credits (libraries and assets) from its footer, and
+ * "演出と音" from its header (whose controls are also in the menu).
+ */
+function setUpLobbyDialogs(app) {
   new TermsModal();
   new TermsModal({ modalId: 'creditsModal', openId: 'btnOpenCredits', closeId: 'btnCloseCredits' });
+  new TermsModal({ modalId: 'comfortModal', openId: 'btnOpenComfort', closeId: 'btnCloseComfort' });
+  new ComfortControls({ app });
 }
 
 function boot() {
@@ -122,7 +128,7 @@ function boot() {
 
   new SaveLoadUI({ app, showToast });
   const diagnosticsUI = new DiagnosticsUI({ app, showToast });
-  setUpFooterDialogs();
+  setUpLobbyDialogs(app);
   new ResultModalUI({ app, renderer, loading, showToast });
 
   new CanvasInteraction({

@@ -1048,22 +1048,9 @@
                   <input type="checkbox" class="md-switch-input" id="toggleShowStats" checked />
                   <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
                 </label>
-                <label class="md-switch md-switch-row" title="吸着・操作時の効果音">
-                  <span class="md-switch-label">効果音</span>
-                  <input type="checkbox" class="md-switch-input" id="toggleSound" checked />
-                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
-                </label>
-                <label class="md-switch md-switch-row">
-                  <span class="md-switch-label">
-                    <span>演出を控えめに</span>
-                    <span class="md-switch-sub"
-                      >ピースの持ち上げや星・紙吹雪などの動きを減らします</span
-                    >
-                  </span>
-                  <input type="checkbox" class="md-switch-input" id="toggleReduceEffects" />
-                  <span class="md-switch-track"><span class="md-switch-thumb"></span></span>
-                </label>
               </div>
+              <!-- "演出と音" (src/ui/comfortControls.js; the same as the lobby's) -->
+              <div class="comfort-controls" data-comfort-controls></div>
             </div>
 
             <div class="drawer-section host-only">
@@ -1196,6 +1183,9 @@
               <h2 id="lobbyTitle">パズルをはじめる</h2>
             </div>
             <div class="lobby-header-actions">
+              <button type="button" class="btn btn-xs btn-ghost" id="btnOpenComfort">
+                演出と音
+              </button>
               <button type="button" class="btn btn-xs btn-ghost hidden" id="btnCloseLobby">
                 閉じる
               </button>
@@ -1573,6 +1563,24 @@
             </details>
             <!-- @content:credits:end -->
           </div>
+        </div>
+      </div>
+
+      <!-- "演出と音": this player's own effect strength and volumes (src/ui/comfortControls.js) -->
+      <div
+        id="comfortModal"
+        class="modal-backdrop hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="comfortTitle"
+      >
+        <div class="terms-card comfort-card">
+          <div class="terms-header">
+            <h2 id="comfortTitle">演出と音</h2>
+            <button type="button" class="btn btn-xs btn-ghost" id="btnCloseComfort">閉じる</button>
+          </div>
+          <p class="hint-text">この端末だけの設定です。部屋の設定やセーブでは変わりません。</p>
+          <div class="comfort-controls" data-comfort-controls></div>
         </div>
       </div>
 

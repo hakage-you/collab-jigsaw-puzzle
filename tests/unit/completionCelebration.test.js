@@ -33,6 +33,16 @@ describe('CompletionCelebration', () => {
     expect(el.classList.contains('hidden')).toBe(true);
   });
 
+  it('with effects off, shows no sticker and goes on at once', () => {
+    const c = new CompletionCelebration();
+    const done = vi.fn();
+    c.play(done, AT, 'off');
+    expect(done).toHaveBeenCalledTimes(1);
+    expect(el.classList.contains('hidden')).toBe(true);
+    vi.advanceTimersByTime(3000);
+    expect(done).toHaveBeenCalledTimes(1);
+  });
+
   it('goes on at once on a click, and only once', () => {
     const c = new CompletionCelebration();
     const done = vi.fn();

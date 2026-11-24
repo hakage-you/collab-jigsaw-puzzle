@@ -101,6 +101,22 @@ export const BOARD_CONFIG = Object.freeze({
   STYLES: Object.freeze(['wood', 'tray', 'gallery', 'classic']),
 });
 
+/**
+ * Each player's own effects and sound ("演出と音"): kept in this browser only. A save, the
+ * auto backup and the board sent to guests leave them out, so a host's or a save's choice never
+ * changes them.
+ */
+export const COMFORT_CONFIG = Object.freeze({
+  /** settings.effectStrength, or null: follow the OS's reduce motion ('reduced' when it is on). */
+  EFFECT_STRENGTHS: Object.freeze(['normal', 'reduced', 'off']),
+  /** settings.volume keys: 'normal' (snap, merge, turn, completion), 'ojama' (ojama, superchat). */
+  VOLUME_KINDS: Object.freeze(['normal', 'ojama']),
+  /** 0-100 in steps of VOLUME_STEP; 100 is the loudness the sounds were made at, 0 is silent. */
+  DEFAULT_VOLUME: 100,
+  VOLUME_STEP: 10,
+  PERSONAL_SETTING_KEYS: Object.freeze(['effectStrength', 'volume']),
+});
+
 export const OJAMA_CONFIG = {
   SUPERCHAT_MAX_HP: 15,
   /** Seconds a superchat stays unless driven off; 0 = until it is driven off. */

@@ -1,6 +1,13 @@
-import { PUZZLE_CONFIG } from '../config/constants.js';
+import { COMFORT_CONFIG, PUZZLE_CONFIG } from '../config/constants.js';
 
 const isUpright = (p) => p.rotation === 0 && !p.isFlipped;
+
+/** A copy of the settings without this player's own effects and sound (COMFORT_CONFIG). */
+function withoutPersonalSettings(settings) {
+  const out = structuredClone(settings);
+  if (out) for (const key of COMFORT_CONFIG.PERSONAL_SETTING_KEYS) delete out[key];
+  return out;
+}
 
 function computeSnapDistance(engine) {
   return Math.max(
@@ -182,7 +189,7 @@ export function exportSaveDataOp(engine, settings, contributions = null) {
         ? { sampleImageId: engine.sampleImageId }
         : {}),
     },
-    settings: structuredClone(settings),
+    settings: withoutPersonalSettings(settings),
     stats: structuredClone(engine.stats),
     ...(Array.isArray(contributions) ? { contributions: structuredClone(contributions) } : {}),
     pieces: engine.pieces.map((p) => ({

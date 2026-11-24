@@ -1,3 +1,4 @@
+import { OS_REDUCE_MOTION_QUERY, resolveEffectStrength } from '../app/comfortSettings.js';
 import { RendererHost } from '../render/rendererHost.js';
 
 /**
@@ -16,14 +17,14 @@ export function createPuzzleRenderer({ engine, room, getSettings, onChange, watc
     mode: getSettings().rendererMode,
     onChange,
   });
-  // Smaller effects when the player turned on "演出を控えめに" (settings.reduceEffects) or the
-  // OS asks to reduce motion, whichever says so.
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  // The effect strength of "演出と音" (settings.effectStrength), or the OS's reduce motion until
+  // the player chose one.
+  const reduceMotion = window.matchMedia(OS_REDUCE_MOTION_QUERY);
   const applyMotion = () => {
-    const reduced = reduceMotion.matches || Boolean(getSettings().reduceEffects);
-    host.viewState.effectIntensity = reduced ? 'reduced' : 'normal';
-    // The page's own small motions (styles: .effects-reduced) follow the same switch.
-    document.documentElement.classList.toggle('effects-reduced', reduced);
+    const strength = resolveEffectStrength(getSettings().effectStrength, reduceMotion.matches);
+    host.viewState.effectIntensity = strength;
+    // The page's own motions (styles: .effects-reduced) stop when reduced and when off.
+    document.documentElement.classList.toggle('effects-reduced', strength !== 'normal');
   };
   applyMotion();
   reduceMotion.addEventListener('change', applyMotion);

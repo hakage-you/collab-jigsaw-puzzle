@@ -14,6 +14,10 @@
  * - 'flip': `count` stamps stay at a point and turn over `spinTurns` times, like a card.
  * `waves` (default 1) repeats the stamps `waveGapSec` apart; later waves are dropped when the PC
  * is struggling (effectPlayer.js SLOW_FRAME_SEC), so a big effect cannot freeze a slow PC.
+ *
+ * Flashing: nothing that covers a large area may flash more than 3 times a second (WCAG 2.3.1),
+ * whatever the player's effect strength: viewers of a stream cannot choose theirs. No effect
+ * flashes today; one that does needs the photosensitivity notice (_plan/open_issues.md, 7).
  */
 export const EFFECTS = Object.freeze({
   /** One star hopping out where pieces snap into place: small and short, never in the way. */

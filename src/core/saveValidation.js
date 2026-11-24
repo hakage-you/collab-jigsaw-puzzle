@@ -244,8 +244,8 @@ const SETTINGS_SCHEMA = {
   allowRotation: { type: 'boolean' },
   allowFlip: { type: 'boolean' },
   showStats: { type: 'boolean' },
-  soundEnabled: { type: 'boolean' },
-  reduceEffects: { type: 'boolean' },
+  // No effectStrength / volume (nor the older soundEnabled / reduceEffects): each player's own
+  // effects and sound never come from a save (COMFORT_CONFIG).
   referenceMode: {
     type: 'string',
     max: MAX_TEXT_LENGTH,

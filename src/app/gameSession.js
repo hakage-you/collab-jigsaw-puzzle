@@ -44,7 +44,7 @@ export class GameSession {
     this.engine = new PuzzleEngine({ imageAnalyzer });
     this.renderStatsProvider = null;
     this.settings = loadSavedSettings();
-    sound.enabled = this.settings.soundEnabled;
+    sound.setVolumes(this.settings.volume);
 
     this.sourceImage = {
       canvas: generateSampleImageCanvas(undefined, undefined, DEFAULT_SAMPLE_IMAGE_ID),
@@ -114,7 +114,7 @@ export class GameSession {
       cutComplexity: normalizeCutComplexity(partial.cutComplexity ?? this.settings.cutComplexity),
       ojama: nextOjama,
     };
-    sound.enabled = this.settings.soundEnabled;
+    sound.setVolumes(this.settings.volume);
     saveSettings(this.settings);
     this.emit('settingsChange', this.settings);
     this.emit('hudUpdate');
@@ -123,7 +123,7 @@ export class GameSession {
 
   resetSettingsToDefault() {
     this.settings = resetSavedSettings();
-    sound.enabled = this.settings.soundEnabled;
+    sound.setVolumes(this.settings.volume);
     this.emit('settingsChange', this.settings);
     this.emit('hudUpdate');
     this.emit('toast', { message: '設定を初期値にリセットしました', kind: 'info' });

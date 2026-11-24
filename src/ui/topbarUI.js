@@ -42,13 +42,11 @@ export class TopbarUI {
     this.elRoomRoleBadge = document.getElementById('roomRoleBadge');
 
     this.elToggleShowStats = document.getElementById('toggleShowStats');
-    this.elToggleSound = document.getElementById('toggleSound');
     this.elToggleCompatRenderer = document.getElementById('toggleCompatRenderer');
     this.elRendererStatus = document.getElementById('rendererStatus');
     this.elThemeButtons = document.querySelectorAll('#themeModeGroup [data-theme-mode]');
     this.elDeskButtons = document.querySelectorAll('#deskStyleGroup [data-desk-style]');
     this.elBoardButtons = document.querySelectorAll('#boardStyleGroup [data-board-style]');
-    this.elToggleReduceEffects = document.getElementById('toggleReduceEffects');
     this.elBtnOpenLobby = document.getElementById('btnOpenLobby');
     this.elBtnOpenSetupFromMenu = document.getElementById('btnOpenSetupFromMenu');
 
@@ -165,10 +163,6 @@ export class TopbarUI {
     markChoice(this.elDeskButtons, (btn) => btn.dataset.deskStyle === settings.deskStyle);
     markChoice(this.elBoardButtons, (btn) => btn.dataset.boardStyle === settings.boardStyle);
     if (this.elToggleShowStats) this.elToggleShowStats.checked = settings.showStats;
-    if (this.elToggleSound) this.elToggleSound.checked = settings.soundEnabled;
-    if (this.elToggleReduceEffects) {
-      this.elToggleReduceEffects.checked = Boolean(settings.reduceEffects);
-    }
     if (this.elToggleCompatRenderer) {
       this.elToggleCompatRenderer.checked = settings.rendererMode === 'canvas2d';
     }
@@ -249,9 +243,6 @@ export class TopbarUI {
         this.app.patchSettings({ boardStyle: btn.dataset.boardStyle }),
       );
     }
-    this.elToggleReduceEffects?.addEventListener('change', () => {
-      this.app.patchSettings({ reduceEffects: this.elToggleReduceEffects.checked });
-    });
     this.elToggleShowStats?.addEventListener('change', () => {
       this.app.patchSettings({ showStats: this.elToggleShowStats.checked });
     });
@@ -260,9 +251,6 @@ export class TopbarUI {
       this.app.patchSettings({ rendererMode });
       this.renderer.setMode(rendererMode);
       this.updateRendererStatus();
-    });
-    this.elToggleSound?.addEventListener('change', () => {
-      this.app.patchSettings({ soundEnabled: this.elToggleSound.checked });
     });
   }
 

@@ -24,11 +24,12 @@ export class CompletionCelebration {
 
   /**
    * Puts the sticker up with its middle at `at` (CSS px on the stage: the board's top edge), then
-   * calls `onDone` after a moment (or sooner, on a click).
+   * calls `onDone` after a moment (or sooner, on a click). With effects off (`strength`, the
+   * renderer's effect strength) there is no sticker: `onDone` comes straight away.
    */
-  play(onDone, at) {
+  play(onDone, at, strength = 'normal') {
     this.cancel();
-    if (!this.el) {
+    if (!this.el || strength === 'off') {
       onDone();
       return;
     }

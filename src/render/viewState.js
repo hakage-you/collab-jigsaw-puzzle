@@ -6,6 +6,9 @@ import { PieceMotion } from './effects/pieceMotion.js';
 /** How far the completion sticker's middle stays from the stage's sides (CSS px): it fits. */
 const COMPLETION_SPOT_MARGIN = Object.freeze({ x: 170, y: 60 });
 
+/** How strong the outline flash of snapped pieces starts, per effect strength (off: none). */
+const SNAP_FLASH_ALPHA = Object.freeze({ normal: 0.9, reduced: 0.45, off: 0 });
+
 /** The reference mode in effect (settings without one use the default). */
 export function referenceModeOf(settings) {
   return settings?.referenceMode || VIEWPORT_CONFIG.DEFAULT_REFERENCE_MODE;
@@ -291,20 +294,25 @@ export class ViewState {
     }
   }
 
-  /** A short outline flash where pieces snapped into place, and a star hopping from their middle. */
+  /**
+   * A short outline flash where pieces snapped into place, and a star hopping from their middle.
+   * The flash starts fainter when effects are reduced and is not drawn when they are off.
+   */
   addSnapFlashes(pieces) {
     if (pieces.length > 0) {
       const cx = pieces.reduce((sum, p) => sum + p.x, 0) / pieces.length;
       const cy = pieces.reduce((sum, p) => sum + p.y, 0) / pieces.length;
       this.playEffect('snapStar', cx, cy);
     }
+    const alpha = SNAP_FLASH_ALPHA[this.effectIntensity];
+    if (!alpha) return;
     for (const sp of pieces) {
       this.snapFlashes.push({
         x: sp.x,
         y: sp.y,
         w: this.engine.pieceW,
         h: this.engine.pieceH,
-        alpha: 0.9,
+        alpha,
       });
     }
   }

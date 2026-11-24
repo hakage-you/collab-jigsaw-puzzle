@@ -36,7 +36,7 @@ export class SuperchatCard {
     this.elCard.classList.remove('hit-shake');
     void this.elCard.offsetWidth;
     this.elCard.classList.add('hit-shake');
-    sound.playTick();
+    sound.playTick('ojama');
 
     // The host gets the new HP back (or null); a guest's hit is only sent, and the HP comes back.
     const nextHp = this.room.submitSuperchatHit();

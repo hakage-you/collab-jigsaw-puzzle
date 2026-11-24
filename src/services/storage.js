@@ -1,5 +1,6 @@
 import {
   BOARD_CONFIG,
+  COMFORT_CONFIG,
   DESK_CONFIG,
   PUZZLE_CONFIG,
   OJAMA_CONFIG,
@@ -23,8 +24,9 @@ const DEFAULT_SETTINGS = {
   allowRotation: true,
   allowFlip: false,
   showStats: true,
-  soundEnabled: true,
-  reduceEffects: false, // "演出を控えめに": smaller effects, as with the OS's reduce motion
+  // "演出と音": this player's own, never in a save (COMFORT_CONFIG). null follows the OS.
+  effectStrength: null, // null | 'normal' | 'reduced' | 'off'
+  volume: { normal: COMFORT_CONFIG.DEFAULT_VOLUME, ojama: COMFORT_CONFIG.DEFAULT_VOLUME },
   rendererMode: 'auto', // 'auto' (WebGL2 when available) | 'canvas2d' (compatibility mode)
   referenceMode: VIEWPORT_CONFIG.DEFAULT_REFERENCE_MODE, // 'underlay' | 'sheet' | 'floating' | 'none'
   guideOpacity: 14,
@@ -80,14 +82,44 @@ export function mergeOjama(saved, base = DEFAULT_SETTINGS.ojama) {
   return out;
 }
 
+/** A volume (0-100, on a VOLUME_STEP) from a saved value; anything else is the default. */
+function readVolume(value) {
+  if (!Number.isFinite(value)) return COMFORT_CONFIG.DEFAULT_VOLUME;
+  const step = COMFORT_CONFIG.VOLUME_STEP;
+  return Math.min(100, Math.max(0, Math.round(value / step) * step));
+}
+
+/**
+ * This player's effects and sound from the saved settings. Settings saved before "演出と音"
+ * carry them over: "演出を控えめに" on (reduceEffects) is 'reduced', and the sound switch off
+ * (soundEnabled: false) is both volumes at 0.
+ */
+export function readComfortSettings(saved) {
+  const strength = COMFORT_CONFIG.EFFECT_STRENGTHS.includes(saved.effectStrength)
+    ? saved.effectStrength
+    : saved.reduceEffects === true
+      ? 'reduced'
+      : null;
+  const legacyMuted = saved.soundEnabled === false && !saved.volume;
+  const volume = {};
+  for (const kind of COMFORT_CONFIG.VOLUME_KINDS) {
+    volume[kind] = legacyMuted ? 0 : readVolume(saved.volume?.[kind]);
+  }
+  return { effectStrength: strength, volume };
+}
+
 export function loadSavedSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
     if (!raw) return structuredClone(DEFAULT_SETTINGS);
     const parsed = JSON.parse(raw);
+    const rest = { ...parsed };
+    delete rest.soundEnabled; // carried over by readComfortSettings
+    delete rest.reduceEffects;
     return {
       ...DEFAULT_SETTINGS,
-      ...parsed,
+      ...rest,
+      ...readComfortSettings(parsed),
       cutComplexity: normalizeCutComplexity(parsed.cutComplexity),
       ojama: mergeOjama(parsed.ojama),
     };
