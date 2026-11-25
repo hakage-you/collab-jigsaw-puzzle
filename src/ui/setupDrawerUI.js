@@ -1,8 +1,9 @@
 import { referenceModeOf } from '../render/viewState.js';
-import { drawCanvasFit, loadImageFromFile } from '../services/imageLoader.js';
+import { drawCanvasCover, drawCanvasFit, loadImageFromFile } from '../services/imageLoader.js';
 import {
   generateSampleImageCanvas,
   getSamplePreset,
+  loadSampleImageCanvas,
   normalizeSampleImageId,
 } from '../services/sampleImage.js';
 
@@ -43,15 +44,20 @@ export class SetupDrawerUI {
     this.elBtnToggleRefCollapse = document.getElementById('btnToggleRefCollapse');
     this.elZoomReadout = document.getElementById('zoomReadout');
 
+    this._thumbsRendered = false;
+    this._thumbCache = new Map();
     this._bindEvents();
     this._subscribeApp();
-    this._renderSamplePresetThumbnails();
     this.syncSettings(this.app.getSettings());
     this.updatePreviewStrip();
   }
 
   openModal() {
     this.pendingImage = null;
+    if (!this._thumbsRendered) {
+      this._thumbsRendered = true;
+      this._renderSamplePresetThumbnails();
+    }
     this.syncSettings(this.app.getSettings());
     this.updatePreviewStrip();
     this.elModal?.classList.remove('hidden');
@@ -71,11 +77,18 @@ export class SetupDrawerUI {
     return this.pendingImage ?? this.app.getSourceImage();
   }
 
+  _imageDims(img = this._image()) {
+    return {
+      width: img?.width || img?.canvas?.width || 960,
+      height: img?.height || img?.canvas?.height || 640,
+    };
+  }
+
   /** Picks an image for the next puzzle, keeping about the same number of pieces. */
   _pickImage(image) {
     this.pendingImage = image;
     const total = Number(this.elInputCols.value) * Number(this.elInputRows.value);
-    const { cols, rows } = this.app.computeGridForPieceCount(total, image.canvas);
+    const { cols, rows } = this.app.computeGridForPieceCount(total, this._imageDims(image));
     this.elInputCols.value = cols;
     this.elInputRows.value = rows;
     this._readAndPatch();
@@ -107,15 +120,38 @@ export class SetupDrawerUI {
     this.renderer.requestRender();
   }
 
-  updatePreviewStrip() {
-    const { canvas: srcCanvas, name } = this._image();
-    const settings = this.app.getSettings();
-    drawCanvasFit(this.elPreviewCanvas, srcCanvas);
-    if (!this.pendingImage && referenceModeOf(settings) === 'floating') {
-      drawCanvasFit(this.elFloatingRefCanvas, srcCanvas);
+  _drawPreviewTo(canvas, img) {
+    if (!canvas || !img) return;
+    if (img.previewCanvas) {
+      drawCanvasCover(canvas, img.previewCanvas);
+      return;
     }
-    this.elImageSourceLabel.textContent = name;
-    this.elImageDimLabel.textContent = `${srcCanvas.width} × ${srcCanvas.height} px`;
+    if (img.needsLoad && img.thumbUrl) {
+      let thumb = this._thumbCache.get(img.thumbUrl);
+      if (!thumb) {
+        thumb = new Image();
+        thumb.onload = () => {
+          if (this._image()?.thumbUrl === img.thumbUrl) this.updatePreviewStrip();
+        };
+        thumb.src = img.thumbUrl;
+        this._thumbCache.set(img.thumbUrl, thumb);
+      }
+      if (thumb.complete && thumb.naturalWidth > 0) drawCanvasCover(canvas, thumb);
+      return;
+    }
+    if (img.canvas) drawCanvasCover(canvas, img.canvas);
+  }
+
+  updatePreviewStrip() {
+    const img = this._image();
+    const { width, height } = this._imageDims(img);
+    const settings = this.app.getSettings();
+    this._drawPreviewTo(this.elPreviewCanvas, img);
+    if (!this.pendingImage && referenceModeOf(settings) === 'floating') {
+      drawCanvasFit(this.elFloatingRefCanvas, img?.canvas);
+    }
+    this.elImageSourceLabel.textContent = img?.name || '';
+    this.elImageDimLabel.textContent = `${width} × ${height} px`;
     this.updateSamplePresetHighlight();
     this.updateLobbySummaries();
   }
@@ -130,20 +166,21 @@ export class SetupDrawerUI {
   }
 
   updateLobbySummaries() {
-    const { canvas: srcCanvas, name } = this._image();
+    const img = this._image();
     const s = this.app.getSettings();
-    const summary = `現在の設定: ${name} / ${s.cols}×${s.rows}（${s.cols * s.rows}ピース）`;
+    const summary = `現在の設定: ${img?.name || ''} / ${s.cols}×${s.rows}（${s.cols * s.rows}ピース）`;
     if (this.elLobbySoloSummary) this.elLobbySoloSummary.textContent = summary;
     if (this.elLobbyHostSummary) this.elLobbyHostSummary.textContent = summary;
-    if (this.elLobbySoloPreview && srcCanvas) drawCanvasFit(this.elLobbySoloPreview, srcCanvas);
-    if (this.elLobbyHostPreview && srcCanvas) drawCanvasFit(this.elLobbyHostPreview, srcCanvas);
+    this._drawPreviewTo(this.elLobbySoloPreview, img);
+    this._drawPreviewTo(this.elLobbyHostPreview, img);
   }
 
   updatePresetHighlight() {
     const settings = this.app.getSettings();
+    const dims = this._imageDims();
     document.querySelectorAll('#splitPresets .btn-seg').forEach((btn) => {
       const targetCount = Number(btn.dataset.count);
-      const grid = this.app.computeGridForPieceCount(targetCount, this._image().canvas);
+      const grid = this.app.computeGridForPieceCount(targetCount, dims);
       btn.classList.toggle('active', grid.cols === settings.cols && grid.rows === settings.rows);
     });
   }
@@ -206,7 +243,7 @@ export class SetupDrawerUI {
       btn.addEventListener('click', () => {
         const { cols, rows } = this.app.computeGridForPieceCount(
           Number(btn.dataset.count),
-          this._image().canvas,
+          this._imageDims(),
         );
         this.elInputCols.value = cols;
         this.elInputRows.value = rows;
@@ -237,11 +274,19 @@ export class SetupDrawerUI {
 
     document.getElementById('btnNewPuzzle').addEventListener('click', () => {
       this._readAndPatch();
-      const image = this.pendingImage;
+      const picked = this.pendingImage;
       this.pendingImage = null;
       this.closeModal();
-      this.loading.run(() => {
-        this.app.startNewPuzzle(image);
+      this.loading.run(async () => {
+        const current = this.app.getSourceImage();
+        let nextImage = picked;
+        if (nextImage?.needsLoad) {
+          nextImage.canvas = await loadSampleImageCanvas(nextImage.sampleId);
+        } else if (!nextImage && current?.needsLoad) {
+          const canvas = await loadSampleImageCanvas(current.sampleId);
+          nextImage = { canvas, name: current.name, isSample: true, sampleId: current.sampleId };
+        }
+        this.app.startNewPuzzle(nextImage);
         const s = this.app.getSettings();
         this.showToast(`${s.cols}×${s.rows} で新しいパズルを開始しました`, 'success');
       });
@@ -253,14 +298,21 @@ export class SetupDrawerUI {
       const thumb = btn.querySelector('canvas');
       if (!thumb) continue;
       const sampleId = normalizeSampleImageId(btn.dataset.samplePreset);
-      const sample = generateSampleImageCanvas(undefined, undefined, sampleId);
-      drawCanvasFit(thumb, sample);
+      const preset = getSamplePreset(sampleId);
+      if (preset.kind === 'artwork' && preset.thumbUrl) {
+        const img = new Image();
+        img.onload = () => drawCanvasCover(thumb, img);
+        img.src = preset.thumbUrl;
+        continue;
+      }
+      const sample = generateSampleImageCanvas(180, 120, sampleId);
+      drawCanvasCover(thumb, sample);
       sample.width = 0;
       sample.height = 0;
     }
   }
 
-  /** Picking a file or a sample only sets up the dialog; Start switches the puzzle to it. */
+  /** Picking a file or a sample only reserves it; Start loads/generates the full image. */
   _bindImagePicks() {
     document.getElementById('imageFileInput').addEventListener('change', (e) => {
       const file = e.target.files?.[0];
@@ -278,11 +330,15 @@ export class SetupDrawerUI {
       btn.addEventListener('click', () => {
         const sampleId = normalizeSampleImageId(btn.dataset.samplePreset);
         const preset = getSamplePreset(sampleId);
+        const thumb = btn.querySelector('canvas');
         this._pickImage({
-          canvas: this.app.createSampleCanvas(sampleId),
+          previewCanvas: thumb || null,
+          width: preset.width,
+          height: preset.height,
           name: preset.name,
           isSample: true,
           sampleId,
+          needsLoad: true,
         });
       });
     }

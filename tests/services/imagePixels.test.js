@@ -79,7 +79,7 @@ function noiseCanvas(width, height, seed) {
 }
 
 const IMAGES = [
-  ['sample image', () => generateSampleImageCanvas()],
+  ['sample image', () => generateSampleImageCanvas(undefined, undefined, 'rainbow')],
   ['noise 333x217', () => noiseCanvas(333, 217, 7)],
   ['noise 1600x900', () => noiseCanvas(1600, 900, 11)],
   ['tiny 20x16', () => noiseCanvas(20, 16, 3)],
@@ -105,6 +105,8 @@ describe('pixel reading moved out of core', () => {
 
   it('the sample image signature is pinned', () => {
     // Pinned so a change in the sample image or in signing is noticed, not silently accepted.
-    expect(computeImageSignature(generateSampleImageCanvas())).toMatchSnapshot();
+    expect(
+      computeImageSignature(generateSampleImageCanvas(undefined, undefined, 'rainbow')),
+    ).toMatchSnapshot();
   });
 });

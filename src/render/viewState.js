@@ -8,6 +8,9 @@ const COMPLETION_SPOT_MARGIN = Object.freeze({ x: 170, y: 60 });
 
 /** How strong the outline flash of snapped pieces starts, per effect strength (off: none). */
 const SNAP_FLASH_ALPHA = Object.freeze({ normal: 0.9, reduced: 0.45, off: 0 });
+/** How long sort zone labels stay fully visible, and how long they take to fade out. */
+const ZONE_LABEL_HOLD_MS = 5000;
+const ZONE_LABEL_FADE_MS = 1000;
 
 /** The reference mode in effect (settings without one use the default). */
 export function referenceModeOf(settings) {
@@ -76,6 +79,10 @@ export class ViewState {
     this.heavyLevel = null;
     /** Where each fake piece was last seen (fakeId -> {x, y}), to puff when one vanishes. */
     this.fakeSpots = new Map();
+    /** Ephemeral sort zone label lifecycle (ref identity tracks new sorts). */
+    this.zoneLabelsRef = null;
+    this.zoneLabelShownAt = null;
+    this.zoneLabelAlpha = 0;
 
     this.needsRender = true;
     this.postRenderCallbacks = [];
@@ -138,6 +145,9 @@ export class ViewState {
     this.hoveredPieceId = null;
     this.fakeSpots = new Map();
     this.draggingGroupId = null;
+    this.zoneLabelsRef = null;
+    this.zoneLabelShownAt = null;
+    this.zoneLabelAlpha = 0;
     if (clearEffects) {
       this.snapFlashes = [];
       this.particles = [];
@@ -375,6 +385,49 @@ export class ViewState {
     const show = this.effectIntensity === 'normal' || (this.effectIntensity === 'reduced' && mine);
     if (show) this.motion.playHop(this.engine.getGroupPieces(groupId), from, performance.now());
     this.needsRender = true;
+  }
+
+  /** Plays the opening staggered piece-drop animation when effects are at normal intensity. */
+  playDealAnimation() {
+    if (this.effectIntensity !== 'normal') return false;
+    this.motion.playDeal(this.engine.pieces, this.engine.pieceW, this.engine.pieceH);
+    this.needsRender = true;
+    return true;
+  }
+
+  /** Immediately finishes any active opening deal animation (e.g. on player interaction). */
+  cancelDealAnimation() {
+    if (!this.motion.deal) return;
+    this.motion.cancelDeal();
+    this.needsRender = true;
+  }
+
+  /** Tracks sort zone labels so they hold for 5s, fade over 1s, and vanish on completion. */
+  stepZoneLabels(now) {
+    const labels = this.engine.zoneLabels;
+    const prevAlpha = this.zoneLabelAlpha;
+    if (!labels || labels.length === 0 || this.engine.isCompleted?.()) {
+      this.zoneLabelsRef = labels || null;
+      this.zoneLabelShownAt = null;
+      this.zoneLabelAlpha = 0;
+    } else if (labels !== this.zoneLabelsRef) {
+      this.zoneLabelsRef = labels;
+      this.zoneLabelShownAt = now;
+      this.zoneLabelAlpha = 1;
+    } else if (this.zoneLabelShownAt !== null) {
+      const elapsed = now - this.zoneLabelShownAt;
+      if (elapsed < ZONE_LABEL_HOLD_MS) {
+        this.zoneLabelAlpha = 1;
+      } else if (
+        this.effectIntensity !== 'normal' ||
+        elapsed >= ZONE_LABEL_HOLD_MS + ZONE_LABEL_FADE_MS
+      ) {
+        this.zoneLabelAlpha = 0;
+      } else {
+        this.zoneLabelAlpha = Math.max(0, 1 - (elapsed - ZONE_LABEL_HOLD_MS) / ZONE_LABEL_FADE_MS);
+      }
+    }
+    if (this.zoneLabelAlpha !== prevAlpha) this.needsRender = true;
   }
 
   get hasEffects() {

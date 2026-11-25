@@ -31,7 +31,7 @@ function setup({
   canvas.style.cssText = `width:${W}px;height:${H}px;display:block;`;
   stage.appendChild(canvas);
   document.body.appendChild(stage);
-  const app = new GameSession();
+  const app = new GameSession({ initialSampleId: 'rainbow' });
   app.patchSettings({ ...SMALL_PUZZLE, theme: 'light', referenceMode });
   app.startNewPuzzle();
   restoreRandom();

@@ -3,9 +3,10 @@ import { loadAutoBackup, clearAutoBackup } from '../services/storage.js';
 import { loadImageFromFile } from '../services/imageLoader.js';
 
 export class LobbyUI {
-  constructor({ app, showToast }) {
+  constructor({ app, showToast, loading = null }) {
     this.app = app;
     this.showToast = showToast;
+    this.loading = loading;
 
     this.activeTab = 'solo';
     this.hasStartedSession = false;
@@ -141,15 +142,38 @@ export class LobbyUI {
 
   _bindHostEvents() {
     document.getElementById('btnStartSolo').addEventListener('click', () => {
+      const needsLoad = Boolean(this.app.getSourceImage()?.needsLoad);
       this.hasStartedSession = true;
       this.hide();
-      this.app.startSolo();
+      if (needsLoad && this.loading) {
+        this.loading.run(async () => {
+          await this.app.ensureSourceImageLoaded();
+          this.app.startSolo();
+        });
+      } else if (needsLoad) {
+        this.app.ensureSourceImageLoaded().then(() => this.app.startSolo());
+      } else {
+        this.app.startSolo();
+      }
     });
 
     document.getElementById('btnStartHostRoom').addEventListener('click', async () => {
       const btn = document.getElementById('btnStartHostRoom');
       btn.disabled = true;
       try {
+        if (this.app.getSourceImage()?.needsLoad) {
+          const loadWork = () => this.app.ensureSourceImageLoaded();
+          if (this.loading) {
+            await new Promise((resolve) => {
+              this.loading.run(async () => {
+                await loadWork();
+                resolve();
+              });
+            });
+          } else {
+            await loadWork();
+          }
+        }
         await this.app.startHostRoom({
           displayName: this.elHostName.value.trim() || 'ホスト（自分）',
           passcode: this.elHostPasscode.value,

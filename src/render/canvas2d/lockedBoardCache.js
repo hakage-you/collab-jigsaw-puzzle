@@ -49,7 +49,7 @@ export class LockedBoardCache {
     const logicalW = Math.ceil(engine.boardW + pad * 2);
     const logicalH = Math.ceil(engine.boardH + pad * 2);
     const baseScale = m.spriteScale;
-    const desiredScale = Math.min(2, Math.max(0.4, baseScale));
+    const desiredScale = Math.max(0.4, baseScale);
     const maxScaleByDim = MAX_LOCKED_CACHE_DIM / Math.max(1, logicalW, logicalH);
     const scale = Math.min(desiredScale, maxScaleByDim);
 

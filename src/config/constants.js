@@ -35,8 +35,29 @@ export const PUZZLE_CONFIG = {
   MAX_UPLOAD_IMAGE_DIM: 2400,
   SAMPLE_IMAGE_WIDTH: 960,
   SAMPLE_IMAGE_HEIGHT: 640,
-  DEFAULT_SAMPLE_IMAGE_ID: 'rainbow',
+  DEFAULT_SAMPLE_IMAGE_ID: 'met-seaside',
 };
+
+export const SAMPLE_CAPTIONS = Object.freeze({
+  'met-seaside': Object.freeze({
+    title: 'At the Seaside',
+    artist: 'William Merritt Chase',
+    date: 'ca. 1892',
+    credit: 'The Met (CC0)',
+  }),
+  'met-fruit': Object.freeze({
+    title: 'Pomegranates and Other Fruit in a Landscape',
+    artist: 'Abraham Brueghel',
+    date: '17th century',
+    credit: 'The Met (CC0)',
+  }),
+  'met-irises': Object.freeze({
+    title: 'Irises',
+    artist: 'Vincent van Gogh',
+    date: '1890',
+    credit: 'The Met (CC0)',
+  }),
+});
 
 export const CUT_COMPLEXITY_CONFIG = {
   WARP_RATIOS: {

@@ -29,6 +29,7 @@ export function buildRoomRules(room) {
     allowRotation: settings.allowRotation,
     allowFlip: settings.allowFlip,
     showStats: settings.showStats,
+    capacity: room.hostSession.capacity,
   };
 }
 

@@ -56,6 +56,11 @@ export class ResultModalUI {
     this.elModal = document.getElementById('resultModal');
     this.elRankingList = document.getElementById('resultRankingList');
     this.elBtnShare = document.getElementById('btnResultShare');
+    this.elAdmireControls = document.getElementById('admireControls');
+    this.elBtnToggleAdmire = document.getElementById('btnToggleAdmire');
+    this.elBrandIsland = document.querySelector('.brand-island');
+    this.isCompleted = false;
+    this.isAdmiring = false;
     /** The "かんせい！" sticker shown over the finished picture before this card. */
     this.celebration = new CompletionCelebration();
 
@@ -63,8 +68,24 @@ export class ResultModalUI {
     this._subscribeApp();
   }
 
+  setAdmireMode(on) {
+    this.isAdmiring = Boolean(on && this.isCompleted);
+    document.body.classList.toggle('admire-mode', this.isAdmiring);
+    if (this.isAdmiring) {
+      const drawer = document.getElementById('sideDrawer');
+      if (drawer && !drawer.classList.contains('collapsed')) {
+        document.getElementById('btnCloseDrawer')?.click();
+      }
+    }
+    if (this.elBtnToggleAdmire) {
+      this.elBtnToggleAdmire.textContent = this.isAdmiring ? 'UIを表示' : 'UIを隠す';
+    }
+  }
+
   /** Completion: confetti and the big sticker first, then this card (CompletionCelebration). */
   showResult(payload) {
+    this.isCompleted = true;
+    this.elAdmireControls?.classList.remove('hidden');
     this.lastPayload = payload;
     this._fill(payload);
     this.renderer.launchConfetti();
@@ -135,11 +156,31 @@ export class ResultModalUI {
     document.getElementById('btnResultReplay').addEventListener('click', () => {
       this.loading.run(() => this.app.startNewPuzzle());
     });
-    document.getElementById('btnResultClose').addEventListener('click', () => this.hide());
+    document.getElementById('btnResultClose').addEventListener('click', () => {
+      this.hide();
+      this.setAdmireMode(true);
+      this.renderer.fitView();
+    });
+    this.elBtnToggleAdmire?.addEventListener('click', () => this.setAdmireMode(!this.isAdmiring));
+    this.elBrandIsland?.addEventListener('click', (e) => {
+      if (!this.isAdmiring) return;
+      e.stopPropagation();
+      this.setAdmireMode(false);
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.isAdmiring) {
+        this.setAdmireMode(false);
+      }
+    });
   }
 
   _subscribeApp() {
     this.app.on('puzzleComplete', (payload) => this.showResult(payload));
-    this.app.on('puzzleReset', () => this.hide());
+    this.app.on('puzzleReset', () => {
+      this.hide();
+      this.isCompleted = false;
+      this.setAdmireMode(false);
+      this.elAdmireControls?.classList.add('hidden');
+    });
   }
 }

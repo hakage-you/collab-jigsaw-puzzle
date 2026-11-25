@@ -2,6 +2,7 @@ import { NET_LIMITS } from '../config/constants.js';
 import {
   generateSampleImageCanvas,
   getSamplePreset,
+  loadSampleImageCanvas,
   normalizeSampleImageId,
 } from '../services/sampleImage.js';
 import { validateSaveData } from '../core/saveValidation.js';
@@ -240,9 +241,18 @@ export class GuestSession {
 
     if (msg.isSampleImage) {
       const sampleId = normalizeSampleImageId(msg.sampleImageId);
-      const sampleCanvas = generateSampleImageCanvas(undefined, undefined, sampleId);
-      room.cb.onReceiveImage(sampleCanvas, getSamplePreset(sampleId).name, true, sampleId);
-      room.transport.sendToHost({ type: MSG.IMAGE_ACK, needImage: false });
+      const preset = getSamplePreset(sampleId);
+      if (preset.kind === 'artwork') {
+        loadSampleImageCanvas(sampleId).then((sampleCanvas) => {
+          if (room.role !== 'guest') return;
+          room.cb.onReceiveImage(sampleCanvas, preset.name, true, sampleId);
+          room.transport.sendToHost({ type: MSG.IMAGE_ACK, needImage: false });
+        });
+      } else {
+        const sampleCanvas = generateSampleImageCanvas(undefined, undefined, sampleId);
+        room.cb.onReceiveImage(sampleCanvas, preset.name, true, sampleId);
+        room.transport.sendToHost({ type: MSG.IMAGE_ACK, needImage: false });
+      }
       return;
     }
 

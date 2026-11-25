@@ -43,6 +43,7 @@ export class CanvasRenderer extends TableRendererBase {
       dpr: window.devicePixelRatio || 1,
       highlightFilter: vs.highlightFilter,
       ghostPiecesActive: vs.ghostPiecesActive,
+      zoneLabelAlpha: vs.zoneLabelAlpha,
       motionOffsets: vs.motion.offsets,
       draggingGroupId: vs.draggingGroupId,
       hoveredPiece: vs.hoveredPiece,

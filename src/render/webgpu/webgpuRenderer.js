@@ -236,6 +236,7 @@ export class WebGPURenderer extends TableRendererBase {
       dpr: window.devicePixelRatio || 1,
       highlightFilter: vs.highlightFilter,
       ghostPiecesActive: vs.ghostPiecesActive,
+      zoneLabelAlpha: vs.zoneLabelAlpha,
       motionOffsets: vs.motion.offsets,
       draggingGroupId: vs.draggingGroupId,
       hoveredPiece: vs.hoveredPiece,
@@ -250,13 +251,15 @@ export class WebGPURenderer extends TableRendererBase {
     const lifted = [];
     const isMulti = Boolean(frame.room?.isMultiplayer());
     for (const piece of [...visible.visibleLocked, ...visible.visibleLoose]) {
+      const alpha = pieceAlpha(frame, piece);
+      if (alpha <= 0.001) continue;
       const sprite = resolvePieceSprite(frame, piece, lodConfig);
       if (!sprite) continue;
       const outline = piece.isLocked ? NO_OUTLINE : resolveOutlineRgba(frame, piece, isMulti);
       const entry = {
         piece,
         sprite,
-        alpha: pieceAlpha(frame, piece),
+        alpha,
         shadow: 0,
         dx: 0,
         dy: 0,
@@ -267,8 +270,8 @@ export class WebGPURenderer extends TableRendererBase {
     }
     if (frame.lifted && lifted.length > 0) {
       const s = Math.max(1e-4, frame.view.scale);
-      const dx = SHADOW_OFFSET_PX.dx / s;
-      const dy = SHADOW_OFFSET_PX.dy / s;
+      const dx = Math.min(SHADOW_OFFSET_PX.dx / s, frame.engine.pieceW * 0.08);
+      const dy = Math.min(SHADOW_OFFSET_PX.dy / s, frame.engine.pieceH * 0.13);
       for (const e of lifted) {
         const shadowSprite = resolveShadowSprite(frame.sprites, e.piece);
         if (!shadowSprite) continue;
@@ -416,7 +419,13 @@ export class WebGPURenderer extends TableRendererBase {
 
   /** Draws Japanese zone labels and remote lock badges on the top Canvas 2D overlay. */
   _drawOverlay(ctx, frame) {
-    drawZoneLabels(ctx, this.engine.zoneLabels, frame.pal, frame.view.scale);
+    drawZoneLabels(
+      ctx,
+      this.engine.zoneLabels,
+      frame.pal,
+      frame.view.scale,
+      frame.zoneLabelAlpha ?? 1,
+    );
     drawLockBadgeStage({ ...frame, ctx });
   }
 

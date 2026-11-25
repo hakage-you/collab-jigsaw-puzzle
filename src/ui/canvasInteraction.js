@@ -1,5 +1,6 @@
 import { VIEWPORT_CONFIG } from '../config/constants.js';
 import { loadImageFromFile } from '../services/imageLoader.js';
+import { sound } from '../services/sound.js';
 import { HeavyDrag } from './heavyDrag.js';
 import { DOUBLE_TAP_MS, TapSorter, TouchGestures } from './touchGestures.js';
 
@@ -70,6 +71,19 @@ export class CanvasInteraction {
     }
     if (this.vs.draggingGroupId !== null) {
       const groupId = this.vs.draggingGroupId;
+      if (e.type !== 'pointercancel' && !this.heavy.active) {
+        const { sx, sy } = this._getCanvasLocalCoords(e);
+        const dxScreen = sx - this.lastPointerScreen.x;
+        const dyScreen = sy - this.lastPointerScreen.y;
+        this.lastPointerScreen = { x: sx, y: sy };
+        if (dxScreen !== 0 || dyScreen !== 0) {
+          this.app.moveGroup(
+            groupId,
+            dxScreen / this.vs.camera.scale,
+            dyScreen / this.vs.camera.scale,
+          );
+        }
+      }
       this.vs.setDraggingGroup(null);
       this.canvas.classList.remove('grabbing');
       if (this.canvas.hasPointerCapture(e.pointerId)) {
@@ -173,6 +187,7 @@ export class CanvasInteraction {
 
   _bindPointerDownEvents() {
     this.canvas.addEventListener('pointerdown', (e) => {
+      this.vs.cancelDealAnimation();
       const { sx, sy } = this._getCanvasLocalCoords(e);
       this.lastPointerType = e.pointerType;
       if (e.pointerType === 'touch') {
@@ -448,12 +463,16 @@ export class CanvasInteraction {
     this.app.on('ojamaPrankEffect', ({ pieces, before }) =>
       this.vs.playPrankEffect(pieces, before),
     );
-    this.app.on('puzzleReset', ({ canvas: srcCanvas, resetEffects, fitView }) => {
+    this.app.on('puzzleReset', ({ canvas: srcCanvas, resetEffects, fitView, animateDeal }) => {
       clearTimeout(this.tapTimer);
       this.taps.clear();
       this.vs.resetForNewPuzzle({ clearEffects: resetEffects });
       this.vs.resetRefSheetGeometry(srcCanvas);
       if (fitView) this.fitViewAndSync();
+      if (animateDeal) {
+        this.vs.playDealAnimation();
+        this.vs.afterNextRender(() => sound.playDeal(this.app.engine.pieces.length));
+      }
     });
   }
 }

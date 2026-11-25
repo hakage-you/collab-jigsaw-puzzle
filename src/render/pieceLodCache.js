@@ -2,8 +2,8 @@ import { drawBackPieceToSlot, drawFrontPieceToSlot } from './pieceSpriteBuilder.
 
 export const LOD_ATLAS_SIZE = 2048;
 export const MAX_LOD_CANVASES = 2;
-const LOD_BUCKETS = [0.75, 1.25, 2.0, 3.0, 4.5];
-const MAX_LOD_CELL_PX = 256;
+const LOD_BUCKETS = [0.75, 1.25, 2.0, 3.0, 4.5, 6.5, 9.0];
+const MAX_LOD_CELL_PX = 512;
 const LOD_SLOT_PAD = 4;
 const DEFAULT_FRAME_BUDGET = 24;
 

@@ -109,6 +109,7 @@ export class WebGL2Renderer extends TableRendererBase {
       dpr: window.devicePixelRatio || 1,
       highlightFilter: vs.highlightFilter,
       ghostPiecesActive: vs.ghostPiecesActive,
+      zoneLabelAlpha: vs.zoneLabelAlpha,
       motionOffsets: vs.motion.offsets,
       draggingGroupId: vs.draggingGroupId,
       hoveredPiece: vs.hoveredPiece,
@@ -126,13 +127,15 @@ export class WebGL2Renderer extends TableRendererBase {
     const list = [];
     const lifted = [];
     for (const piece of [...visible.visibleLocked, ...visible.visibleLoose]) {
+      const alpha = pieceAlpha(frame, piece);
+      if (alpha <= 0.001) continue;
       const sprite = resolvePieceSprite(frame, piece, lodConfig);
       if (!sprite) continue;
-      const entry = { piece, sprite, alpha: pieceAlpha(frame, piece), shadow: 0, dx: 0, dy: 0 };
+      const entry = { piece, sprite, alpha, shadow: 0, dx: 0, dy: 0 };
       if (frame.lifted?.has(piece.groupId)) lifted.push(entry);
       else list.push(entry);
     }
-    const shadow = liftShadowFor(lifted.length);
+    const shadow = liftShadowFor(lifted.length, frame);
     if (shadow) {
       const s = frame.view.scale;
       // No blur on the GPU: three offset layers make a soft enough edge.

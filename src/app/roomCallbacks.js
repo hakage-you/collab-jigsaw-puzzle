@@ -63,7 +63,12 @@ function boardCallbacks(session) {
     },
     onFullStateSynced: () => {
       session.highlightFilter = 'all';
-      session.emit('puzzleReset', { ...session.sourceImage, resetEffects: true, fitView: true });
+      session.emit('puzzleReset', {
+        ...session.sourceImage,
+        resetEffects: true,
+        fitView: true,
+        animateDeal: session.engine.stats.placedCount === 0,
+      });
       session._emitRoleChange();
       session.emit('fullStateSynced');
       session.emit('hudUpdate');

@@ -173,6 +173,15 @@ export class RoomController {
     };
   }
 
+  /** Capacity of the current room (1 in solo mode). */
+  getCapacity() {
+    if (this.role === 'host') return this.hostSession.capacity;
+    if (this.role === 'guest') {
+      return this.roomRules?.capacity || MULTIPLAYER_CONFIG.DEFAULT_CAPACITY;
+    }
+    return 1;
+  }
+
   /** Host answered the idle prompt. */
   keepRecruiting() {
     this.recruitment?.keepRecruiting();

@@ -125,6 +125,7 @@ function sanitizeRoomRules(value) {
     allowRotation: bool(rules.allowRotation),
     allowFlip: bool(rules.allowFlip),
     showStats: optional(rules.showStats, bool),
+    capacity: optional(rules.capacity, (v) => count(v, MULTIPLAYER_CONFIG.MAX_CAPACITY)),
   };
 }
 

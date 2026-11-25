@@ -37,12 +37,14 @@ body {
    Buttons (6px Rounded Rect, No Wrap, Clear Static Affordance)
    ========================================================================== */
 .btn {
+  --btn-edge-color: var(--btn-edge);
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
   min-height: var(--touch);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--btn-border);
   border-radius: var(--radius-btn);
   padding: var(--space-1) var(--space-3);
   font-family: var(--font);
@@ -53,43 +55,62 @@ body {
   flex-shrink: 0;
   cursor: pointer;
   color: var(--text);
-  background: var(--surface);
+  background: var(--btn-bg);
+  box-shadow:
+    inset 0 1px 0 var(--btn-highlight),
+    0 2px 0 var(--btn-edge-color),
+    0 2px 5px var(--btn-drop);
   transition:
     background var(--duration-fast),
     border-color var(--duration-fast),
+    box-shadow 0.08s ease,
     transform 0.08s ease;
 }
 
 .btn:hover:not(:disabled) {
-  background: var(--surface-2);
-  border-color: var(--text);
+  background: var(--btn-bg-hover);
+  border-color: var(--btn-border-hover);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 var(--btn-highlight),
+    0 3px 0 var(--btn-edge-color),
+    0 4px 8px var(--btn-drop);
 }
 
 .btn:active:not(:disabled) {
   transform: translateY(1px);
+  box-shadow:
+    inset 0 1px 0 var(--btn-highlight),
+    0 1px 0 var(--btn-edge-color),
+    0 1px 2px var(--btn-drop);
 }
 
 .btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* 1. Primary (Contained) */
 .btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  --btn-edge-color: var(--btn-primary-edge);
+
+  background: var(--btn-primary-bg);
+  border-color: var(--btn-primary-edge);
   color: var(--accent-text);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  background: var(--btn-primary-hover);
+  border-color: var(--btn-primary-edge);
 }
 
 /* 2. Outline Accent */
 .btn-outline-accent {
-  background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  --btn-edge-color: color-mix(in srgb, var(--accent) 45%, var(--btn-edge));
+
+  background: var(--btn-bg);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
   color: var(--accent);
   font-weight: 600;
 }
@@ -101,25 +122,53 @@ body {
 
 /* 3. Neutral / Secondary */
 .btn-secondary {
-  background: var(--surface);
-  border-color: var(--border-strong);
+  border-color: var(--btn-border);
   color: var(--text);
+}
+
+/* 3b. Featured Stream & Ojama Action */
+.btn-stream {
+  --btn-edge-color: var(--btn-stream-edge);
+
+  background: var(--btn-stream-bg);
+  border-color: var(--btn-stream-edge);
+  color: var(--btn-stream-text);
+  font-weight: 700;
+}
+
+.btn-stream:hover:not(:disabled) {
+  background: var(--btn-stream-hover);
+  border-color: var(--btn-stream-edge);
 }
 
 /* 4. Segmented / Filter Choice */
 .btn-seg {
-  background: var(--surface);
-  border-color: var(--border-strong);
+  background: var(--surface-2);
+  border-color: var(--border);
   color: var(--text);
   border-radius: var(--radius-btn);
   font-weight: 500;
+  box-shadow: none;
+}
+
+.btn-seg:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--btn-border-hover);
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-seg:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
 }
 
 .btn-seg.active {
-  background: var(--accent-soft);
+  background: var(--surface);
   border-color: var(--accent);
   color: var(--accent);
   font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
 /* 5. Ghost / Danger / Sabotage Action */
@@ -127,34 +176,47 @@ body {
   background: transparent;
   border-color: transparent;
   color: var(--text-muted);
+  box-shadow: none;
 }
 
 .btn-ghost:hover:not(:disabled) {
   background: var(--surface-2);
   border-color: transparent;
   color: var(--text);
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-ghost:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
 .btn-danger {
-  background: var(--danger);
-  border-color: var(--danger);
+  --btn-edge-color: var(--btn-danger-edge);
+
+  background: var(--btn-danger-bg);
+  border-color: var(--btn-danger-edge);
   color: var(--danger-text);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: var(--danger-hover);
-  border-color: var(--danger-hover);
+  background: var(--btn-danger-hover);
+  border-color: var(--btn-danger-edge);
 }
 
 .btn-ghost-light {
   background: var(--sabotage-ghost-bg);
   border-color: var(--sabotage-ghost-border);
   color: var(--sabotage-text);
+  box-shadow: none;
 }
 
 .btn-ghost-light:hover:not(:disabled) {
   background: var(--sabotage-pill-bg);
   border-color: var(--sabotage-text);
+  transform: none;
+  box-shadow: none;
 }
 
 .btn-ojama {
@@ -162,8 +224,7 @@ body {
   align-items: flex-start;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--btn-border);
   border-left: 4px solid var(--warning);
   color: var(--text);
   text-align: left;

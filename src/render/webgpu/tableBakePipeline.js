@@ -147,11 +147,16 @@ export function computeBoardBounds(engine) {
     Math.min(engine.boardW, engine.boardH) * 0.018,
   );
   const frameReach = rim * 2.1 + 16;
-  const estMax = Math.max(1, engine.boardW + frameReach * 2, engine.boardH + frameReach * 2);
-  const initScale = Math.max(1e-3, Math.min(2.0, (MAX_BAKE_PX - 96) / estMax));
+  const bottomExtra = Math.max(64, engine.boardH * 0.12);
+  const estMax = Math.max(
+    1,
+    engine.boardW + frameReach * 2,
+    engine.boardH + frameReach * 2 + bottomExtra,
+  );
+  const initScale = Math.max(1e-3, Math.min(6.0, (MAX_BAKE_PX - 96) / estMax));
   const margin = frameReach + 40 / initScale;
   const rawW = engine.boardW + margin * 2;
-  const rawH = engine.boardH + margin * 2;
+  const rawH = engine.boardH + margin * 2 + bottomExtra;
   const bakeScale = Math.max(1e-3, Math.min(initScale, MAX_BAKE_PX / Math.max(1, rawW, rawH)));
   const texW = Math.min(MAX_BAKE_PX, Math.max(16, Math.floor(rawW * bakeScale)));
   const texH = Math.min(MAX_BAKE_PX, Math.max(16, Math.floor(rawH * bakeScale)));
@@ -170,7 +175,7 @@ export function computeSheetBounds(refSheet) {
   const top = -refSheet.h / 2 - pad - header - 4 * k;
   const rawW = refSheet.w + pad * 2 + 12 * k;
   const rawH = refSheet.h + pad * 2 + header + 13 * k;
-  const bakeScale = Math.max(1e-3, Math.min(2.0, MAX_SHEET_BAKE_PX / Math.max(1, rawW, rawH)));
+  const bakeScale = Math.max(1e-3, Math.min(6.0, MAX_SHEET_BAKE_PX / Math.max(1, rawW, rawH)));
   const texW = Math.min(MAX_SHEET_BAKE_PX, Math.max(16, Math.floor(rawW * bakeScale)));
   const texH = Math.min(MAX_SHEET_BAKE_PX, Math.max(16, Math.floor(rawH * bakeScale)));
   return {
@@ -349,6 +354,8 @@ export class TableBakePipeline {
       engine.boardH,
       isDark ? 1 : 0,
       s.boardStyle || '',
+      s.deskStyle || '',
+      engine.isSampleImage ? engine.sampleImageId : 'custom',
       referenceModeOf(s),
       s.guideOpacity ?? '',
     ].join('|');

@@ -13,21 +13,29 @@ export class PuzzleLoading {
     this.busy = false;
   }
 
-  /** Shows the overlay, runs `work` once it is on screen, and hides it after the next frame. */
+  /** Shows the overlay, runs `work` (sync or async) once it is on screen, and hides it after the next frame. */
   run(work) {
     if (this.busy) return false;
     this.busy = true;
     this.el.classList.remove('hidden');
+    const finish = () => {
+      this.viewState.afterNextRender(() => {
+        this.el.classList.add('hidden');
+        this.busy = false;
+      });
+    };
     // Two frames: the first one lays the overlay out, the second one has painted it.
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
+        let asyncWork = false;
         try {
-          work();
+          const result = work();
+          if (result && typeof result.then === 'function') {
+            asyncWork = true;
+            Promise.resolve(result).finally(finish);
+          }
         } finally {
-          this.viewState.afterNextRender(() => {
-            this.el.classList.add('hidden');
-            this.busy = false;
-          });
+          if (!asyncWork) finish();
         }
       }),
     );

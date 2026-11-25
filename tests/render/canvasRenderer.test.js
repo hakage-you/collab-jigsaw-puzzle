@@ -78,7 +78,7 @@ async function renderScenario({ settings = {}, prepare = () => {}, view = null }
   const restoreRandom = seedMathRandom(RANDOM_SEED);
   const { stage, canvas } = createStage();
   try {
-    const app = new GameSession();
+    const app = new GameSession({ initialSampleId: 'rainbow' });
     app.patchSettings({ ...BASE_SETTINGS, ...settings });
     app.startNewPuzzle();
 

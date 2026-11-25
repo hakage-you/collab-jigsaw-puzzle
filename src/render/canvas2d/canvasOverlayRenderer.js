@@ -1,4 +1,4 @@
-import { VIEWPORT_CONFIG } from '../../config/constants.js';
+import { SAMPLE_CAPTIONS, VIEWPORT_CONFIG } from '../../config/constants.js';
 import { deskTexturePattern } from '../deskTextures.js';
 import { referenceModeOf, refSheetFrame } from '../viewState.js';
 
@@ -119,10 +119,123 @@ function strokeInside(ctx, box, f, color, px = 1) {
 }
 
 const PAPER_GRID = 'rgba(15, 23, 42, 0.1)';
+const grainCache = new Map();
+
+/** Subtle woven canvas/paper grain pattern cached per theme. */
+function getPaperGrainTile(isDark) {
+  const key = isDark ? 'dark' : 'light';
+  if (grainCache.has(key)) return grainCache.get(key);
+  const c = document.createElement('canvas');
+  c.width = 32;
+  c.height = 32;
+  const g = c.getContext('2d');
+  g.strokeStyle = isDark ? 'rgba(255, 250, 240, 0.035)' : 'rgba(60, 45, 30, 0.035)';
+  g.lineWidth = 1;
+  for (let i = 0; i < 32; i += 4) {
+    g.beginPath();
+    g.moveTo(i + 0.5, 0);
+    g.lineTo(i + 0.5, 32);
+    g.moveTo(0, i + 0.5);
+    g.lineTo(32, i + 0.5);
+    g.stroke();
+  }
+  g.fillStyle = isDark ? 'rgba(0, 0, 0, 0.04)' : 'rgba(90, 72, 52, 0.03)';
+  for (let y = 2; y < 32; y += 8) {
+    for (let x = 2; x < 32; x += 8) g.fillRect(x, y, 1.5, 1.5);
+  }
+  grainCache.set(key, c);
+  return c;
+}
+
+function drawPaperGrain(ctx, b, isDark) {
+  const pat = ctx.createPattern(getPaperGrainTile(isDark), 'repeat');
+  if (!pat) return;
+  ctx.save();
+  ctx.fillStyle = pat;
+  ctx.fillRect(b.x, b.y, b.w, b.h);
+  ctx.restore();
+}
+
+/** Faint brand watermark centered on empty sheet/no-guide paper. */
+function drawPaperWatermark(ctx, b, f) {
+  if (referenceModeOf(f.settings) === 'underlay' && (f.settings?.guideOpacity ?? 0) > 0) {
+    return;
+  }
+  const cx = b.x + b.w / 2;
+  const cy = b.y + b.h / 2;
+  const unit = Math.min(b.w, b.h);
+  const ink = f.isDark ? 'rgba(232, 224, 210, 0.08)' : 'rgba(72, 58, 44, 0.085)';
+
+  ctx.save();
+  ctx.strokeStyle = ink;
+  ctx.fillStyle = ink;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const ruleW = unit * 0.24;
+  ctx.lineWidth = Math.max(1, unit * 0.0022);
+  ctx.beginPath();
+  ctx.moveTo(cx - ruleW, cy - unit * 0.065);
+  ctx.lineTo(cx + ruleW, cy - unit * 0.065);
+  ctx.moveTo(cx - ruleW, cy + unit * 0.065);
+  ctx.lineTo(cx + ruleW, cy + unit * 0.065);
+  ctx.stroke();
+
+  const fontSize = Math.max(14, Math.round(unit * 0.042));
+  ctx.font = `600 ${fontSize}px Georgia, "Times New Roman", serif`;
+  ctx.fillText('COLLAB JIGSAW', cx, cy);
+  ctx.restore();
+}
+
+function frameOuterReach(board, rim) {
+  if (board === 'wood') return rim * 1.1;
+  if (board === 'tray') return rim * 0.85;
+  if (board === 'gallery') return rim * 1.8;
+  return 0;
+}
+
+/** Museum-style artwork caption painted subtly onto the desk below the frame. */
+function drawBoardCaption(ctx, b, f) {
+  const { engine, settings, isDark, board } = f;
+  if (!engine?.isSampleImage) return;
+  const cap = SAMPLE_CAPTIONS[engine.sampleImageId];
+  if (!cap) return;
+
+  const outerPad = frameOuterReach(board, b.rim);
+  const rightX = b.x + b.w + outerPad;
+  const topY = b.y + b.h + outerPad + Math.max(18, b.h * 0.032);
+  const lightPlainDesk = !isDark && settings?.deskStyle === 'plain';
+  const titleCol = lightPlainDesk ? 'rgba(45, 36, 26, 0.56)' : 'rgba(255, 248, 236, 0.62)';
+  const subCol = lightPlainDesk ? 'rgba(45, 36, 26, 0.42)' : 'rgba(255, 248, 236, 0.45)';
+  const titlePx = Math.max(13, Math.round(Math.min(b.w, b.h) * 0.028));
+  const subPx = Math.max(10, Math.round(titlePx * 0.76));
+
+  ctx.save();
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'top';
+  if (!lightPlainDesk) {
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+    ctx.shadowBlur = 3 * (f.dpr || 1);
+    ctx.shadowOffsetY = f.dpr || 1;
+  }
+  ctx.fillStyle = titleCol;
+  ctx.font = `italic 600 ${titlePx}px Georgia, "Times New Roman", serif`;
+  ctx.fillText(cap.title, rightX, topY);
+
+  const subText = [cap.artist, cap.date, cap.credit].filter(Boolean).join(' · ');
+  if (subText) {
+    ctx.fillStyle = subCol;
+    ctx.font = `500 ${subPx}px system-ui, -apple-system, sans-serif`;
+    ctx.fillText(subText, rightX, topY + titlePx * 1.28);
+  }
+  ctx.restore();
+}
 
 function drawPaper(ctx, b, f) {
   ctx.fillStyle = f.pal.boardPaper;
   ctx.fillRect(b.x, b.y, b.w, b.h);
+  drawPaperGrain(ctx, b, f.isDark);
+  drawPaperWatermark(ctx, b, f);
   drawUnderlayAndGrid(ctx, { ...f, gridColor: PAPER_GRID });
 }
 
@@ -265,6 +378,7 @@ export function drawBoardFrame(
   const style = BOARD_STYLES[board];
   if (style) {
     style(ctx, { engine, scale, settings, isDark, pal, dpr, requestRender });
+    drawBoardCaption(ctx, boardBox(engine), { engine, settings, isDark, board, dpr });
     ctx.restore();
     return;
   }
@@ -277,8 +391,12 @@ export function drawBoardFrame(
   ctx.beginPath();
   ctx.rect(bx, by, engine.boardW, engine.boardH);
   ctx.fill();
+  const classicBox = { x: bx, y: by, w: engine.boardW, h: engine.boardH, rim: 0 };
+  drawPaperGrain(ctx, classicBox, isDark);
+  drawPaperWatermark(ctx, classicBox, { settings, isDark });
   ctx.stroke();
   drawUnderlayAndGrid(ctx, { engine, scale, settings, gridColor: pal.cellGrid });
+  drawBoardCaption(ctx, classicBox, { engine, settings, isDark, board, dpr });
   ctx.restore();
 }
 
@@ -355,8 +473,8 @@ export function drawReferenceSheet(ctx, { settings, sourceCanvas, refSheet, pal 
   ctx.restore();
 }
 
-export function drawZoneLabels(ctx, zoneLabels, pal, scale = 1) {
-  if (!zoneLabels || zoneLabels.length === 0) return;
+export function drawZoneLabels(ctx, zoneLabels, pal, scale = 1, alpha = 1) {
+  if (!zoneLabels || zoneLabels.length === 0 || alpha <= 0.001) return;
   const fontSize = Math.min(84, Math.max(13, Math.round(13 / Math.max(0.06, scale))));
   const padX = Math.round(fontSize * 1.4);
   const pillH = Math.round(fontSize * 1.85);
@@ -364,6 +482,7 @@ export function drawZoneLabels(ctx, zoneLabels, pal, scale = 1) {
   const borderW = Math.max(1.5, Math.min(8, 1.5 / Math.max(0.06, scale)));
 
   ctx.save();
+  if (alpha < 1) ctx.globalAlpha *= alpha;
   ctx.font = `bold ${fontSize}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

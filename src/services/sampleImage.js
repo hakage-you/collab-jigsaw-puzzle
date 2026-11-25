@@ -1,7 +1,13 @@
-import { PUZZLE_CONFIG } from '../config/constants.js';
-import { drawBotanicalSample, drawGeometricSample, drawStarrySample } from './sampleArtworks.js';
+import { PUZZLE_CONFIG, SAMPLE_CAPTIONS } from '../config/constants.js';
+import {
+  drawBauhausQuadtree,
+  drawDelaunayLowPoly,
+  drawHexagonPinwheel,
+  drawStarrySample,
+} from './sampleArtworks.js';
 
 export const DEFAULT_SAMPLE_IMAGE_ID = PUZZLE_CONFIG.DEFAULT_SAMPLE_IMAGE_ID;
+const FALLBACK_PROCEDURAL_SAMPLE_ID = 'delaunay-lowpoly';
 
 /**
  * Colour grading applied to every sample: more saturated and contrasty, like a picture book or
@@ -38,11 +44,87 @@ function gradeVivid(ctx, width, height) {
 }
 
 export const SAMPLE_IMAGE_PRESETS = Object.freeze([
-  Object.freeze({ id: 'rainbow', name: 'サンプル（虹と街並み）', hint: '標準' }),
-  Object.freeze({ id: 'starry', name: 'サンプル（星空の街）', hint: '雰囲気◎' }),
-  Object.freeze({ id: 'geometric', name: 'サンプル（カラフルアート）', hint: '遊びやすい' }),
-  Object.freeze({ id: 'botanical', name: 'サンプル（花と幾何学模様）', hint: '歯ごたえ' }),
+  Object.freeze({
+    id: 'met-seaside',
+    name: '海辺にて',
+    hint: 'W. M. チェイス',
+    kind: 'artwork',
+    width: 2048,
+    height: 1230,
+    assetUrl: 'assets/artworks/met-10464-seaside.webp',
+    thumbUrl: 'assets/artworks/met-10464-seaside-thumb.webp',
+    caption: SAMPLE_CAPTIONS['met-seaside'],
+  }),
+  Object.freeze({
+    id: 'met-fruit',
+    name: 'ザクロと果物の静物',
+    hint: 'A. ブリューゲル',
+    kind: 'artwork',
+    width: 1901,
+    height: 1600,
+    assetUrl: 'assets/artworks/met-436752-fruit.webp',
+    thumbUrl: 'assets/artworks/met-436752-fruit-thumb.webp',
+    caption: SAMPLE_CAPTIONS['met-fruit'],
+  }),
+  Object.freeze({
+    id: 'met-irises',
+    name: 'アイリス',
+    hint: 'V. ファン・ゴッホ',
+    kind: 'artwork',
+    width: 2018,
+    height: 1600,
+    assetUrl: 'assets/artworks/met-436528-irises.webp',
+    thumbUrl: 'assets/artworks/met-436528-irises-thumb.webp',
+    caption: SAMPLE_CAPTIONS['met-irises'],
+  }),
+  Object.freeze({
+    id: 'delaunay-lowpoly',
+    name: 'クリスタル山脈の夕暮れ',
+    hint: 'ドロネー低ポリゴン',
+    kind: 'procedural',
+    width: 960,
+    height: 640,
+    caption: null,
+  }),
+  Object.freeze({
+    id: 'bauhaus-quadtree',
+    name: '黄金四分木バウハウス',
+    hint: '再帰分割ジオメトリ',
+    kind: 'procedural',
+    width: 960,
+    height: 640,
+    caption: null,
+  }),
+  Object.freeze({
+    id: 'hexagon-pinwheel',
+    name: '麻の葉ハニカム文様',
+    hint: '正六角形重心分割',
+    kind: 'procedural',
+    width: 960,
+    height: 640,
+    caption: null,
+  }),
+  Object.freeze({
+    id: 'starry',
+    name: '星空の街',
+    hint: '風景イラスト',
+    kind: 'procedural',
+    width: 960,
+    height: 640,
+    caption: null,
+  }),
+  Object.freeze({
+    id: 'rainbow',
+    name: '虹と街並み',
+    hint: '風景イラスト',
+    kind: 'procedural',
+    width: 960,
+    height: 640,
+    caption: null,
+  }),
 ]);
+
+const artworkCache = new Map();
 
 export function normalizeSampleImageId(sampleId) {
   return SAMPLE_IMAGE_PRESETS.some((p) => p.id === sampleId) ? sampleId : DEFAULT_SAMPLE_IMAGE_ID;
@@ -51,6 +133,63 @@ export function normalizeSampleImageId(sampleId) {
 export function getSamplePreset(sampleId) {
   const id = normalizeSampleImageId(sampleId);
   return SAMPLE_IMAGE_PRESETS.find((p) => p.id === id) || SAMPLE_IMAGE_PRESETS[0];
+}
+
+export function getSampleCaption(sampleId) {
+  return getSamplePreset(sampleId)?.caption || null;
+}
+
+function cloneCanvas(src) {
+  const copy = document.createElement('canvas');
+  copy.width = src.width;
+  copy.height = src.height;
+  copy.getContext('2d').drawImage(src, 0, 0);
+  return copy;
+}
+
+/** Lightweight warm paper placeholder canvas used before deferred artwork loads. */
+export function createPlaceholderSampleCanvas(
+  width = PUZZLE_CONFIG.SAMPLE_IMAGE_WIDTH,
+  height = PUZZLE_CONFIG.SAMPLE_IMAGE_HEIGHT,
+) {
+  const maxSide = PUZZLE_CONFIG.SAMPLE_IMAGE_WIDTH;
+  const scale = Math.min(1, maxSide / Math.max(1, width, height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ebe5d8';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+
+/** Lazily loads artwork WebP presets on demand, falling back to procedural art on error. */
+export async function loadSampleImageCanvas(sampleId = DEFAULT_SAMPLE_IMAGE_ID) {
+  const preset = getSamplePreset(sampleId);
+  if (preset.kind !== 'artwork' || !preset.assetUrl) {
+    return generateSampleImageCanvas(undefined, undefined, preset.id);
+  }
+  const cached = artworkCache.get(preset.id);
+  if (cached) {
+    return cloneCanvas(cached);
+  }
+
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error(`Failed to load ${preset.assetUrl}`));
+      el.src = preset.assetUrl;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || PUZZLE_CONFIG.SAMPLE_IMAGE_WIDTH;
+    canvas.height = img.naturalHeight || PUZZLE_CONFIG.SAMPLE_IMAGE_HEIGHT;
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    artworkCache.set(preset.id, canvas);
+    return cloneCanvas(canvas);
+  } catch {
+    return generateSampleImageCanvas(undefined, undefined, FALLBACK_PROCEDURAL_SAMPLE_ID);
+  }
 }
 
 function drawSkyAndLand(ctx, width, height) {
@@ -237,41 +376,6 @@ function drawWavesAndBoat(ctx, width, height) {
   ctx.fill();
 }
 
-function drawFrameAndBadges(ctx, width, height) {
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-  ctx.lineWidth = 10;
-  ctx.strokeRect(12, 12, width - 24, height - 24);
-
-  const corners = [
-    { label: 'NW', x: 48, y: 48, bg: '#ef4444' },
-    { label: 'NE', x: width - 48, y: 48, bg: '#8b5cf6' },
-    { label: 'SW', x: 48, y: height - 48, bg: '#10b981' },
-    { label: 'SE', x: width - 48, y: height - 48, bg: '#0284c7' },
-  ];
-  ctx.font = 'bold 20px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  for (const c of corners) {
-    ctx.fillStyle = c.bg;
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, 24, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.fillStyle = '#fff';
-    ctx.fillText(c.label, c.x, c.y + 1);
-  }
-
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
-  ctx.beginPath();
-  ctx.roundRect(width / 2 - 150, 26, 300, 40, 20);
-  ctx.fill();
-  ctx.fillStyle = '#f8fafc';
-  ctx.font = 'bold 18px sans-serif';
-  ctx.fillText('COLLAB JIGSAW SAMPLE', width / 2, 47);
-}
-
 function drawRainbowSample(ctx, width, height) {
   // Drawing order matters: later layers overlap earlier ones.
   drawSkyAndLand(ctx, width, height);
@@ -280,7 +384,6 @@ function drawRainbowSample(ctx, width, height) {
   drawMountains(ctx, width, height);
   drawHillsAndHouses(ctx, width, height);
   drawWavesAndBoat(ctx, width, height);
-  drawFrameAndBadges(ctx, width, height);
 }
 
 /**
@@ -290,19 +393,31 @@ function drawRainbowSample(ctx, width, height) {
 export function generateSampleImageCanvas(
   width = PUZZLE_CONFIG.SAMPLE_IMAGE_WIDTH,
   height = PUZZLE_CONFIG.SAMPLE_IMAGE_HEIGHT,
-  sampleId = DEFAULT_SAMPLE_IMAGE_ID,
+  sampleId = FALLBACK_PROCEDURAL_SAMPLE_ID,
 ) {
+  const resolvedId = normalizeSampleImageId(sampleId);
+  const cached = artworkCache.get(resolvedId);
+  if (cached && width === PUZZLE_CONFIG.SAMPLE_IMAGE_WIDTH) {
+    return cloneCanvas(cached);
+  }
+
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
-  const resolvedId = normalizeSampleImageId(sampleId);
 
-  if (resolvedId === 'starry') drawStarrySample(ctx, width, height);
-  else if (resolvedId === 'geometric') drawGeometricSample(ctx, width, height);
-  else if (resolvedId === 'botanical') drawBotanicalSample(ctx, width, height);
-  else drawRainbowSample(ctx, width, height);
-
-  gradeVivid(ctx, width, height);
+  if (resolvedId === 'delaunay-lowpoly' || getSamplePreset(resolvedId).kind === 'artwork') {
+    drawDelaunayLowPoly(ctx, width, height);
+  } else if (resolvedId === 'bauhaus-quadtree') {
+    drawBauhausQuadtree(ctx, width, height);
+  } else if (resolvedId === 'hexagon-pinwheel') {
+    drawHexagonPinwheel(ctx, width, height);
+  } else if (resolvedId === 'starry') {
+    drawStarrySample(ctx, width, height);
+    gradeVivid(ctx, width, height);
+  } else {
+    drawRainbowSample(ctx, width, height);
+    gradeVivid(ctx, width, height);
+  }
   return canvas;
 }

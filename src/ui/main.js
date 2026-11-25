@@ -88,7 +88,8 @@ function boot() {
   app.setRenderStatsProvider(() => renderer.getStats());
 
   const showToast = (msg, kind) => topbarUI.showToast(msg, kind);
-  const lobbyUI = new LobbyUI({ app, showToast });
+  const loading = new PuzzleLoading(renderer.viewState);
+  const lobbyUI = new LobbyUI({ app, showToast, loading });
   new NoticeUI({ app, actions: { rejoin: () => lobbyUI.rejoinLastRoom() } });
 
   topbarUI = new TopbarUI({
@@ -98,12 +99,8 @@ function boot() {
   });
 
   new RecruitUI({ app });
-  new ParticipantsUI({
-    app,
-    showToast,
-  });
-
-  const loading = new PuzzleLoading(renderer.viewState);
+  const onOpenCreateRoom = () => (lobbyUI.selectTab('host'), lobbyUI.show());
+  new ParticipantsUI({ app, showToast, onOpenCreateRoom });
 
   const setupDrawerUI = new SetupDrawerUI({
     app,
@@ -169,7 +166,7 @@ function boot() {
     screenToWorld: (sx, sy) => renderer.viewState.screenToWorld(sx, sy),
   };
 
-  app.startNewPuzzle();
+  app.startNewPuzzle(null, { animate: false });
   lobbyUI.show();
   startRenderLoop(renderer, topbarUI);
 }

@@ -25,6 +25,25 @@ const TEXTS = {
  * lasts, dragged pieces lag behind the cursor (canvasInteraction, 'heavyChange'); while runaway
  * lasts, the room makes small groups hop away when grabbed (room.setRunaway).
  */
+/**
+ * Synchronizes the stage edge vignette (#ojamaVignette) from timed and visual ojama state.
+ * Timed ojama ('heavy' / 'runaway') takes priority over 'visual'.
+ */
+export function syncOjamaVignette({ timed = undefined, visual = undefined } = {}) {
+  const el = document.getElementById('ojamaVignette');
+  if (!el) return;
+  if (timed !== undefined) el.dataset.timedVignette = timed;
+  if (visual !== undefined) el.dataset.visualVignette = visual;
+  const active = el.dataset.timedVignette || el.dataset.visualVignette || '';
+  if (active) {
+    el.dataset.vignette = active;
+    el.classList.add('is-active');
+  } else {
+    delete el.dataset.vignette;
+    el.classList.remove('is-active');
+  }
+}
+
 export class TimedOjamaController {
   /**
    * @param {object} deps
@@ -162,6 +181,14 @@ export class TimedOjamaController {
   }
 
   _render() {
+    const activeKinds = [...this.clock.active.keys()];
+    syncOjamaVignette({
+      timed: activeKinds.includes('heavy')
+        ? 'heavy'
+        : activeKinds.includes('runaway')
+          ? 'runaway'
+          : '',
+    });
     if (!this.elBanner) return;
     const parts = [...this.clock.active].map(
       ([kind, s]) => `${TEXTS[kind].label} 残り${Math.max(0, Math.ceil(s.remaining))}秒`,

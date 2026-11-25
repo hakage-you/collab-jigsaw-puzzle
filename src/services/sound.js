@@ -8,6 +8,7 @@ import { COMFORT_CONFIG } from '../config/constants.js';
 class SoundManager {
   constructor() {
     this.ctx = null;
+    this._noiseBuffer = null;
     /** Volume per kind, 0-100 (0: that kind is silent). */
     this.volumes = Object.fromEntries(
       COMFORT_CONFIG.VOLUME_KINDS.map((kind) => [kind, COMFORT_CONFIG.DEFAULT_VOLUME]),
@@ -85,6 +86,74 @@ class SoundManager {
     notes.forEach((f, idx) =>
       this._tone('normal', f, 0.25, { type: 'triangle', gain: 0.1, delay: idx * 0.09 }),
     );
+  }
+
+  /** Resumes the audio context during a user gesture when that kind is audible. */
+  unlock(kind = 'normal') {
+    if (this.gainFor(kind) <= 0) return;
+    this._ensureCtx();
+  }
+
+  _ensureNoiseBuffer(ctx) {
+    if (this._noiseBuffer && this._noiseBuffer.sampleRate === ctx.sampleRate) {
+      return this._noiseBuffer;
+    }
+    const len = Math.max(1, Math.floor(ctx.sampleRate * 0.04));
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    this._noiseBuffer = buf;
+    return buf;
+  }
+
+  _playPaperTap(ctx, when, peak, pitch) {
+    const src = ctx.createBufferSource();
+    src.buffer = this._ensureNoiseBuffer(ctx);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(pitch * 2.4, when);
+    filter.Q.setValueAtTime(2.2, when);
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(peak, when);
+    nGain.gain.exponentialRampToValueAtTime(peak * 0.01, when + 0.026);
+    src.connect(filter);
+    filter.connect(nGain);
+    nGain.connect(ctx.destination);
+    src.start(when);
+    src.stop(when + 0.03);
+
+    const osc = ctx.createOscillator();
+    const tGain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(pitch, when);
+    osc.frequency.exponentialRampToValueAtTime(pitch * 0.68, when + 0.035);
+    tGain.gain.setValueAtTime(peak * 0.55, when);
+    tGain.gain.exponentialRampToValueAtTime(peak * 0.01, when + 0.036);
+    osc.connect(tGain);
+    tGain.connect(ctx.destination);
+    osc.start(when);
+    osc.stop(when + 0.04);
+  }
+
+  /** Soft staggered cardboard-on-wood landing taps when a new puzzle is dealt. */
+  playDeal(pieceCount = 24) {
+    const k = this.gainFor('normal');
+    if (k <= 0) return;
+    const ctx = this._ensureCtx();
+    if (!ctx) return;
+    const taps = Math.max(6, Math.min(12, Math.round(5 + Math.sqrt(pieceCount) * 0.65)));
+    const baseGain = 0.065 * k;
+    const baseTime = ctx.currentTime + 0.04;
+    for (let i = 0; i < taps; i++) {
+      const u = i / Math.max(1, taps - 1);
+      const jitter = (((i * 37) % 11) / 11 - 0.5) * 0.018;
+      const delay = u * 0.34 + jitter;
+      const env = u < 0.4 ? 0.7 + u * 0.75 : 1 - (u - 0.4) * 0.65;
+      const pitch = 210 + ((i * 53) % 7) * 24;
+      this._playPaperTap(ctx, Math.max(ctx.currentTime, baseTime + delay), baseGain * env, pitch);
+    }
   }
 
   /** A sample of a kind, to hear its volume (the "演出と音" sliders play it when let go). */

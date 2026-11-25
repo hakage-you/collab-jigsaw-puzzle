@@ -5,7 +5,7 @@ import { nextEvent, waitFor } from './wait.js';
 const sessions = new Set();
 
 function createSession() {
-  const app = new GameSession();
+  const app = new GameSession({ initialSampleId: 'rainbow' });
   // Same-page BroadcastChannel transport: no network, no PeerJS server.
   app.room.transportMode = 'local';
   sessions.add(app);

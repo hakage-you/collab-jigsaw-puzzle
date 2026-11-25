@@ -219,12 +219,13 @@ export class TableRendererBase {
     }
   }
 
-  /** Advances runaway hops; the table is redrawn while one plays and once after it lands. */
+  /** Advances runaway hops and opening deal drops; redrawn while active and once on landing. */
   _stepMotion(now, dt) {
     const vs = this.viewState;
-    const hopping = vs.motion.hops.size > 0;
+    vs.stepZoneLabels(now);
+    const moving = vs.motion.hasPieceMotion;
     vs.motion.step(now, this.engine, dt / 1000);
-    if (hopping) vs.needsRender = true;
+    if (moving) vs.needsRender = true;
   }
 
   /** World-space drawing on the effects layer, above the pieces. Default: nothing. */

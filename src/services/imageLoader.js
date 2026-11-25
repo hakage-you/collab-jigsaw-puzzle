@@ -2,17 +2,33 @@ import { PUZZLE_CONFIG } from '../config/constants.js';
 
 export function drawCanvasFit(targetCanvas, sourceCanvas) {
   if (!targetCanvas || !sourceCanvas) return;
+  const sw = sourceCanvas.naturalWidth || sourceCanvas.width;
+  const sh = sourceCanvas.naturalHeight || sourceCanvas.height;
+  if (!sw || !sh) return;
   const tCtx = targetCanvas.getContext('2d');
   tCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
-  const scale = Math.min(
-    targetCanvas.width / sourceCanvas.width,
-    targetCanvas.height / sourceCanvas.height,
-  );
-  const dw = sourceCanvas.width * scale;
-  const dh = sourceCanvas.height * scale;
+  const scale = Math.min(targetCanvas.width / sw, targetCanvas.height / sh);
+  const dw = sw * scale;
+  const dh = sh * scale;
   const dx = (targetCanvas.width - dw) / 2;
   const dy = (targetCanvas.height - dh) / 2;
   tCtx.drawImage(sourceCanvas, dx, dy, dw, dh);
+}
+
+/** Draws `source` filling `targetCanvas` completely without letterboxing (object-fit: cover). */
+export function drawCanvasCover(targetCanvas, source) {
+  if (!targetCanvas || !source) return;
+  const sw = source.naturalWidth || source.width;
+  const sh = source.naturalHeight || source.height;
+  if (!sw || !sh) return;
+  const tCtx = targetCanvas.getContext('2d');
+  tCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+  const scale = Math.max(targetCanvas.width / sw, targetCanvas.height / sh);
+  const dw = sw * scale;
+  const dh = sh * scale;
+  const dx = (targetCanvas.width - dw) / 2;
+  const dy = (targetCanvas.height - dh) / 2;
+  tCtx.drawImage(source, dx, dy, dw, dh);
 }
 
 export function loadImageFromFile(file, callback, onError = null) {

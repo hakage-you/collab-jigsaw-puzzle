@@ -30,24 +30,41 @@ export function liftedGroups({ viewState, engine, room }) {
   }
   if (ids.size === 0) return null;
   const centres = new Map();
+  const minDim = Math.min(engine.pieceW, engine.pieceH);
   for (const id of ids) {
     const group = engine.getGroupPieces(id);
     if (group.length === 0 || group[0].isLocked) continue;
     const x = group.reduce((sum, p) => sum + p.x, 0) / group.length;
     const y = group.reduce((sum, p) => sum + p.y, 0) / group.length;
-    centres.set(id, { x, y });
+    let maxDist = 0;
+    for (const p of group) {
+      maxDist = Math.max(maxDist, Math.hypot(p.x - x, p.y - y));
+    }
+    const scale = maxDist > 0 ? Math.min(LIFT_SCALE, 1 + (minDim * 0.1) / maxDist) : LIFT_SCALE;
+    centres.set(id, { x, y, scale });
   }
   return centres.size > 0 ? centres : null;
 }
 
-/** 1, or LIFT_SCALE when the piece's group is lifted. */
+/** 1, or the group's lift scale multiplied by any per-piece motion scale. */
 export function liftScaleOf(f, piece) {
-  return f.lifted?.has(piece.groupId) ? LIFT_SCALE : 1;
+  const base = f.lifted?.get(piece.groupId)?.scale ?? 1;
+  const mScale = f.motionOffsets?.get(piece.id)?.scale ?? 1;
+  return base * mScale;
 }
 
-/** The lifted pieces' shadow in screen px, or null when there is none. */
-export function liftShadowFor(count) {
-  return count > 0 && count <= LIFT_SHADOW_MAX_PIECES ? LIFT_SHADOW : null;
+/** The lifted pieces' shadow in screen px, scaled down when pieces are tiny on screen. */
+export function liftShadowFor(count, frame = null) {
+  if (count <= 0 || count > LIFT_SHADOW_MAX_PIECES) return null;
+  if (!frame?.engine || !frame?.view) return LIFT_SHADOW;
+  const pw = frame.engine.pieceW * frame.view.scale;
+  const ph = frame.engine.pieceH * frame.view.scale;
+  return {
+    dx: Math.min(LIFT_SHADOW.dx, pw * 0.08),
+    dy: Math.min(LIFT_SHADOW.dy, ph * 0.13),
+    blur: Math.min(LIFT_SHADOW.blur, Math.min(pw, ph) * 0.18),
+    color: LIFT_SHADOW.color,
+  };
 }
 
 /*
@@ -101,7 +118,7 @@ export function drawBoardStage(f) {
     requestRender: f.requestRender,
   });
   drawReferenceSheet(ctx, { settings, sourceCanvas: engine.sourceCanvas, refSheet, pal });
-  drawZoneLabels(ctx, engine.zoneLabels, pal, view.scale);
+  drawZoneLabels(ctx, engine.zoneLabels, pal, view.scale, f.zoneLabelAlpha ?? 1);
 }
 
 function inBox(p, b) {
@@ -164,7 +181,7 @@ function drawLoosePieces(f, visibleLoose, lodConfig) {
   }
   // Lifted pieces go on top: first their shadows (each drawn with its piece, so pieces of the
   // same group are drawn again over any shadow that fell on them), then the pieces.
-  const shadow = liftShadowFor(lifted.length);
+  const shadow = liftShadowFor(lifted.length, f);
   if (shadow) for (const p of lifted) drawPiece(f, { piece: p, lodConfig, shadow });
   for (const p of lifted) drawPiece(f, { piece: p, lodConfig });
 }
@@ -264,7 +281,7 @@ export function drawnAt(f, piece) {
   const at = o ? { x: piece.x + o.dx, y: piece.y + o.dy } : piece;
   const c = f.lifted?.get(piece.groupId);
   if (!c) return at;
-  return { x: c.x + (at.x - c.x) * LIFT_SCALE, y: c.y + (at.y - c.y) * LIFT_SCALE };
+  return { x: c.x + (at.x - c.x) * c.scale, y: c.y + (at.y - c.y) * c.scale };
 }
 
 /** Opacity of a piece under the highlight filter and the ghost interference. */
@@ -281,6 +298,8 @@ export function pieceAlpha(f, piece) {
   if (f.ghostPiecesActive && !piece.isLocked) {
     alpha *= 0.1;
   }
+  const mAlpha = f.motionOffsets?.get(piece.id)?.alpha;
+  if (mAlpha !== undefined) alpha *= mAlpha;
   return alpha;
 }
 
@@ -319,13 +338,15 @@ function drawSprite(ctx, metrics, sprite) {
  * `shadow` draws it with a drop shadow (a lifted piece's first pass).
  */
 function drawPiece(f, { piece, lodConfig = null, shadow = null }) {
+  const alpha = pieceAlpha(f, piece);
+  if (alpha <= 0.001) return;
   const sprite = resolvePieceSprite(f, piece, lodConfig);
   if (!sprite) return;
   const { ctx } = f;
 
   ctx.save();
   enterPiece(f, piece);
-  ctx.globalAlpha = pieceAlpha(f, piece);
+  ctx.globalAlpha = alpha;
   if (shadow) {
     // Shadow sizes are in device pixels: the canvas transform does not apply to them.
     ctx.shadowColor = shadow.color;

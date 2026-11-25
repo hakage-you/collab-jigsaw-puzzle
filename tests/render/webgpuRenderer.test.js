@@ -114,7 +114,7 @@ function setupWebGPURenderer({ onContextLost = vi.fn(), onGpuError = vi.fn() } =
   stage.appendChild(canvas);
   document.body.appendChild(stage);
 
-  const app = new GameSession();
+  const app = new GameSession({ initialSampleId: 'rainbow' });
   app.patchSettings({ ...SMALL_PUZZLE, theme: 'light', referenceMode: 'none', deskStyle: 'grid' });
   app.startNewPuzzle();
   restoreRandom();

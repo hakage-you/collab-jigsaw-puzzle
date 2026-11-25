@@ -12,16 +12,17 @@ export function drawPieceMotion(ctx, vs, pal) {
   const ink = pal.fx?.quiet || '#888780';
 
   for (const [id, o] of motion.offsets) {
-    if (o.lift <= 0) continue;
+    const fade = o.alpha ?? 1;
+    if (o.lift <= 0 || fade <= 0.001) continue;
     const p = vs.engine.getPieceById(id);
     if (!p) continue;
     const gx = p.x + o.dx;
     const gy = p.y + o.dy + o.lift + vs.engine.pieceH * 0.45;
     ctx.save();
-    ctx.globalAlpha = 0.18;
+    ctx.globalAlpha = 0.18 * fade;
     ctx.fillStyle = ink;
     ctx.beginPath();
-    const w = vs.engine.pieceW * 0.45 * (1 - (o.lift / vs.engine.pieceH) * 0.5);
+    const w = Math.max(0.1, vs.engine.pieceW * 0.45 * (1 - (o.lift / vs.engine.pieceH) * 0.5));
     ctx.ellipse(gx, gy, w, vs.engine.pieceH * 0.08, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();

@@ -131,6 +131,8 @@ describe('sound volumes', () => {
     sound.playMerge();
     sound.playWin();
     sound.playTick();
+    sound.playDeal(24);
+    sound.unlock('normal');
     expect(open).not.toHaveBeenCalled();
     sound.playTick('ojama');
     sound.playOjama();

@@ -5,7 +5,7 @@ import { sound } from '../services/sound.js';
 import { CpuAutoCommentController } from './cpuAutoCommentController.js';
 import { OjamaStickers } from './ojamaStickers.js';
 import { SuperchatCard } from './superchatCard.js';
-import { TimedOjamaController } from './timedOjamaController.js';
+import { TimedOjamaController, syncOjamaVignette } from './timedOjamaController.js';
 
 export class OjamaController {
   constructor({ app, updateHUD, requestRender, setGhostPiecesActive = null, showToast }) {
@@ -167,6 +167,7 @@ export class OjamaController {
     this.setGhostPiecesActive(false);
     this.elSpotlight.classList.add('hidden');
     this.elVisualBanner.classList.add('hidden');
+    syncOjamaVignette({ visual: '' });
     if (broadcast && this.room.role === 'host') {
       this.room.broadcastVisualClear();
     }
@@ -278,6 +279,7 @@ export class OjamaController {
     this.elVisualLabel.textContent = `${labelMap[chosen]}中`;
     this.elVisualTimer.textContent = `${this.visualSabotageRemaining.toFixed(1)}s`;
     this.elVisualBanner.classList.remove('hidden');
+    syncOjamaVignette({ visual: 'visual' });
 
     sound.playOjama();
     const kind = chosen === 'ghost' ? 'ghost' : 'visual';

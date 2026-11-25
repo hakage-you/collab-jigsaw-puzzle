@@ -120,11 +120,17 @@ export function computeSpriteMetrics({
   // Target ~2-3 2048x2048 pages max across front + initial flipped backs
   const targetAtlasBudgetPx2 = 2048 * 2048 * 1.65;
   const budgetScale = Math.sqrt(targetAtlasBudgetPx2 / Math.max(1, totalPieces * logicalArea));
-  const rawSrcScale = (sourceCanvas ? sourceCanvas.width / Math.max(1, boardW) : 1.5) * 1.25;
+  const logicalMax = Math.max(1, logicalW, logicalH);
+  const maxSlotPx = Math.floor(
+    (PUZZLE_CONFIG.SPRITE_ATLAS_SIZE - PUZZLE_CONFIG.SPRITE_ATLAS_PAD * 2) / 2,
+  );
+  const maxSlotScale = maxSlotPx / logicalMax;
+  const srcScale = sourceCanvas ? sourceCanvas.width / Math.max(1, boardW) : 2;
+  const desiredMax = Math.min(maxSlotScale, Math.max(2, srcScale));
   const spriteScale =
     totalPieces <= 48
-      ? Math.min(2, Math.max(1.5, Math.min(2, budgetScale), Math.min(2, Math.ceil(rawSrcScale))))
-      : Math.max(0.28, Math.min(2, budgetScale));
+      ? Math.max(1.5, Math.min(desiredMax, budgetScale))
+      : Math.max(0.28, Math.min(desiredMax, budgetScale));
   return {
     logicalW,
     logicalH,

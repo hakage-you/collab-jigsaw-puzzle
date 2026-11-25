@@ -9,7 +9,7 @@ html[data-theme='light'] {
   /* ------------------------------------------------------------------------
      1. Master Palette (Edit here to restyle the entire app & canvas)
      ------------------------------------------------------------------------ */
-  --palette-primary: #1565c0;
+  --palette-primary: #2b5c4f;
   --palette-primary-text: #fff;
   --palette-secondary: #6d28d9;
   --palette-secondary-text: #fff;
@@ -19,18 +19,18 @@ html[data-theme='light'] {
   --palette-error-text: #fff;
 
   /* Surfaces & Desk */
-  --bg: #f8fafc;
-  --desk-bg: #eef2f6;
-  --surface: #fff;
-  --surface-2: #f1f5f9;
-  --surface-3: #e2e8f0;
-  --surface-glass: rgb(255 255 255 / 94%);
+  --bg: #f5f0e6;
+  --desk-bg: #ebe3d5;
+  --surface: #fbf8f2;
+  --surface-2: #f2ece0;
+  --surface-3: #e6ddd0;
+  --surface-glass: rgb(251 248 242 / 86%);
 
   /* Borders & Text */
-  --border: #cbd5e1;
-  --border-strong: #64748b;
-  --text: #0f172a;
-  --text-muted: #475569;
+  --border: #d8cebe;
+  --border-strong: #786d5f;
+  --text: #231f1a;
+  --text-muted: #5c5347;
 
   /* ------------------------------------------------------------------------
      2. Auto-Derived Semantic Tokens (via color-mix)
@@ -61,13 +61,13 @@ html[data-theme='light'] {
   --overlay-soft: rgb(15 23 42 / 14%);
 
   /* Switch & Canvas Tokens */
-  --switch-track-off: #64748b;
-  --switch-thumb: #fff;
-  --canvas-board-bg: rgb(255 255 255 / 92%);
-  --canvas-grid: rgb(15 23 42 / 6%);
-  --canvas-cell-grid: rgb(15 23 42 / 12%);
-  --canvas-sheet-bg: #f8fafc;
-  --canvas-sheet-text: #1e293b;
+  --switch-track-off: #786d5f;
+  --switch-thumb: #fbf8f2;
+  --canvas-board-bg: rgb(251 248 242 / 92%);
+  --canvas-grid: rgb(35 31 26 / 6%);
+  --canvas-cell-grid: rgb(35 31 26 / 12%);
+  --canvas-sheet-bg: #fbf8f2;
+  --canvas-sheet-text: #231f1a;
 
   /* The board's paper inside its frame (src/render/canvas2d/canvasOverlayRenderer.js) */
   --board-paper: #fbfaf6;
@@ -149,50 +149,83 @@ html[data-theme='light'] {
   --space-5: 24px;
   --space-6: 32px;
 
+  /* Vignette Tokens (Ojama active border glow) */
+  --vignette-heavy: rgb(109 40 217 / 24%);
+  --vignette-runaway: rgb(234 88 12 / 22%);
+  --vignette-visual: rgb(180 83 9 / 20%);
+
   /* Sizing & Radii */
   --touch: 36px;
   --touch-compact: 28px;
   --header-height: 56px;
   --drawer-width: 280px;
-  --radius-btn: 6px;
-  --radius-card: 10px;
-  --radius-lg: 14px;
+  --radius-btn: 8px;
+  --radius-card: 12px;
+  --radius-lg: 16px;
   --radius-pill: 999px;
 
   /* Elevation & Transitions */
-  --shadow-sm: 0 2px 6px rgb(15 23 42 / 8%);
-  --shadow-md: 0 6px 18px rgb(15 23 42 / 14%);
-  --shadow-lg: 0 18px 44px rgb(15 23 42 / 24%);
+  --shadow-sm: 0 2px 8px rgb(42 30 18 / 8%);
+  --shadow-md: 0 8px 22px rgb(42 30 18 / 14%);
+  --shadow-lg: 0 18px 44px rgb(42 30 18 / 22%);
   --duration-fast: 0.14s;
   --duration-base: 0.2s;
+
+  /* Tactile 3D Button & Glass Panel Tokens (Light) */
+  --btn-bg: #fdfbf7;
+  --btn-bg-hover: #fff;
+  --btn-border: #cfc4b3;
+  --btn-border-hover: #b5a690;
+  --btn-edge: #cfc4b3;
+  --btn-highlight: rgb(255 255 255 / 80%);
+  --btn-drop: rgb(42 28 12 / 8%);
+  --btn-primary-bg: #2b5c4f;
+  --btn-primary-hover: #234c41;
+  --btn-primary-edge: #1b3b32;
+  --btn-danger-bg: #b93838;
+  --btn-danger-hover: #a12d2d;
+  --btn-danger-edge: #7c2020;
+  --btn-stream-bg: #b4532a;
+  --btn-stream-hover: #a04722;
+  --btn-stream-edge: #7d3518;
+  --btn-stream-text: #fff;
+  --panel-glass-bg: rgb(251 248 242 / 88%);
+  --panel-shadow-float:
+    inset 0 1px 0 rgb(255 255 255 / 70%), 0 8px 20px -6px rgb(40 25 10 / 18%),
+    0 1px 3px rgb(40 25 10 / 8%);
+  --panel-shadow-bar: inset 0 -1px 0 rgb(255 255 255 / 50%), 0 2px 10px -4px rgb(40 25 10 / 12%);
+  --panel-shadow-drawer: inset 1px 0 0 rgb(255 255 255 / 55%), -4px 0 18px -6px rgb(40 25 10 / 14%);
+  --hud-recessed-bg: rgb(238 231 218 / 86%);
+  --hud-recessed-shadow: inset 0 1px 2px rgb(45 32 16 / 12%);
+  --stage-vignette: radial-gradient(circle at 50% 50%, transparent 50%, rgb(20 10 2 / 44%) 100%);
 }
 
 html[data-theme='dark'] {
   color-scheme: dark;
 
   /* 1. Master Palette (Dark) */
-  --palette-primary: #60a5fa;
-  --palette-primary-text: #0b1120;
+  --palette-primary: #64b69f;
+  --palette-primary-text: #14110f;
   --palette-secondary: #d8b4fe;
-  --palette-secondary-text: #0b1120;
+  --palette-secondary-text: #14110f;
   --palette-success: #4ade80;
   --palette-warning: #fbbf24;
   --palette-error: #fca5a5;
-  --palette-error-text: #0b1120;
+  --palette-error-text: #14110f;
 
   /* Surfaces & Desk */
-  --bg: #0f172a;
-  --desk-bg: #0b1120;
-  --surface: #1e293b;
-  --surface-2: #273549;
-  --surface-3: #334155;
-  --surface-glass: rgb(30 41 59 / 94%);
+  --bg: #171412;
+  --desk-bg: #120f0d;
+  --surface: #221e1a;
+  --surface-2: #2c2722;
+  --surface-3: #38312b;
+  --surface-glass: rgb(34 30 26 / 86%);
 
-  --border: #334155;
-  --border-strong: #64748b;
+  --border: #3d352e;
+  --border-strong: #857869;
 
-  --text: #f8fafc;
-  --text-muted: #94a3b8;
+  --text: #f5f0e8;
+  --text-muted: #b3a89a;
 
   /* 2. Auto-Derived Semantic Tokens (Dark) */
   --accent-hover: color-mix(in srgb, var(--palette-primary) 86%, var(--text));
@@ -203,13 +236,13 @@ html[data-theme='dark'] {
   --danger-hover: color-mix(in srgb, var(--palette-error) 86%, var(--text));
   --danger-soft: color-mix(in srgb, var(--palette-error) 14%, var(--surface));
 
-  --overlay: rgb(2 6 23 / 72%);
-  --overlay-soft: rgb(2 6 23 / 30%);
-  --switch-track-off: #64748b;
-  --switch-thumb: #f8fafc;
-  --canvas-board-bg: rgb(15 23 42 / 78%);
-  --canvas-grid: rgb(148 163 184 / 7%);
-  --canvas-cell-grid: rgb(148 163 184 / 16%);
+  --overlay: rgb(14 11 8 / 72%);
+  --overlay-soft: rgb(14 11 8 / 32%);
+  --switch-track-off: #857869;
+  --switch-thumb: #f5f0e8;
+  --canvas-board-bg: rgb(23 20 18 / 78%);
+  --canvas-grid: rgb(179 168 154 / 7%);
+  --canvas-cell-grid: rgb(179 168 154 / 16%);
   /* Dark: only the paper is toned down (a calm grey paper); the desk stays as chosen. */
   --board-paper: #cfccc4;
   --dot-outline: rgb(255 255 255 / 25%);
@@ -221,10 +254,41 @@ html[data-theme='dark'] {
   --fx-mint: #6ee7b7;
   --fx-paper: #cbd5e1;
   --fx-shadow: rgb(0 0 0 / 55%);
+  --vignette-heavy: rgb(139 92 246 / 28%);
+  --vignette-runaway: rgb(251 146 60 / 26%);
+  --vignette-visual: rgb(250 204 21 / 22%);
 
   --shadow-sm: 0 2px 8px rgb(0 0 0 / 35%);
   --shadow-md: 0 8px 22px rgb(0 0 0 / 48%);
   --shadow-lg: 0 20px 54px rgb(0 0 0 / 68%);
+
+  /* Tactile 3D Button & Glass Panel Tokens (Dark) */
+  --btn-bg: #2c2722;
+  --btn-bg-hover: #352f29;
+  --btn-border: #4a4138;
+  --btn-border-hover: #63574b;
+  --btn-edge: #15120f;
+  --btn-highlight: rgb(255 245 232 / 8%);
+  --btn-drop: rgb(0 0 0 / 28%);
+  --btn-primary-bg: #64b69f;
+  --btn-primary-hover: #78c4af;
+  --btn-primary-edge: #356e5e;
+  --btn-danger-bg: #fca5a5;
+  --btn-danger-hover: #fecaca;
+  --btn-danger-edge: #991b1b;
+  --btn-stream-bg: #c96236;
+  --btn-stream-hover: #d87144;
+  --btn-stream-edge: #7c3518;
+  --btn-stream-text: #fff;
+  --panel-glass-bg: rgb(34 30 26 / 88%);
+  --panel-shadow-float:
+    inset 0 1px 0 rgb(255 245 232 / 10%), 0 10px 24px -6px rgb(0 0 0 / 48%),
+    0 2px 6px rgb(0 0 0 / 24%);
+  --panel-shadow-bar: inset 0 -1px 0 rgb(255 245 232 / 6%), 0 4px 14px -4px rgb(0 0 0 / 38%);
+  --panel-shadow-drawer: inset 1px 0 0 rgb(255 245 232 / 8%), -6px 0 20px -6px rgb(0 0 0 / 42%);
+  --hud-recessed-bg: rgb(24 20 17 / 84%);
+  --hud-recessed-shadow: inset 0 1px 3px rgb(0 0 0 / 45%);
+  --stage-vignette: radial-gradient(circle at 50% 50%, transparent 48%, rgb(0 0 0 / 52%) 100%);
 }
 
 @media (pointer: coarse), (max-width: 768px) {
