@@ -10,3 +10,6 @@ docs/
 measure/.latest/
 .claude
 .agents/
+# Stryker (npm run test:mutation)
+.stryker-tmp/
+reports/

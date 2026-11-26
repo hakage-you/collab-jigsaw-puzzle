@@ -17,6 +17,7 @@
     "sync:content": "node scripts/sync-content.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:mutation": "stryker run",
     "measure": "node measure/hosting.mjs && vitest run --config vitest.measure.config.mjs && node measure/report.mjs",
     "format": "prettier --write .",
     "arch:graph": "depcruise src --config .dependency-cruiser.cjs --output-type mermaid",
@@ -25,6 +26,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
     "@vitest/browser-playwright": "^5.1.1",
     "culori": "^4.0.2",
     "dependency-cruiser": "^18.8.0",

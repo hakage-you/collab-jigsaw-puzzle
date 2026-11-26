@@ -6,3 +6,5 @@ _plan/
 _walkthrough/
 docs/
 *.md
+.stryker-tmp/
+reports/
