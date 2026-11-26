@@ -133,7 +133,12 @@ export class RoomController {
     this.transport.onError = (err) => this.cb.onError(err?.message || '通信エラーが発生しました');
     this.transport.onSignalingChange = (state) => this._setSignalingState(state);
 
-    await this.transport.openHost(this.roomId);
+    try {
+      await this.transport.openHost(this.roomId);
+    } catch (err) {
+      this.close();
+      throw err;
+    }
     this._startRecruitment();
     this.hostSession.startHeartbeat();
     this.hostSession.syncRoster();
@@ -214,7 +219,12 @@ export class RoomController {
     };
     this.transport.onError = (err) => this.cb.onError(err?.message || '通信エラーが発生しました');
 
-    await this.transport.connectGuest(this.roomId);
+    try {
+      await this.transport.connectGuest(this.roomId);
+    } catch (err) {
+      this.close();
+      throw err;
+    }
     this.guestSession.startHeartbeat();
   }
 
@@ -548,15 +558,22 @@ export class RoomController {
     this.recruitment?.stop();
     this.recruitment = null;
     this.signalingState = 'online';
-    this.hostSession.reset();
-    this.guestSession.reset();
-    if (this.transport) {
-      this.transport.close();
-      this.transport = null;
-    }
     this.role = 'solo';
     this.roomId = null;
+    this.roomRules = null;
     this.myPlayerId = 'host';
+    this.hostSession.reset();
+    this.guestSession.reset();
+    const transport = this.transport;
+    this.transport = null;
+    if (transport) {
+      transport.onConnect = () => {};
+      transport.onDisconnect = () => {};
+      transport.onMessage = () => {};
+      transport.onError = () => {};
+      transport.onSignalingChange = () => {};
+      transport.close();
+    }
     this.groupLocks.clear();
     this.remoteCursors.clear();
     this.remoteDragTargets.clear();

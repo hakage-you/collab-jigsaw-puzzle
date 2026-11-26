@@ -381,22 +381,30 @@ describe('broadcasts', () => {
     expect(patch.pieces).toHaveLength(host.engine.pieces.length);
   });
 
-  it('resends the whole state: a welcome for a custom image, the state for a sample', async () => {
+  it('resends a welcome to every online guest (custom and sample) and clears locks', async () => {
     const custom = await openHost();
     await joinNode(custom.room.roomId, { name: 'アリス' });
     const offline = await joinNode(custom.room.roomId, { name: 'ボブ' });
     net.dropLink(offline.room.transport);
     await net.flush();
+    custom.room.groupLocks.set(1, 'host');
+    custom.room.remoteDragTargets.set(1, new Map([[0, { x: 1, y: 2 }]]));
     const welcomes = hostSent(MSG.WELCOME).length;
     custom.room.hostSession.broadcastFullState();
     expect(hostSent(MSG.WELCOME)).toHaveLength(welcomes + 1);
+    expect(custom.room.groupLocks.size).toBe(0);
+    expect(custom.room.remoteDragTargets.size).toBe(0);
 
-    const sample = await openHost({ isSampleImage: true });
-    const states = hostSent(MSG.FULL_STATE).length;
+    const sample = await openHost({ isSampleImage: true, sampleImageId: 'met-seaside' });
+    const sampleWelcomes = hostSent(MSG.WELCOME).length;
     sample.room.hostSession.guests.set('p1', { id: 'p1', online: true, connId: 'conn-x' });
     sample.room.transport.peers.set('conn-x', { connId: 'conn-x', onMessage: () => {} });
     sample.room.hostSession.broadcastFullState();
-    expect(hostSent(MSG.FULL_STATE)).toHaveLength(states + 1);
+    expect(hostSent(MSG.WELCOME)).toHaveLength(sampleWelcomes + 1);
+    expect(hostSent(MSG.WELCOME).at(-1)).toMatchObject({
+      isSampleImage: true,
+      sampleImageId: 'met-seaside',
+    });
   });
 });
 

@@ -40,7 +40,7 @@ export class CpuAutoCommentController {
   _bindEvents() {
     this.elBtnAutoComments?.addEventListener('click', () => {
       if (this.isRunning()) this.stop();
-      else this.start();
+      else this.start(null, { immediate: true });
     });
 
     this.elToggleCpuAutoOjama?.addEventListener('change', () => {
@@ -93,7 +93,7 @@ export class CpuAutoCommentController {
     if (this.elValue) this.elValue.textContent = `${sec}秒ごと`;
   }
 
-  start(pace = null) {
+  start(pace = null, { immediate = false } = {}) {
     if (this.guardIfCompleted()) {
       this.syncUI();
       return;
@@ -106,6 +106,7 @@ export class CpuAutoCommentController {
     this.intervalId = setInterval(() => this._emitSample(), this._getIntervalMs());
     this.syncUI();
     this.onChange?.(true);
+    if (immediate) this._emitSample();
   }
 
   stop() {

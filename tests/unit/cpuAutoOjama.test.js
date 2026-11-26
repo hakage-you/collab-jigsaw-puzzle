@@ -122,4 +122,25 @@ describe('CPU auto ojama pace presets and live interval slider', () => {
     expect(toggle.checked).toBe(false);
     expect(onStateChange).toHaveBeenLastCalledWith(false);
   });
+
+  it('emits a sample comment immediately when started from the test palette button', () => {
+    const { controller } = createController();
+    const commentSpy = vi.spyOn(controller, 'processIncomingComment').mockImplementation(() => {});
+    const btn = document.getElementById('btnToggleAutoComments');
+    const toggle = document.getElementById('toggleCpuAutoOjama');
+
+    btn.click();
+    expect(controller.isAutoCommentsRunning()).toBe(true);
+    expect(btn.textContent).toBe('自動コメント停止');
+    expect(toggle.checked).toBe(true);
+    expect(commentSpy).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(OJAMA_CONFIG.AUTO_COMMENT_INTERVALS_MS.normal);
+    expect(commentSpy).toHaveBeenCalledTimes(2);
+
+    btn.click();
+    expect(controller.isAutoCommentsRunning()).toBe(false);
+    expect(btn.textContent).toBe('自動コメント開始');
+    expect(toggle.checked).toBe(false);
+  });
 });

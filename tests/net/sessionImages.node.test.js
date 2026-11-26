@@ -193,4 +193,113 @@ describe('a sample image', () => {
     expect(guest.callsOf('onReceiveImage')).toEqual([]);
     expect(net.sentOf(MSG.IMAGE_ACK)).toEqual([]);
   });
+
+  it('switching to another sample puzzle mid-room reloads the guest image and board geometry', async () => {
+    const seasideImg = createFakeImage(2048, 1230);
+    const irisesImg = createFakeImage(2018, 1600);
+    loadSampleImageCanvas.mockImplementation((id) =>
+      Promise.resolve(id === 'met-irises' ? irisesImg : seasideImg),
+    );
+
+    const host = await openHost({
+      isSampleImage: true,
+      sampleImageId: 'met-seaside',
+      puzzle: { sourceCanvas: seasideImg, isSampleImage: true, sampleImageId: 'met-seaside' },
+    });
+    const hostSource = {
+      sourceCanvas: seasideImg,
+      isSampleImage: true,
+      sampleImageId: 'met-seaside',
+    };
+    host.room.getSourceState = () => hostSource;
+
+    const guest = await joinNode(host.room.roomId, { flush: false });
+    const guestSource = {
+      sourceCanvas: createFakeImage(),
+      isSampleImage: false,
+      sampleImageId: null,
+    };
+    guest.room.getSourceState = () => guestSource;
+    const baseCb = guest.room.cb;
+    guest.room.cb = new Proxy(baseCb, {
+      get(target, prop) {
+        if (prop === 'onReceiveImage') {
+          return (canvas, name, isSample, sampleId) => {
+            guestSource.sourceCanvas = canvas;
+            guestSource.isSampleImage = isSample;
+            guestSource.sampleImageId = sampleId ?? null;
+            target.onReceiveImage(canvas, name, isSample, sampleId);
+          };
+        }
+        return target[prop];
+      },
+    });
+    await net.flush();
+
+    expect(guest.engine.sourceCanvas).toBe(seasideImg);
+    expect(guest.engine.sampleImageId).toBe('met-seaside');
+
+    // Host switches to another sample artwork mid-room.
+    hostSource.sourceCanvas = irisesImg;
+    hostSource.sampleImageId = 'met-irises';
+    host.engine.initPuzzle({
+      sourceCanvas: irisesImg,
+      isSampleImage: true,
+      sampleImageId: 'met-irises',
+      cols: 4,
+      rows: 3,
+      seed: 99,
+      cutComplexity: 'standard',
+      allowRotation: false,
+      allowFlip: false,
+    });
+    host.room.broadcastFullState();
+    await net.flush();
+
+    expect(loadSampleImageCanvas).toHaveBeenLastCalledWith('met-irises');
+    expect(guest.engine.sourceCanvas).toBe(irisesImg);
+    expect(guest.engine.sampleImageId).toBe('met-irises');
+    expect(guest.engine.boardW).toBeCloseTo(host.engine.boardW, 5);
+    expect(guest.engine.boardH).toBeCloseTo(host.engine.boardH, 5);
+    expect(boardState(guest.engine)).toEqual(boardState(host.engine));
+  });
+
+  it('drops a slow sample artwork load superseded by a newer puzzle switch', async () => {
+    const resolves = [];
+    loadSampleImageCanvas.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolves.push(resolve);
+        }),
+    );
+
+    const host = await openHost({ isSampleImage: true, sampleImageId: 'met-seaside' });
+    const hostSource = {
+      sourceCanvas: createFakeImage(),
+      isSampleImage: true,
+      sampleImageId: 'met-seaside',
+    };
+    host.room.getSourceState = () => hostSource;
+
+    const guest = await joinNode(host.room.roomId);
+    expect(resolves).toHaveLength(1);
+
+    // Host switches again before the first artwork finishes loading on the guest.
+    hostSource.sampleImageId = 'met-irises';
+    host.room.broadcastFullState();
+    await net.flush();
+    expect(resolves).toHaveLength(2);
+
+    const staleImg = createFakeImage(100, 100);
+    const latestImg = createFakeImage(200, 200);
+    resolves[0](staleImg);
+    await net.flush();
+    expect(guest.callsOf('onReceiveImage')).toEqual([]);
+
+    resolves[1](latestImg);
+    await net.flush();
+    expect(guest.callsOf('onReceiveImage')).toEqual([
+      [latestImg, expect.any(String), true, 'met-irises'],
+    ]);
+  });
 });

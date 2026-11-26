@@ -147,6 +147,42 @@ describe('joining as a guest', () => {
     solo.room.updateHostName();
     expect(solo.callsOf('onRosterUpdate')).toEqual([]);
   });
+
+  it('starts a new host room cleanly from guest state even when closing the old transport fires onDisconnect', async () => {
+    const { guest } = await hostAndGuest();
+    const oldTransport = guest.room.transport;
+    const origClose = oldTransport.close.bind(oldTransport);
+    oldTransport.close = () => {
+      origClose();
+      oldTransport.onDisconnect('host');
+    };
+
+    const { roomId } = await guest.room.startHostRoom({
+      passcode: '',
+      requireApproval: false,
+      capacity: 4,
+    });
+    await net.flush();
+
+    expect(roomId).toBeTruthy();
+    expect(guest.room.role).toBe('host');
+    expect(guest.room.roomRules).toBeNull();
+    expect(guest.callsOf('onDisconnected')).toEqual([]);
+  });
+
+  it('returns to solo if opening a host room fails', async () => {
+    const { room } = createNodeRoom();
+    const origCreate = net.createTransport.bind(net);
+    vi.spyOn(net, 'createTransport').mockImplementationOnce(() => {
+      const t = origCreate();
+      t.openHost = () => Promise.reject(new Error('open failed'));
+      return t;
+    });
+
+    await expect(room.startHostRoom({ requireApproval: false })).rejects.toThrow('open failed');
+    expect(room.role).toBe('solo');
+    expect(room.transport).toBeNull();
+  });
 });
 
 describe('positions and interpolation', () => {

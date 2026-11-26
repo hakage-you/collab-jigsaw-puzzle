@@ -321,11 +321,11 @@ export class HostSession {
   }
 
   broadcastFullState() {
-    const { isSampleImage } = this.room.getSourceState();
+    this.room.groupLocks.clear();
+    this.room.remoteDragTargets.clear();
     for (const guest of this.guests.values()) {
       if (!guest.online || !guest.connId) continue;
-      if (!isSampleImage) this._sendWelcomeToGuest(guest);
-      else this._sendFullStateToGuest(guest.connId);
+      this._sendWelcomeToGuest(guest);
     }
     this.syncRoster();
     this.scheduleAutoBackup();

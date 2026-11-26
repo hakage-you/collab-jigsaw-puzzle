@@ -51,6 +51,7 @@ export class GuestSession {
     this.guestPasscode = '';
     this.guestDisplayName = '';
     this.localOpSeq = 0;
+    this.welcomeSeq = 0;
     this.pendingGroupOpSeq = new Map();
     // A host that stops answering pings is treated as gone.
     this.liveness = new PeerLiveness({
@@ -80,6 +81,7 @@ export class GuestSession {
     this.guestPasscode = '';
     this.guestDisplayName = '';
     this.localOpSeq = 0;
+    this.welcomeSeq += 1;
     this.pendingGroupOpSeq.clear();
   }
 
@@ -90,6 +92,7 @@ export class GuestSession {
     this.pendingFullState = null;
     this.optimisticRollback = null;
     this.localOpSeq = 0;
+    this.welcomeSeq += 1;
     this.pendingGroupOpSeq.clear();
   }
 
@@ -227,6 +230,11 @@ export class GuestSession {
 
   _handleWelcome(msg) {
     const room = this.room;
+    const seq = ++this.welcomeSeq;
+    this.incomingImage = null;
+    this.pendingFullState = null;
+    this.optimisticRollback = null;
+    this.pendingGroupOpSeq.clear();
     room.myPlayerId = msg.playerId;
     room.myColor = msg.color;
     room.roomRules = msg.roomRules;
@@ -244,7 +252,7 @@ export class GuestSession {
       const preset = getSamplePreset(sampleId);
       if (preset.kind === 'artwork') {
         loadSampleImageCanvas(sampleId).then((sampleCanvas) => {
-          if (room.role !== 'guest') return;
+          if (room.role !== 'guest' || this.welcomeSeq !== seq) return;
           room.cb.onReceiveImage(sampleCanvas, preset.name, true, sampleId);
           room.transport.sendToHost({ type: MSG.IMAGE_ACK, needImage: false });
         });
@@ -256,8 +264,8 @@ export class GuestSession {
       return;
     }
 
-    const { sourceCanvas } = room.getSourceState();
-    const sameHash = sourceCanvas && room.engine.imageHash === msg.imageHash;
+    const { sourceCanvas, isSampleImage } = room.getSourceState();
+    const sameHash = !isSampleImage && sourceCanvas && room.engine.imageHash === msg.imageHash;
     if (sameHash) {
       room.transport.sendToHost({ type: MSG.IMAGE_ACK, needImage: false });
       return;
