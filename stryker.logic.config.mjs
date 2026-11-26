@@ -22,6 +22,6 @@ export default {
   ],
   htmlReporter: { fileName: 'reports/mutation/logic.html' },
   incrementalFile: 'reports/stryker-incremental-logic.json',
-  // Record only until the first baseline.
-  thresholds: { high: 90, low: 80, break: null },
+  // Same thresholds as core. The score was 91.9% on 2026-11-26.
+  thresholds: { high: 90, low: 80, break: 85 },
 };

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { MULTIPLAYER_CONFIG } from '../../src/config/constants.js';
 import { PeerLiveness } from '../../src/net/heartbeat.js';
 
@@ -59,5 +59,81 @@ describe('PeerLiveness', () => {
     clock.now += TIMEOUT + 1;
     liveness.tick();
     expect(log.lost).toEqual(['a']);
+  });
+});
+
+describe('PeerLiveness details', () => {
+  it('starts the clock from the first unanswered ping, whatever the time', () => {
+    const { clock, log, liveness } = setup();
+    clock.now = 1_000_000;
+    liveness.tick();
+    clock.now += 1;
+    liveness.tick();
+    expect(log.lost).toEqual([]);
+  });
+
+  it('pings a lost peer afresh if it is still listed', () => {
+    const { clock, log, liveness } = setup();
+    liveness.tick();
+    clock.now += TIMEOUT + 1;
+    liveness.tick();
+    liveness.tick();
+    expect(log.lost).toEqual(['a']);
+    expect(log.pings).toEqual(['a', 'a']);
+  });
+
+  it('starts over for a peer that left and came back', () => {
+    const { clock, log, liveness, peers } = setup(['a']);
+    liveness.tick();
+    peers.length = 0;
+    liveness.tick();
+    peers.push('a');
+    clock.now += TIMEOUT + 1;
+    liveness.tick();
+    expect(log.lost).toEqual([]);
+    expect(log.pings).toEqual(['a', 'a']);
+  });
+
+  it('forgets a peer on request, so it is pinged again rather than lost', () => {
+    const { clock, log, liveness } = setup();
+    liveness.tick();
+    liveness.forget('a');
+    clock.now += TIMEOUT + 1;
+    liveness.tick();
+    expect(log.lost).toEqual([]);
+    expect(log.pings).toEqual(['a', 'a']);
+  });
+
+  it('ticks on a timer once started, only once, until stopped', () => {
+    vi.useFakeTimers();
+    try {
+      const { log, liveness } = setup();
+      liveness.start();
+      liveness.start();
+      vi.advanceTimersByTime(MULTIPLAYER_CONFIG.HEARTBEAT_INTERVAL_MS);
+      expect(log.pings).toEqual(['a']);
+      liveness.stop();
+      expect(liveness.awaitingSince.size).toBe(0);
+      vi.advanceTimersByTime(MULTIPLAYER_CONFIG.HEARTBEAT_INTERVAL_MS * 5);
+      expect(log.pings).toEqual(['a']);
+      liveness.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('uses performance.now when no clock is given', () => {
+    const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+    const lost = [];
+    const liveness = new PeerLiveness({
+      ping: () => {},
+      onLost: (id) => lost.push(id),
+      listPeers: () => ['a'],
+    });
+    liveness.tick();
+    now.mockReturnValue(TIMEOUT + 1);
+    liveness.tick();
+    expect(lost).toEqual(['a']);
+    now.mockRestore();
   });
 });

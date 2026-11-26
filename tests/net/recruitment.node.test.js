@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { MULTIPLAYER_CONFIG } from '../../src/config/constants.js';
 import { Recruitment, RECRUIT_STATE } from '../../src/net/recruitment.js';
 
 /** Manual clock: timers fire only when the test advances time. */
@@ -132,5 +133,161 @@ describe('Recruitment: idle host', () => {
     timers.advance(5000);
     expect(room.states).toEqual([]);
     expect(room.accepting).toEqual([]);
+  });
+});
+
+describe('Recruitment: details', () => {
+  /** setup() plus the number of timers still pending. */
+  function counted(options) {
+    const s = setup(options);
+    const { setTimeout: set, clearTimeout: clear } = s.timers;
+    const live = new Set();
+    s.timers.setTimeout = (fn, ms) => {
+      const id = set((...args) => {
+        live.delete(id);
+        fn(...args);
+      }, ms);
+      live.add(id);
+      return id;
+    };
+    s.timers.clearTimeout = (id) => {
+      live.delete(id);
+      clear(id);
+    };
+    return { ...s, pendingTimers: () => live.size };
+  }
+
+  it('names its states', () => {
+    expect(RECRUIT_STATE).toEqual({
+      OPEN: 'open',
+      IDLE_PROMPT: 'idle_prompt',
+      FULL: 'full',
+      IDLE_STOPPED: 'idle_stopped',
+    });
+  });
+
+  it('does nothing before start or after stop', () => {
+    const timers = manualTimers();
+    const calls = [];
+    const recruitment = new Recruitment({
+      getOnlineCount: () => 1,
+      getCapacity: () => 1,
+      hasPendingJoins: () => false,
+      setAccepting: (a) => calls.push(a),
+      onChange: (s) => calls.push(s),
+      timers,
+      promptAfterMs: 10,
+      graceMs: 10,
+    });
+    recruitment.update();
+    recruitment.resume();
+    timers.advance(100);
+    expect(calls).toEqual([]);
+    recruitment.start();
+    expect(calls).toEqual([false, RECRUIT_STATE.FULL]);
+    recruitment.stop();
+    calls.length = 0;
+    recruitment.update();
+    recruitment.resume();
+    timers.advance(100);
+    expect(calls).toEqual([]);
+  });
+
+  it('keeps one idle wait however often it is re-evaluated', () => {
+    const { timers, recruitment, pendingTimers } = counted();
+    recruitment.update();
+    recruitment.update();
+    recruitment.update();
+    expect(pendingTimers()).toBe(0); // setup's start() armed it before counting began
+    timers.advance(1000);
+    expect(pendingTimers()).toBe(1); // the grace timer
+    recruitment.update();
+    expect(pendingTimers()).toBe(1);
+    timers.advance(100);
+    expect(recruitment.state).toBe(RECRUIT_STATE.IDLE_STOPPED);
+    recruitment.update();
+    expect(pendingTimers()).toBe(0);
+  });
+
+  it('restarts the idle wait from scratch after a short visit', () => {
+    const { timers, room, recruitment } = setup();
+    timers.advance(900);
+    room.online = 2;
+    recruitment.update();
+    timers.advance(50);
+    room.online = 1;
+    recruitment.update();
+    timers.advance(500); // the first wait would have ended here
+    expect(recruitment.state).toBe(RECRUIT_STATE.OPEN);
+    timers.advance(500);
+    expect(recruitment.state).toBe(RECRUIT_STATE.IDLE_PROMPT);
+  });
+
+  it('cancels the prompt when someone comes and goes during it', () => {
+    const { timers, room, recruitment } = setup();
+    timers.advance(1000);
+    room.online = 2;
+    recruitment.update();
+    room.online = 1;
+    recruitment.update();
+    timers.advance(100); // the first grace period would have ended here
+    expect(recruitment.state).toBe(RECRUIT_STATE.OPEN);
+    expect(room.accepting).toEqual([]);
+  });
+
+  it('does not stop when someone joined during the prompt without an update', () => {
+    const { timers, room, recruitment } = setup();
+    timers.advance(1000);
+    room.online = 2;
+    timers.advance(100);
+    expect(recruitment.state).toBe(RECRUIT_STATE.OPEN);
+  });
+
+  it('resume during the prompt starts the wait over', () => {
+    const { timers, room, recruitment } = setup();
+    timers.advance(1000);
+    recruitment.resume();
+    expect(recruitment.state).toBe(RECRUIT_STATE.OPEN);
+    timers.advance(999);
+    expect(recruitment.state).toBe(RECRUIT_STATE.OPEN);
+    timers.advance(1);
+    expect(room.states).toEqual([
+      RECRUIT_STATE.IDLE_PROMPT,
+      RECRUIT_STATE.OPEN,
+      RECRUIT_STATE.IDLE_PROMPT,
+    ]);
+  });
+
+  it('stop cancels a running prompt', () => {
+    const { timers, room, recruitment } = setup();
+    timers.advance(1000);
+    recruitment.stop();
+    timers.advance(1000);
+    expect(room.states).toEqual([RECRUIT_STATE.IDLE_PROMPT]);
+    expect(room.accepting).toEqual([]);
+  });
+
+  it('uses the configured times and the global timers by default', () => {
+    vi.useFakeTimers();
+    try {
+      const states = [];
+      const recruitment = new Recruitment({
+        getOnlineCount: () => 1,
+        getCapacity: () => 4,
+        hasPendingJoins: () => false,
+        setAccepting: () => {},
+        onChange: (s) => states.push(s),
+      });
+      recruitment.start();
+      vi.advanceTimersByTime(MULTIPLAYER_CONFIG.RECRUIT_IDLE_PROMPT_MS - 1);
+      expect(states).toEqual([]);
+      vi.advanceTimersByTime(1);
+      expect(states).toEqual([RECRUIT_STATE.IDLE_PROMPT]);
+      vi.advanceTimersByTime(MULTIPLAYER_CONFIG.RECRUIT_IDLE_GRACE_MS);
+      expect(states).toEqual([RECRUIT_STATE.IDLE_PROMPT, RECRUIT_STATE.IDLE_STOPPED]);
+      recruitment.stop();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
