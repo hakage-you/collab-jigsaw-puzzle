@@ -5,12 +5,14 @@
  */
 
 const MAX_ENTRIES = 200;
-const SENSITIVE_KEY_RE = /^(?:apiKey|passcode|password|reconnectToken|token|secret)$/i;
-const GOOGLE_KEY_RE = /AIza[0-9A-Za-z_-]{20,}/g;
-const QUERY_SECRET_RE =
-  /([?&](?:key|room|token|passcode|password|reconnectToken|secret)=)[^&#\s"'`]+/gi;
-/** Names whose values are secret in free text (`name=value`) and in JSON text (`"name": value`). */
+/**
+ * Names whose values are secret, wherever they appear: object keys, URL queries (`?name=`),
+ * free text (`name=value`) and JSON text (`"name": value`).
+ */
 const SECRET_NAMES = 'apiKey|passcode|password|reconnectToken|token|secret|room|key';
+const SENSITIVE_KEY_RE = new RegExp(`^(?:${SECRET_NAMES})$`, 'i');
+const GOOGLE_KEY_RE = /AIza[0-9A-Za-z_-]{20,}/g;
+const QUERY_SECRET_RE = new RegExp(`([?&](?:${SECRET_NAMES})=)[^&#\\s"'\`]+`, 'gi');
 const KV_SECRET_RE = new RegExp(`(?<![a-zA-Z0-9_])((?:${SECRET_NAMES})=)([^\\s&#"'\`]+)`, 'gi');
 const JSON_SECRET_RE = new RegExp(
   `("(?:${SECRET_NAMES})"\\s*:\\s*)("(?:[^"\\\\]|\\\\.)*"|[^\\s,}\\]]+)`,

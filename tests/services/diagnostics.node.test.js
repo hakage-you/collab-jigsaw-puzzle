@@ -60,6 +60,11 @@ describe('sanitizeText', () => {
     ['token= in free text', 'invalid token=abc', `invalid token=${R}`],
     ['key= in free text', 'key=abc', `key=${R}`],
     [
+      'apiKey in a query string',
+      'https://x.test/?apiKey=abc&n=1',
+      `https://x.test/?apiKey=${R}&n=1`,
+    ],
+    [
       'words that only start with a secret name',
       'tokenizer=a keyboard=b',
       'tokenizer=a keyboard=b',
@@ -92,7 +97,10 @@ describe('sanitizeMeta', () => {
       reconnectToken: { a: 1 },
       token: 't',
       secret: 's',
+      room: 'r',
+      Key: 'k',
       tokenizer: 'kept',
+      roomName: 'kept',
       url: 'https://x.test/?room=abc',
     };
     expect(sanitizeMeta(meta)).toEqual({
@@ -102,7 +110,10 @@ describe('sanitizeMeta', () => {
       reconnectToken: R,
       token: R,
       secret: R,
+      room: R,
+      Key: R,
       tokenizer: 'kept',
+      roomName: 'kept',
       url: `https://x.test/?room=${R}`,
     });
   });
