@@ -486,6 +486,31 @@ export class GameSession {
     await this.room.joinGuestRoom({ roomId, displayName, passcode });
   }
 
+  /** The id of the room this tab hosts or joined, or null in solo play. */
+  getRoomId() {
+    return this.room.roomId || null;
+  }
+
+  /** How many players are in the room now, this one included (1 in solo play). */
+  getOnlineCount() {
+    return this.room.getOnlineCount();
+  }
+
+  /** The room's players as in the participant list: { id, name, color, role, online, contrib }. */
+  getRoster() {
+    return this.room.roster.map((m) => ({ ...m }));
+  }
+
+  /** This player's id in the room ('host' for the host and in solo play). */
+  getMyPlayerId() {
+    return this.room.myPlayerId;
+  }
+
+  /** The id of the player holding a group (dragging it), or null when nobody is. */
+  getHolder(groupId) {
+    return this.room.groupLocks.get(groupId) ?? null;
+  }
+
   /** The room this tab last joined as a guest, or null. */
   getLastGuestJoin() {
     return this.lastGuestJoin || null;

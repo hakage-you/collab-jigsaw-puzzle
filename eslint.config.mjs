@@ -160,6 +160,33 @@ export default [
     },
   },
   {
+    // Acceptance tests are black-box: they drive GameSession's public methods and events only.
+    // Starting rooms, cutting connections and comparing boards go through tests/helpers/ drivers,
+    // the only test code allowed to reach inside (docs/architecture-guidelines.md, 4).
+    files: ['tests/acceptance/**/*.js'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '(^|/)src/(?!app/gameSession\\.js$|config/)',
+              message:
+                'Acceptance tests import only src/app/gameSession.js and src/config/; use a tests/helpers driver for the rest.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        ...['room', 'engine'].map((name) => ({
+          selector: `MemberExpression[property.name='${name}']`,
+          message: `GameSession.${name} is internal; observe it through a tests/helpers driver.`,
+        })),
+      ],
+    },
+  },
+  {
     // Measurements run scenarios one after another on purpose.
     files: ['measure/**/*.{js,mjs}'],
     rules: { 'no-await-in-loop': 'off' },

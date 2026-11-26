@@ -27,7 +27,7 @@ export async function startHost({
   host.patchSettings({ ...SMALL_PUZZLE, ...puzzle });
   host.startNewPuzzle();
   await host.startHostRoom({ displayName: name, passcode, requireApproval, capacity });
-  return { host, roomId: host.room.roomId };
+  return { host, roomId: host.getRoomId() };
 }
 
 /**
@@ -64,6 +64,14 @@ export function waitForConvergence(apps, { timeout = 3000 } = {}) {
     },
     { timeout, message: 'boards did not converge' },
   );
+}
+
+/**
+ * Cuts a session's connection the way a dropped network would: no goodbye is sent, the
+ * other side only notices the transport closing.
+ */
+export function dropConnection(app) {
+  app.room.close();
 }
 
 /** Closes every session created by these helpers. Call from afterEach. */
