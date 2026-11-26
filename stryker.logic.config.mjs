@@ -9,14 +9,19 @@ export default {
   mutate: [
     'src/app/ojamaNotice.js',
     'src/app/ojamaRules.js',
+    'src/app/ojamaSession.js',
+    'src/app/sessionRestore.js',
     'src/app/timedOjama.js',
+    'src/app/timedOjamaRunner.js',
     'src/net/guestMessageGuard.js',
+    'src/net/guestSyncHandlers.js',
     'src/net/heartbeat.js',
     'src/net/hostAdmission.js',
     'src/net/hostBoardOps.js',
     'src/net/hostMessageGuard.js',
     'src/net/hostSyncHelper.js',
     'src/net/messageFieldChecks.js',
+    'src/net/protocol.js',
     'src/net/recruitment.js',
     'src/net/runawayHost.js',
     'src/render/effects/pieceMotion.js',
@@ -26,6 +31,6 @@ export default {
   ],
   htmlReporter: { fileName: 'reports/mutation/logic.html' },
   incrementalFile: 'reports/stryker-incremental-logic.json',
-  // Same thresholds as core. The score was 91.2% on 2026-11-26.
+  // Same thresholds as core. The score was 90.3% on 2026-11-26.
   thresholds: { high: 90, low: 80, break: 85 },
 };
