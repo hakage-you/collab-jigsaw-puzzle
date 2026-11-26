@@ -9,8 +9,13 @@ const SENSITIVE_KEY_RE = /^(?:apiKey|passcode|password|reconnectToken|token|secr
 const GOOGLE_KEY_RE = /AIza[0-9A-Za-z_-]{20,}/g;
 const QUERY_SECRET_RE =
   /([?&](?:key|room|token|passcode|password|reconnectToken|secret)=)[^&#\s"'`]+/gi;
-const KV_SECRET_RE =
-  /(?<![a-zA-Z0-9_])((?:apiKey|passcode|password|reconnectToken|secret|room)=)([^\s&#"'`]+)/gi;
+/** Names whose values are secret in free text (`name=value`) and in JSON text (`"name": value`). */
+const SECRET_NAMES = 'apiKey|passcode|password|reconnectToken|token|secret|room|key';
+const KV_SECRET_RE = new RegExp(`(?<![a-zA-Z0-9_])((?:${SECRET_NAMES})=)([^\\s&#"'\`]+)`, 'gi');
+const JSON_SECRET_RE = new RegExp(
+  `("(?:${SECRET_NAMES})"\\s*:\\s*)("(?:[^"\\\\]|\\\\.)*"|[^\\s,}\\]]+)`,
+  'gi',
+);
 const DATA_IMAGE_RE = /data:image\/[^\s"'`]+/gi;
 
 const entries = [];
@@ -29,6 +34,7 @@ export function sanitizeText(value) {
   text = text.replace(GOOGLE_KEY_RE, '[REDACTED]');
   text = text.replace(QUERY_SECRET_RE, '$1[REDACTED]');
   text = text.replace(KV_SECRET_RE, '$1[REDACTED]');
+  text = text.replace(JSON_SECRET_RE, '$1"[REDACTED]"');
   if (text.length > 1000) {
     text = `${text.slice(0, 1000)}…[truncated]`;
   }

@@ -55,11 +55,26 @@ describe('sanitizeText', () => {
     expect(sanitizeText(input)).toBe(expected);
   });
 
-  // Known gap (2026-11-26): in free text only reconnectToken= is masked, not token= or key=
-  // (they are masked as object keys and in query strings). README promises tokens are masked.
-  it.skip('masks token= and key= in free text', () => {
-    expect(sanitizeText('invalid token=abc')).toBe(`invalid token=${R}`);
-    expect(sanitizeText('key=abc')).toBe(`key=${R}`);
+  // Fixed 2026-11-26: token= and key= in free text, and secrets in JSON text, used to slip through.
+  it.each([
+    ['token= in free text', 'invalid token=abc', `invalid token=${R}`],
+    ['key= in free text', 'key=abc', `key=${R}`],
+    [
+      'words that only start with a secret name',
+      'tokenizer=a keyboard=b',
+      'tokenizer=a keyboard=b',
+    ],
+    [
+      'secrets in JSON text',
+      '{"token":"abc","passcode":"1234","name":"bob"}',
+      `{"token":"${R}","passcode":"${R}","name":"bob"}`,
+    ],
+    ['a JSON number, with spaces', '{"passcode" : 1234, "n": 1}', `{"passcode" : "${R}", "n": 1}`],
+    ['a JSON string with escaped quotes', '{"secret":"a\\"b","x":1}', `{"secret":"${R}","x":1}`],
+    ['JSON names in any case', '{"ROOM":"abc","apikey":"k"}', `{"ROOM":"${R}","apikey":"${R}"}`],
+    ['a JSON name that only contains a secret name', '{"tokenizer":"a"}', '{"tokenizer":"a"}'],
+  ])('masks %s', (_, input, expected) => {
+    expect(sanitizeText(input)).toBe(expected);
   });
 
   it('cuts text after 1000 characters', () => {
