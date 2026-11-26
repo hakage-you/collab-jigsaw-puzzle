@@ -31,6 +31,7 @@ npm run lint
 npm run format   # Prettier で自動整形
 npm test         # Vitest でテスト（*.node.test.js は Node、ほかはヘッドレス Chromium）
 npm run test:mutation  # src/core のミューテーションテスト（Stryker。不定期・手動。結果は reports/mutation/core.html）
+npm run test:mutation:logic  # core 以外のブラウザ非依存ロジック（同上。結果は reports/mutation/logic.html）
 npm run test:coverage  # カバレッジ（必要なときだけ。結果は reports/coverage/index.html）
 npm run measure  # 通信量・API 消費・配信サイズ・端末負荷を計測して measure/history.jsonl に記録
 ```
