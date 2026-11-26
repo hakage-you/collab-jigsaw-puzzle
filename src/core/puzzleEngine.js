@@ -188,9 +188,7 @@ export class PuzzleEngine {
     this.cols = clamped.cols;
     this.rows = clamped.rows;
     this.seed = pInfo.seed;
-    this.cutComplexity = normalizeCutComplexity(
-      pInfo.cutComplexity || saveData.settings?.cutComplexity,
-    );
+    this.cutComplexity = normalizeCutComplexity(pInfo.cutComplexity);
     this._computeGeometry();
   }
 

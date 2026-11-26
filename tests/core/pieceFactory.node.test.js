@@ -231,11 +231,11 @@ describe('restoring a save', () => {
     expect(restore(save).stats.ojamaBreakdown.heavy).toBe(0);
   });
 
-  it('takes the cut from the save, or from its settings for old saves', () => {
+  it('takes the cut from the save header only; without one it is the standard cut', () => {
     const save = saveOf(createEngine({ cutComplexity: 'complex' }));
     expect(restore(save).cutComplexity).toBe('complex');
     delete save.puzzle.cutComplexity;
     save.settings = { cutComplexity: 'uniform' };
-    expect(restore(save).cutComplexity).toBe('uniform');
+    expect(restore(save).cutComplexity).toBe('standard');
   });
 });

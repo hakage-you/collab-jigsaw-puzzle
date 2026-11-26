@@ -239,10 +239,6 @@ export class RoomController {
     if (this.role === 'host') this.hostSession.broadcastFullState();
   }
 
-  _buildRosterList() {
-    return this.hostSession.buildRosterList();
-  }
-
   updateHostName() {
     if (this.role === 'host') this.hostSession.syncRoster();
   }

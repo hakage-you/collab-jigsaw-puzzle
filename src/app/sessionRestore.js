@@ -1,4 +1,3 @@
-import { normalizeCutComplexity } from '../core/jigsawPath.js';
 import { validateSaveData } from '../core/saveValidation.js';
 import {
   generateSampleImageCanvas,
@@ -28,9 +27,8 @@ function buildRestoredSettingsPatch(saveData, currentOjama) {
   if (!saveData.settings) return null;
   return {
     ...saveData.settings,
-    cutComplexity: normalizeCutComplexity(
-      saveData.puzzle?.cutComplexity || saveData.settings.cutComplexity,
-    ),
+    // Validation has already filled in and normalized the cut in the puzzle header.
+    cutComplexity: saveData.puzzle.cutComplexity,
     ojama: {
       ...currentOjama,
       ...(saveData.settings.ojama || {}),

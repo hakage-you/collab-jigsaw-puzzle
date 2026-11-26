@@ -100,8 +100,8 @@ describe('restoreSessionFromSave', () => {
   });
 
   it('restores a save without a cut in its header as the standard cut', () => {
-    // Validation fills in 'standard', so the fallback to settings.cutComplexity in
-    // sessionRestore never runs (every save since the first release has the cut in its header).
+    // Validation fills in 'standard'; the cut in the settings is not used (every save since the
+    // first release has the cut in its header).
     const { session, log } = fakeSession();
     const { save } = gameSave();
     delete save.puzzle.cutComplexity;
