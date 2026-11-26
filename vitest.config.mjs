@@ -6,14 +6,25 @@ import { playwright } from '@vitest/browser-playwright';
 // tests/helpers/coreEngine.js).
 const NODE_TESTS = 'tests/**/*.node.test.js';
 
+// A test without a single assertion fails (tests/helpers/wait.js counts a successful wait as one).
+const EXPECT = { requireAssertions: true };
+
 export default defineConfig({
   test: {
+    // npm run test:coverage only (not npm test): which src lines the tests run at all.
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.js'],
+      reporter: ['text-summary', 'html', 'json-summary'],
+      reportsDirectory: 'reports/coverage',
+    },
     projects: [
       {
         test: {
           name: 'node',
           environment: 'node',
           include: [NODE_TESTS],
+          expect: EXPECT,
         },
       },
       {
@@ -23,6 +34,7 @@ export default defineConfig({
           name: 'browser',
           include: ['tests/**/*.test.js'],
           exclude: [...configDefaults.exclude, NODE_TESTS],
+          expect: EXPECT,
           browser: {
             enabled: true,
             headless: true,

@@ -1,10 +1,18 @@
-/** Polls `predicate` until it returns a truthy value or the timeout expires. */
+import { expect } from 'vitest';
+
+/**
+ * Polls `predicate` until it returns a truthy value or the timeout expires. A wait that succeeds
+ * counts as an assertion (expect.requireAssertions in vitest.config.mjs): the wait is the check.
+ */
 export async function waitFor(predicate, { timeout = 3000, interval = 10, message = '' } = {}) {
   const start = performance.now();
   /* eslint-disable no-await-in-loop -- polling must be sequential */
   for (;;) {
     const value = await predicate();
-    if (value) return value;
+    if (value) {
+      expect(value, message || 'waitFor').toBeTruthy();
+      return value;
+    }
     if (performance.now() - start > timeout) {
       throw new Error(`waitFor timed out after ${timeout}ms${message ? `: ${message}` : ''}`);
     }

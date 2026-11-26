@@ -6,5 +6,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.node.test.js'],
+    expect: { requireAssertions: true },
   },
 });
