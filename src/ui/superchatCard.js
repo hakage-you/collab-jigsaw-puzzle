@@ -9,7 +9,6 @@ import { clickSpot, stageSpot } from './stageSpot.js';
 export class SuperchatCard {
   constructor({ app, showToast }) {
     this.app = app;
-    this.room = app.room;
     this.showToast = showToast;
     this.timerId = null;
     this.remaining = 0;
@@ -39,7 +38,7 @@ export class SuperchatCard {
     sound.playTick('ojama');
 
     // The host gets the new HP back (or null); a guest's hit is only sent, and the HP comes back.
-    const nextHp = this.room.submitSuperchatHit();
+    const nextHp = this.app.hitSuperchat();
     if (typeof nextHp === 'number') this.applyHp(nextHp, this.maxHp);
   }
 

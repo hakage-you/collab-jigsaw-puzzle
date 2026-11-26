@@ -32,12 +32,9 @@ import {
   normalizeSampleImageId,
 } from '../services/sampleImage.js';
 import { RoomController } from '../net/roomController.js';
+import { OjamaSession } from './ojamaSession.js';
 import { createRoomCallbacks } from './roomCallbacks.js';
-import {
-  buildRestoredSettingsPatch,
-  resolveRestoredImage,
-  validateSaveOrToast,
-} from './sessionRestore.js';
+import { restoreSessionFromSave, resumeHostSessionFromBackup } from './sessionRestore.js';
 
 export class GameSession {
   constructor({ initialSampleId = DEFAULT_SAMPLE_IMAGE_ID } = {}) {
@@ -75,6 +72,8 @@ export class GameSession {
       }),
       callbacks: createRoomCallbacks(this),
     });
+    /** The ojama use cases (runOjama, clearAllOjama). */
+    this._ojama = new OjamaSession(this);
   }
 
   on(event, handler) {
@@ -272,26 +271,7 @@ export class GameSession {
   }
 
   restoreFromSaveData(rawSaveData, customCanvas, useSample, imgName) {
-    const saveData = validateSaveOrToast(this, rawSaveData);
-    if (!saveData) return;
-    const {
-      canvas: srcCanvas,
-      name: baseName,
-      sampleId,
-    } = resolveRestoredImage(saveData, customCanvas, useSample, imgName || 'ローカル画像（復元）');
-    if (!srcCanvas) return;
-    const resolvedName = useSample ? `${baseName}（復元）` : baseName;
-    const settingsPatch = buildRestoredSettingsPatch(saveData, this.settings.ojama);
-    if (settingsPatch) this.patchSettings(settingsPatch);
-
-    this.engine.restoreFromSave(saveData, srcCanvas, useSample);
-    this.room.applySavedContributions(saveData.contributions, this.engine.stats.placedCount);
-    this._replaceSourceImage(srcCanvas, resolvedName, useSample, sampleId);
-    this.highlightFilter = 'all';
-    this.emit('puzzleReset', { ...this.sourceImage, resetEffects: true, fitView: true });
-    this.emit('hudUpdate');
-    if (this.room.role === 'host') this.room.broadcastFullState();
-    this.emit('toast', { message: 'セーブデータからパズルを復元しました', kind: 'success' });
+    restoreSessionFromSave(this, rawSaveData, customCanvas, useSample, imgName);
   }
 
   // ---------- Sorting & Highlighting ----------
@@ -445,6 +425,28 @@ export class GameSession {
     this.emit('renderNeeded');
   }
 
+  // ---------- Ojama ----------
+
+  /**
+   * Sets off one ojama now (host or solo): 'drop', 'prank', 'fake', 'visual', 'ghost',
+   * 'superchat', 'heavy', 'runaway' or 'random'. `author` set it off (a viewer, or null); `text`
+   * is the superchat's message, `options` its { amountDisplay, tier, scaleHpWithTier }. True when
+   * it went off: then 'ojamaTriggered' { type, author, ... } is emitted and the guests are told.
+   */
+  runOjama(type, author = null, text = null, options = {}) {
+    return this._ojama.run(type, author, text, options);
+  }
+
+  /** Ends every ojama on the board now (the test palette's "すべて消す"), also for the guests. */
+  clearAllOjama() {
+    this._ojama.clearAll();
+  }
+
+  /** One hit on the giant superchat: the new HP on the host or solo, nothing on a guest. */
+  hitSuperchat() {
+    return this.room.submitSuperchatHit();
+  }
+
   // ---------- Multiplayer & Lobby ----------
 
   shouldWarnBeforeUnload() {
@@ -472,26 +474,9 @@ export class GameSession {
     this._resetLobbyState();
   }
 
-  async resumeHostFromBackup(
-    rawBackup,
-    imgCanvas,
-    isSample,
-    { displayName, passcode, requireApproval, capacity },
-  ) {
-    const backup = validateSaveOrToast(this, rawBackup);
-    if (!backup) return;
-    this.emit('stopYoutubePolling', { reason: null });
-    const nameFallback = imgCanvas?._fileName || backup.puzzle?.imageName || '復元画像';
-    const restored = resolveRestoredImage(backup, imgCanvas, isSample, nameFallback);
-    this.engine.restoreFromSave(backup, restored.canvas, isSample);
-    this.room.applySavedContributions(backup.contributions, this.engine.stats.placedCount);
-    this.patchSettings({ ...(backup.settings || {}), playerName: displayName });
-    this._replaceSourceImage(restored.canvas, restored.name, isSample, restored.sampleId);
-    this.highlightFilter = 'all';
-    this.emit('puzzleReset', { ...this.sourceImage, resetEffects: true, fitView: true });
-    await this.room.startHostRoom({ passcode, requireApproval, capacity });
-    this._resetLobbyState();
-    this.emit('toast', { message: '自動バックアップから部屋を再開しました', kind: 'success' });
+  /** `room`: { displayName, passcode, requireApproval, capacity } of the reopened room. */
+  resumeHostFromBackup(rawBackup, imgCanvas, isSample, room) {
+    return resumeHostSessionFromBackup(this, rawBackup, imgCanvas, isSample, room);
   }
 
   async joinGuestRoom({ roomId, displayName, passcode }) {
@@ -531,6 +516,17 @@ export class GameSession {
     const req = this.knockQueue.shift();
     this.emit('knockChange', [...this.knockQueue]);
     if (req) this.room.rejectKnock(req.connId);
+  }
+
+  /** Host: sends a guest out of the room. */
+  kickGuest(playerId) {
+    this.room.kickGuest(playerId);
+  }
+
+  /** Renames this player (the host's new name reaches the guests). */
+  setHostName(name) {
+    this.patchSettings({ playerName: name });
+    this.room.updateHostName();
   }
 
   _emitRoleChange() {

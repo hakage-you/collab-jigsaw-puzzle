@@ -1,27 +1,28 @@
-import { OJAMA_CONFIG, YOUTUBE_CONFIG } from '../config/constants.js';
+import { OJAMA_CONFIG } from '../config/constants.js';
 import { withTriggerName } from '../app/ojamaNotice.js';
-import { decideCommentOjama, pickRandomOjama } from '../app/ojamaRules.js';
+import { COMPLETED_NOTICE, decideCommentOjama } from '../app/ojamaRules.js';
 import { sound } from '../services/sound.js';
 import { CpuAutoCommentController } from './cpuAutoCommentController.js';
 import { OjamaStickers } from './ojamaStickers.js';
 import { SuperchatCard } from './superchatCard.js';
 import { TimedOjamaController, syncOjamaVignette } from './timedOjamaController.js';
 
+/**
+ * How the ojama look and sound: visual effects over the board, stickers, the superchat card, the
+ * comment log. Setting one off is GameSession's (runOjama / clearAllOjama); this shows what it
+ * reports ('ojamaTriggered', 'ojamaCleared', and the guests' remote events).
+ */
 export class OjamaController {
-  constructor({ app, updateHUD, requestRender, setGhostPiecesActive = null, showToast }) {
+  constructor({ app, setGhostPiecesActive = null, showToast }) {
     this.app = app;
-    this.engine = app.engine;
     this.room = app.room;
     this.canvas = document.getElementById('puzzleCanvas');
     this.getSettings = () => app.getSettings();
-    this.updateHUD = updateHUD;
-    this.requestRender = requestRender;
     this.setGhostPiecesActive = setGhostPiecesActive || (() => {});
     this.showToast = showToast;
 
     this.visualSabotageTimerId = null;
     this.visualSabotageRemaining = 0;
-    this.fakeCleanupTimerId = null;
     this.lastOjamaTime = 0;
     this.commentCounter = 0;
     /** author -> when their keyword last set off an ojama (for the per-viewer wait). */
@@ -70,12 +71,30 @@ export class OjamaController {
     this.app.on('settingsChange', (s) => this.syncSettings(s));
     this.app.on('puzzleComplete', () => this.clearAllOnComplete());
     this.app.on('puzzleReset', () => this.clearAllOnComplete());
+    this.app.on('ojamaTriggered', (e) => this._showTriggered(e));
+    this.app.on('ojamaCleared', () => {
+      this.clearVisualSabotage();
+      this.superchat.dismiss();
+    });
     this.app.on('remoteVisualOjama', ({ visualType, duration }) =>
       this.applyVisualEffect(visualType, duration),
     );
-    this.app.on('remoteVisualClear', () => this.clearVisualSabotage(false));
+    this.app.on('remoteVisualClear', () => this.clearVisualSabotage());
     // A guest: the host's notice of an ojama it set off (never with a name).
     this.app.on('ojamaNotice', (notice) => this.stickers.show(notice));
+  }
+
+  /** An ojama set off on this screen: its sound and sticker, or its effect over the board. */
+  _showTriggered({ type, author, text, visualType, duration, superchat }) {
+    if (type === 'drop' || type === 'prank' || type === 'fake') {
+      sound.playOjama();
+      this._announce(type, text, author);
+    } else if (type === 'visual' || type === 'ghost') {
+      this.applyVisualEffect(visualType, duration, author);
+    } else if (type === 'superchat') {
+      this.superchat.show(superchat);
+    }
+    // Heavy and runaway: their notice comes with 'timedOjamaChange' (TimedOjamaController).
   }
 
   /**
@@ -107,7 +126,7 @@ export class OjamaController {
     this._bindNameKey();
     document
       .getElementById('btnClearOjamaEffects')
-      ?.addEventListener('click', () => this.clearAllEffects());
+      ?.addEventListener('click', () => this.app.clearAllOjama());
     // The test palette's ojama buttons (data-ojama-test="drop" etc.).
     for (const btn of document.querySelectorAll('[data-ojama-test]')) {
       btn.addEventListener('click', () => this.runOjama(btn.dataset.ojamaTest));
@@ -153,7 +172,8 @@ export class OjamaController {
       settings.ojama.commentCountOn === false ? 'オフ' : `${this.commentCounter} / ${threshold}`;
   }
 
-  clearVisualSabotage(broadcast = false) {
+  /** Takes the visual ojama off this screen (its own timer ran out, or it was cleared). */
+  clearVisualSabotage() {
     if (this.visualSabotageTimerId) {
       clearInterval(this.visualSabotageTimerId);
       this.visualSabotageTimerId = null;
@@ -168,88 +188,26 @@ export class OjamaController {
     this.elSpotlight.classList.add('hidden');
     this.elVisualBanner.classList.add('hidden');
     syncOjamaVignette({ visual: '' });
-    if (broadcast && this.room.role === 'host') {
-      this.room.broadcastVisualClear();
-    }
-  }
-
-  _stopFakeCleanupTimer() {
-    if (this.fakeCleanupTimerId) {
-      clearInterval(this.fakeCleanupTimerId);
-      this.fakeCleanupTimerId = null;
-    }
-  }
-
-  _ensureFakeCleanupTimer() {
-    if (this.fakeCleanupTimerId) return;
-    this.fakeCleanupTimerId = setInterval(() => {
-      if (this.engine.pruneExpiredFakePieces()) {
-        this.requestRender();
-        if (this.room.role === 'host') {
-          this.room.broadcastFakePieces();
-        }
-      }
-      if (!this.engine.fakePieces.some((fp) => fp.expiresAt > 0)) {
-        this._stopFakeCleanupTimer();
-      }
-    }, 1000);
-  }
-
-  /** The test palette's "すべて消す": ends every ojama on the board now (also for the guests). */
-  clearAllEffects() {
-    this.clearVisualSabotage(true);
-    this.superchat.dismiss();
-    this.timed.stopAll();
-    this._stopFakeCleanupTimer();
-    if (this.engine.clearFakePieces()) {
-      this.requestRender();
-      if (this.room.role === 'host') this.room.broadcastFakePieces();
-    }
-    this.updateHUD();
   }
 
   clearAllOnComplete() {
-    this.clearVisualSabotage(false);
+    this.clearVisualSabotage();
     this.superchat.dismiss();
     this.stopAutoComments();
-    this._stopFakeCleanupTimer();
-    if (this.engine.clearFakePieces()) {
-      this.requestRender();
-    }
   }
 
+  /** Before the CPU's comments start: none once the puzzle is done. */
   guardIfCompleted() {
-    if (this.engine.isCompleted()) {
-      this.showToast('パズル完成済みのためお邪魔は発動しません', 'info');
+    if (this.app.engine.isCompleted()) {
+      this.showToast(COMPLETED_NOTICE, 'info');
       return true;
     }
     return false;
   }
 
-  triggerDropOjama(author = null) {
-    if (this.guardIfCompleted()) return false;
-    const count = Math.max(
-      1,
-      this.getSettings().ojama.dropCount || OJAMA_CONFIG.DEFAULT_DROP_COUNT,
-    );
-    const dropped = this.engine.dropLockedPieces(count, this.app.getAllowRotation());
-    if (dropped.length === 0) {
-      this.showToast('台紙にはまっているピースがまだありません', 'info');
-      return false;
-    }
-    sound.playOjama();
-    this.app.emit('ojamaDropEffect', { pieces: dropped });
-    this.updateHUD();
-    this.requestRender();
-    const msg = `ピースが${dropped.length}個、ポロッと外れてしまった！`;
-    this._announce('drop', msg, author);
-    this.room.broadcastPhysicalOjama(msg, dropped, 'ojama_drop', 'drop');
-    return true;
-  }
-
   /** Turns a visual ojama on; `author` set it off (null on a guest's screen). */
   applyVisualEffect(chosen, durationSec, author = null) {
-    this.clearVisualSabotage(false);
+    this.clearVisualSabotage();
     const labelMap = {
       grayscale: 'モノクロ視覚妨害',
       sepia: 'セピア視覚妨害',
@@ -288,57 +246,11 @@ export class OjamaController {
     this.visualSabotageTimerId = setInterval(() => {
       this.visualSabotageRemaining -= 0.2;
       if (this.visualSabotageRemaining <= 0) {
-        this.clearVisualSabotage(false);
+        this.clearVisualSabotage();
       } else {
         this.elVisualTimer.textContent = `${this.visualSabotageRemaining.toFixed(1)}s`;
       }
     }, 200);
-  }
-
-  triggerVisualOjama(forcedType = null, author = null) {
-    if (this.guardIfCompleted()) return false;
-    const o = this.getSettings().ojama;
-    // Ghost pieces are their own ojama now; the visual one picks among the colour/light kinds.
-    const types = ['grayscale', 'sepia', 'hue', 'spotlight', 'mist'];
-    const wanted = forcedType || o.visualType;
-    const chosen =
-      wanted === 'ghost' && forcedType
-        ? 'ghost'
-        : types.includes(wanted)
-          ? wanted
-          : types[Math.floor(Math.random() * types.length)];
-
-    const duration = chosen === 'ghost' ? (o.ghostDuration ?? o.visualDuration) : o.visualDuration;
-    this.engine.recordVisualOjama();
-    this.updateHUD();
-    this.applyVisualEffect(chosen, duration, author);
-    this.room.broadcastVisualOjama(chosen, duration);
-    return true;
-  }
-
-  triggerSuperchatOjama(customText = null, customAuthor = null, options = {}) {
-    if (this.guardIfCompleted()) return false;
-    const sampleMsgs = [
-      '完成させるな！中央をブロック中',
-      '赤スパで視界ジャック！連打で退治してね',
-      'そろそろピース外れちゃうかもよ？',
-    ];
-    const author = customAuthor || '視聴者（お邪魔枠）';
-    const message = customText || sampleMsgs[Math.floor(Math.random() * sampleMsgs.length)];
-    const amountDisplay = options.amountDisplay || '¥10,000';
-    let maxHp = this.room.computeSuperchatMaxHp();
-    if (options.scaleHpWithTier && Number(options.tier) > 1) {
-      const clampedTier = Math.min(7, Math.max(1, Number(options.tier)));
-      maxHp += (clampedTier - 1) * YOUTUBE_CONFIG.SUPERCHAT_TIER_HP_BONUS;
-    }
-    const duration =
-      this.getSettings().ojama.superchatDuration ?? OJAMA_CONFIG.DEFAULT_SUPERCHAT_DURATION_SEC;
-
-    this.engine.recordSuperchatOjama();
-    this.updateHUD();
-    this.room.broadcastSuperchatStart({ maxHp, duration, author, message, amountDisplay });
-    this.superchat.show({ maxHp, duration, author, message, amountDisplay });
-    return true;
   }
 
   processYouTubeSuperchat({ author, amountDisplay, message, tier }) {
@@ -358,103 +270,16 @@ export class OjamaController {
     this.elMiniChatLog.scrollTop = this.elMiniChatLog.scrollHeight;
     if (!on) return;
 
-    this.triggerSuperchatOjama(message || `${amountDisplay} スパチャでブロック中！`, author, {
+    this.app.runOjama('superchat', author, message || `${amountDisplay} スパチャでブロック中！`, {
       amountDisplay,
       tier,
       scaleHpWithTier: o.superchatScaleByTier !== false,
     });
   }
 
-  triggerPrankOjama(author = null) {
-    if (this.guardIfCompleted()) return false;
-    const excluded = this.room.getLockedGroupIds();
-    const before = this.engine.turnStates();
-    const count = this.getSettings().ojama.prankCount ?? OJAMA_CONFIG.PRANK_DEFAULT_COUNT;
-    const changed = this.engine.prankLoosePieces(count, excluded);
-    if (changed.length === 0) {
-      this.showToast('動かせる未配置ピースがありません', 'info');
-      return false;
-    }
-    sound.playOjama();
-    this.updateHUD();
-    this.requestRender();
-    this.app.emit('ojamaPrankEffect', { pieces: changed, before });
-    const msg = `ピース${changed.length}個がくるりと回転した！`;
-    this._announce('prank', msg, author);
-    this.room.broadcastPhysicalOjama(msg, changed, 'ojama_prank', 'prank');
-    return true;
-  }
-
-  triggerFakePiecesOjama(author = null) {
-    if (this.guardIfCompleted()) return false;
-    const o = this.getSettings().ojama || {};
-    const durationSec = o.fakeDuration ?? OJAMA_CONFIG.FAKE_PIECE_DURATION_SEC;
-    const maxCount = o.fakeMaxCount ?? OJAMA_CONFIG.FAKE_PIECE_MAX_COUNT;
-    const added = this.engine.addFakePieces(
-      o.fakeAddCount ?? OJAMA_CONFIG.FAKE_PIECE_ADD_COUNT,
-      durationSec,
-      this.app.getAllowRotation(),
-      this.app.getAllowFlip(),
-      maxCount,
-    );
-    if (added.length === 0) return false;
-    if (durationSec > 0) {
-      this._ensureFakeCleanupTimer();
-    }
-    sound.playOjama();
-    this.updateHUD();
-    this.requestRender();
-    const detail = durationSec > 0 ? `${durationSec}秒で消滅` : `消失なし・上限${maxCount}個`;
-    const msg = `ニセモノのピースが${added.length}個まぎれ込んだ！（${detail}）`;
-    this._announce('fake', msg, author);
-    this.room.broadcastFakePieces(msg);
-    return true;
-  }
-
-  /** Heavy ('heavy') or runaway ('runaway') pieces for a while (host or solo). */
-  triggerTimedOjama(kind, author = null) {
-    if (this.guardIfCompleted()) return false;
-    this.timed.start(kind, author);
-    this.updateHUD();
-    return true;
-  }
-
-  /** A random ojama among the types in use and in the random pool (settings). */
-  triggerRandomOjama(author = null) {
-    const pick = pickRandomOjama({
-      ojama: this.getSettings().ojama,
-      hasLocked: this.engine.getLockedCount() > 0,
-    });
-    if (!pick) {
-      this.showToast('ランダム発動の対象がありません', 'info');
-      return false;
-    }
-    return this.runOjama(pick, author);
-  }
-
   /** Sets off one ojama type now (keywords, random, the test palette, "今すぐ出す"). */
   runOjama(action, author = null, text = null) {
-    switch (action) {
-      case 'drop':
-        return this.triggerDropOjama(author);
-      case 'ghost':
-        return this.triggerVisualOjama('ghost', author);
-      case 'fake':
-        return this.triggerFakePiecesOjama(author);
-      case 'visual':
-        return this.triggerVisualOjama(null, author);
-      case 'prank':
-        return this.triggerPrankOjama(author);
-      case 'superchat':
-        return this.triggerSuperchatOjama(text, author);
-      case 'heavy':
-      case 'runaway':
-        return this.triggerTimedOjama(action, author);
-      case 'random':
-        return this.triggerRandomOjama(author);
-      default:
-        return false;
-    }
+    return this.app.runOjama(action, author, text);
   }
 
   processIncomingComment(author, text) {
@@ -464,7 +289,7 @@ export class OjamaController {
       settings: this.getSettings(),
       now,
       state: { commentCounter: this.commentCounter, lastOjamaTime: this.lastOjamaTime },
-      isCompleted: this.engine.isCompleted(),
+      isCompleted: this.app.engine.isCompleted(),
       viewerLastTime: this.viewerLastTimes.get(author) ?? null,
     });
     this.commentCounter = nextState.commentCounter;

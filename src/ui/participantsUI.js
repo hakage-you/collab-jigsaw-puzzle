@@ -115,10 +115,7 @@ export class ParticipantsUI {
     });
 
     this.elInputPlayerName.addEventListener('input', () => {
-      this.app.patchSettings({
-        playerName: this.elInputPlayerName.value.trim() || 'ホスト（自分）',
-      });
-      this.room.updateHostName();
+      this.app.setHostName(this.elInputPlayerName.value.trim() || 'ホスト（自分）');
     });
 
     document.getElementById('btnCopyInviteUrl').addEventListener('click', async () => {
@@ -258,7 +255,7 @@ export class ParticipantsUI {
         kickBtn.className = 'btn btn-xs btn-ghost';
         kickBtn.textContent = '退出';
         kickBtn.addEventListener('click', () => {
-          this.room.kickGuest(m.id);
+          this.app.kickGuest(m.id);
         });
         li.appendChild(kickBtn);
       }

@@ -118,8 +118,6 @@ function boot() {
 
   const ojama = new OjamaController({
     app,
-    updateHUD: () => topbarUI.updateHUD(),
-    requestRender: () => renderer.requestRender(),
     setGhostPiecesActive: (active) => renderer.viewState.setGhostPiecesActive(active),
     showToast,
   });

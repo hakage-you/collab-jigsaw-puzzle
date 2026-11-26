@@ -1,5 +1,5 @@
 // Pure comment -> interference decision logic. No DOM, no timers, no side effects.
-// The UI layer (src/ui/ojamaController.js) executes the returned action.
+// The UI layer (src/ui/ojamaController.js) passes the returned action to GameSession.runOjama.
 import { OJAMA_CONFIG } from '../config/constants.js';
 
 export const COMPLETED_NOTICE = 'パズル完成済みのためお邪魔は発動しません';
