@@ -12,8 +12,8 @@ export default {
   // `npx stryker run --force` once: mutants of module-level constants keep stale results otherwise.
   incremental: true,
   incrementalFile: 'reports/stryker-incremental.json',
-  // Record only for now; break is decided after the first baseline.
-  thresholds: { high: 80, low: 60, break: null },
+  // The score was 91.9% on 2026-11-26. Below 85 the run fails: code without real tests came in.
+  thresholds: { high: 90, low: 80, break: 85 },
   tempDirName: '.stryker-tmp',
   // Keep the sandbox copy small: the Node tests need only src, tests and the configs.
   ignorePatterns: [
