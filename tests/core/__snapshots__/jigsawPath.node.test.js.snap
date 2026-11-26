@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`piece shapes (golden) > complex cut of a fixed seed 1`] = `
+{
+  "commands": 350,
+  "hash": "2a0d439d",
+}
+`;
+
+exports[`piece shapes (golden) > standard cut of a fixed seed 1`] = `
+{
+  "commands": 286,
+  "hash": "c0af4c00",
+}
+`;
+
+exports[`piece shapes (golden) > uniform cut of a fixed seed 1`] = `
+{
+  "commands": 286,
+  "hash": "e709693a",
+}
+`;

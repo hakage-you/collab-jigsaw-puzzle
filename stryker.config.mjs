@@ -8,7 +8,8 @@ export default {
   vitest: { configFile: 'vitest.mutation.config.mjs' },
   reporters: ['html', 'clear-text', 'progress'],
   htmlReporter: { fileName: 'reports/mutation/core.html' },
-  // Later runs re-test only mutants whose code or covering tests changed.
+  // Later runs re-test only mutants whose code or covering tests changed. After adding tests, run
+  // `npx stryker run --force` once: mutants of module-level constants keep stale results otherwise.
   incremental: true,
   incrementalFile: 'reports/stryker-incremental.json',
   // Record only for now; break is decided after the first baseline.
