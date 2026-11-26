@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PUZZLE_CONFIG } from '../../src/config/constants.js';
-import { generateSampleImageCanvas } from '../../src/services/sampleImage.js';
 import {
   boardState,
   createEngine,
+  createFakeImage,
   dropNearTarget,
   movePieceTo,
   solveAll,
-} from '../helpers/puzzle.js';
+} from '../helpers/coreEngine.js';
 import { hashOf, seedMathRandom } from '../helpers/determinism.js';
 
 /** Snap radius, computed the same way the engine does (see resolveDropOp). */
@@ -178,7 +178,7 @@ describe('PuzzleEngine behavior', () => {
     const save = JSON.parse(JSON.stringify(original.exportSaveData(settings)));
 
     const restored = createEngine();
-    restored.restoreFromSave(save, generateSampleImageCanvas(), true);
+    restored.restoreFromSave(save, createFakeImage(), true);
 
     expect(boardState(restored)).toEqual(boardState(original));
   });

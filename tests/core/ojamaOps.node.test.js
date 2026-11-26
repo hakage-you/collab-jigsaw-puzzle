@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createEngine, boardState, dropNearTarget, solveAll } from '../helpers/puzzle.js';
+import { createEngine, boardState, dropNearTarget, solveAll } from '../helpers/coreEngine.js';
 import { seedMathRandom } from '../helpers/determinism.js';
 import { OJAMA_CONFIG } from '../../src/config/constants.js';
 

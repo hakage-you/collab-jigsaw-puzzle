@@ -29,7 +29,7 @@ python -m http.server 8080
 ```bash
 npm run lint
 npm run format   # Prettier で自動整形
-npm test         # Vitest（ヘッドレス Chromium）でテスト
+npm test         # Vitest でテスト（*.node.test.js は Node、ほかはヘッドレス Chromium）
 npm run measure  # 通信量・API 消費・配信サイズ・端末負荷を計測して measure/history.jsonl に記録
 ```
 

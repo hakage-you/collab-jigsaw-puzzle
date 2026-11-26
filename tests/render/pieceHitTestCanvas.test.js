@@ -6,6 +6,8 @@ import { createEngine } from '../helpers/puzzle.js';
 
 // Hit testing moved from canvas isPointInPath to a polygon test on the outline data. The two must
 // agree everywhere except right at the outline, where the polygon approximates the curves.
+// Runs in the browser for the real canvas; the rest of the hit test lives in
+// tests/core/pieceHitTest.node.test.js.
 const EDGE_TOLERANCE = 0.5; // world units; a screen pixel is at least 1/3 unit at max zoom
 
 /** Fine polyline of the outline, used only to measure how close a point is to the edge. */
@@ -70,26 +72,5 @@ describe.each(['standard', 'uniform', 'complex'])('hit test, %s cut', (cutComple
     expect(checked).toBe(engine.pieces.length * 300);
     // Disagreements are rare boundary cases, not a systematic difference.
     expect(disagreements / checked).toBeLessThan(0.005);
-  });
-});
-
-describe('engine.hitTest with rotated and flipped pieces', () => {
-  it('finds the piece at its own center for every rotation and flip', () => {
-    const engine = createEngine({ cols: 5, rows: 4, allowRotation: true, allowFlip: true });
-    for (const piece of engine.pieces) {
-      // Move pieces far apart so no other piece covers the center.
-      piece.x = piece.id * 1000;
-      piece.y = 0;
-    }
-    engine.bumpZVersion();
-    for (const piece of engine.pieces) {
-      for (let rotation = 0; rotation < 4; rotation++) {
-        for (const isFlipped of [false, true]) {
-          piece.rotation = rotation;
-          piece.isFlipped = isFlipped;
-          expect(engine.hitTest(piece.x, piece.y)).toBe(piece);
-        }
-      }
-    }
   });
 });

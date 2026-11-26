@@ -143,7 +143,7 @@ export default [
     },
   },
   {
-    // Vitest tests run in headless Chromium (vitest.config.mjs).
+    // Vitest tests run in headless Chromium, except *.node.test.js which run in Node (vitest.config.mjs).
     files: ['tests/**/*.js', 'measure/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
