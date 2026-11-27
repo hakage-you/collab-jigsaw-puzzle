@@ -1,3 +1,6 @@
+import { h } from './domBuild.js';
+import { richText } from './richText.js';
+
 export function formatDuration(ms) {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
   const min = Math.floor(totalSec / 60);
@@ -112,12 +115,14 @@ export class TopbarUI {
     this.elMenuModal?.classList.add('hidden');
   }
 
-  showToast(message, kind = 'info') {
-    const div = document.createElement('div');
-    div.className = `toast ${kind}`;
-    div.textContent = message;
+  /**
+   * A toast for `durationMs` (longer for one that says where to go, so it can be read).
+   * `message`: a string, or parts with some in bold (richText).
+   */
+  showToast(message, kind = 'info', { durationMs = 3200 } = {}) {
+    const div = h('div', { class: `toast ${kind}` }, richText(message));
     this.elToastContainer.appendChild(div);
-    setTimeout(() => div.remove(), 3200);
+    setTimeout(() => div.remove(), durationMs);
   }
 
   /** Shows which renderer draws the table, and why if a fallback occurred. */

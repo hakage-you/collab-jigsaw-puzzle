@@ -58,6 +58,12 @@ const DEFAULT_SETTINGS = {
     perViewerCooldownSec: 0,
     /** Put the name of the viewer who set an ojama off on its sticker (off: names are opt-in). */
     showTriggerName: false,
+    /**
+     * While streaming, show viewers which keywords set off which ojama. On unless the streamer
+     * turned it off (its × or the settings).
+     */
+    keywordGuideOn: true,
+    keywordGuideIntervalSec: OJAMA_CONFIG.DEFAULT_KEYWORD_GUIDE_INTERVAL_SEC,
     matchMode: OJAMA_CONFIG.DEFAULT_MATCH_MODE,
     triggers: { ...OJAMA_CONFIG.DEFAULT_TRIGGERS },
     /** Types in use (false: never fires, from keywords, random, superchats or test buttons). */

@@ -152,3 +152,30 @@ describe('YouTubeUI API key browser storage option', () => {
     expect(ui.shouldPreferYoutubeTab()).toBe(false);
   });
 });
+
+describe('YouTubeUI live state', () => {
+  it('tells whoever follows it where comments come in from, with the live dots', () => {
+    const { ui } = createYouTubeUI();
+    const dot = document.querySelector('.yt-live-indicator');
+    const onLiveChange = vi.fn();
+    ui.onLiveChange = onLiveChange;
+    let autoComments = false;
+    ui.ojama.isAutoCommentsRunning = () => autoComments;
+
+    autoComments = true;
+    ui.syncLiveIndicators();
+    expect(onLiveChange).toHaveBeenLastCalledWith({ youtube: false, autoComments: true });
+    expect(dot.classList.contains('hidden')).toBe(false);
+
+    autoComments = false;
+    ui.client.isPolling = true;
+    ui.syncLiveIndicators();
+    expect(onLiveChange).toHaveBeenLastCalledWith({ youtube: true, autoComments: false });
+    expect(ui.liveState()).toEqual({ youtube: true, autoComments: false });
+
+    ui.client.isPolling = false;
+    ui.syncLiveIndicators();
+    expect(onLiveChange).toHaveBeenLastCalledWith({ youtube: false, autoComments: false });
+    expect(dot.classList.contains('hidden')).toBe(true);
+  });
+});

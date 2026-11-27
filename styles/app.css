@@ -768,6 +768,18 @@ body.stats-hidden .stats-only {
   animation: sticker-slap 0.24s ease-out;
 }
 
+/* Who set it off on a line of its own, smaller and lighter; what happened stands out under it. */
+.ojama-sticker-lead {
+  display: block;
+  font-size: var(--font-size);
+  font-weight: 600;
+}
+
+.ojama-sticker-effect {
+  display: block;
+  font-weight: 800;
+}
+
 .ojama-sticker + .ojama-sticker {
   margin-top: var(--space-1);
 }
@@ -780,31 +792,38 @@ body.stats-hidden .stats-only {
   animation: none;
 }
 
-.ojama-sticker.is-drop {
+.ojama-sticker.is-drop,
+.keyword-guide-line.is-drop {
   --sticker-bg: var(--sticker-drop);
 }
 
-.ojama-sticker.is-visual {
+.ojama-sticker.is-visual,
+.keyword-guide-line.is-visual {
   --sticker-bg: var(--sticker-visual);
 }
 
-.ojama-sticker.is-ghost {
+.ojama-sticker.is-ghost,
+.keyword-guide-line.is-ghost {
   --sticker-bg: var(--sticker-ghost);
 }
 
-.ojama-sticker.is-prank {
+.ojama-sticker.is-prank,
+.keyword-guide-line.is-prank {
   --sticker-bg: var(--sticker-prank);
 }
 
-.ojama-sticker.is-fake {
+.ojama-sticker.is-fake,
+.keyword-guide-line.is-fake {
   --sticker-bg: var(--sticker-fake);
 }
 
-.ojama-sticker.is-heavy {
+.ojama-sticker.is-heavy,
+.keyword-guide-line.is-heavy {
   --sticker-bg: var(--sticker-heavy);
 }
 
-.ojama-sticker.is-runaway {
+.ojama-sticker.is-runaway,
+.keyword-guide-line.is-runaway {
   --sticker-bg: var(--sticker-runaway);
 }
 
@@ -819,6 +838,198 @@ body.stats-hidden .stats-only {
   }
   100% {
     transform: rotate(var(--tilt)) scale(1);
+  }
+}
+
+/* While streaming (keywordGuideUI.js): which comments set off which ojama, one ojama at a time
+   at the board's top left. The keywords as viewers' comments (small speech bubbles, "or" between
+   them), under them which comments they work in ("から始まるコメント", in quiet text), then a
+   thick arrow, "発動するお邪魔:" and the ojama's name as a small paper sticker in its sticker
+   colour, as its notice will look. A glass card like the topbar's, of a fixed size, as it stays on
+   screen the whole stream. Keywords too long for it slide sideways; with the page's motions off
+   they wrap. Under the ojama stack and the top effects layer, so on a narrow screen the stickers
+   and stars go over it. */
+.keyword-guide {
+  position: absolute;
+  top: calc(var(--header-height) + var(--space-2));
+  left: var(--space-4);
+  z-index: 14;
+  width: min(320px, calc(100% - 2 * var(--space-4)));
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--panel-glass-bg);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--panel-shadow-float);
+  color: var(--text);
+  pointer-events: none;
+}
+
+.keyword-guide-title {
+  margin: 0;
+  padding-right: var(--space-5);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+/* The × at the top right: small and quiet (it is on the stream too), the only part that takes
+   the pointer; the guide itself lets drags through to the board. */
+.keyword-guide-close {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-compact);
+  height: var(--touch-compact);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: var(--font-size-heading);
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.keyword-guide-close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.keyword-guide-close:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.keyword-guide-line {
+  --sticker-bg: var(--sticker-other);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  animation: keyword-guide-in 0.3s ease-out;
+}
+
+.keyword-guide-viewport {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.keyword-guide-track {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  width: max-content;
+  white-space: nowrap;
+}
+
+/* A keyword: a viewer's comment, as a speech bubble (its tail at the bottom left). */
+.keyword-guide-word {
+  flex-shrink: 0;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card) var(--radius-card) var(--radius-card) var(--space-1);
+  background: var(--surface);
+  font-size: var(--font-size-heading);
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.keyword-guide-or {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+/* Which comments the keywords work in: quiet, so the keywords stand out. */
+.keyword-guide-note {
+  min-height: 1.5em;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.keyword-guide-result {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 0;
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* A thick arrow drawn in CSS: a font's "→" is too thin to see on a stream. */
+.keyword-guide-arrow {
+  position: relative;
+  flex-shrink: 0;
+  width: 16px;
+  height: 4px;
+  margin-right: var(--space-2);
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.keyword-guide-arrow::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 10px solid var(--accent);
+  transform: translate(-2px, -50%);
+}
+
+/* The ojama's name: a small version of its notice sticker. */
+.keyword-guide-name {
+  padding: 0 var(--space-2);
+  border: 3px solid var(--sticker-paper);
+  border-radius: var(--radius-btn);
+  background: var(--sticker-bg);
+  box-shadow: 2px 3px 0 var(--sticker-shadow);
+  color: var(--sticker-text);
+  font-size: var(--font-size-heading);
+  font-weight: 800;
+  line-height: 1.5;
+  transform: rotate(-2deg);
+}
+
+.effects-reduced .keyword-guide-line {
+  animation: none;
+}
+
+.effects-reduced .keyword-guide-track {
+  flex-wrap: wrap;
+  width: auto;
+  white-space: normal;
+}
+
+.effects-reduced .keyword-guide-word {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@keyframes keyword-guide-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -1566,7 +1777,8 @@ body.stats-hidden .stats-only {
 .admire-mode .viewport-controls,
 .admire-mode .controls-legend,
 .admire-mode .floating-ref-window,
-.admire-mode .test-palette {
+.admire-mode .test-palette,
+.admire-mode .keyword-guide {
   display: none;
 }
 

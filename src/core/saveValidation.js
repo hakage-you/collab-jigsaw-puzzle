@@ -220,6 +220,8 @@ const OJAMA_SCHEMA = {
   commentCountOn: { type: 'boolean' },
   perViewerCooldownSec: { type: 'number' },
   showTriggerName: { type: 'boolean' },
+  keywordGuideOn: { type: 'boolean' },
+  keywordGuideIntervalSec: { type: 'number' },
   matchMode: { type: 'string', max: MAX_TEXT_LENGTH, values: OJAMA_CONFIG.MATCH_MODES },
   enabled: { section: perTypeBooleans() },
   randomPool: { section: perTypeBooleans() },

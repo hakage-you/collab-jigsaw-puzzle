@@ -87,6 +87,7 @@ export const GLOBAL_NUMBERS = Object.freeze({
   cooldownSec: { min: 0, max: 120 },
   perViewerCooldownSec: { min: 0, max: 600 },
   commentThreshold: { min: 1, max: 100 },
+  keywordGuideIntervalSec: { min: 3, max: 15 },
 });
 
 export const MATCH_CHOICES = Object.freeze([

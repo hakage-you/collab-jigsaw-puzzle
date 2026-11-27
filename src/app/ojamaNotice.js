@@ -22,14 +22,15 @@ export function noticeName(name) {
 }
 
 /**
- * An ojama notice with the name of whoever set it off in front, joined by one of a few phrases
- * picked at random ("〇〇さんがニヤリとわらうと、ピース3個がくるりと回転した！"). Without a name
- * (random by comment count from no one, a guest's screen) the text is returned as it is.
+ * What goes in front of an ojama notice to say who set it off: the name joined by one of a few
+ * phrases picked at random ("〇〇さんがニヤリとわらうと、" + "ピース3個がくるりと回転した！").
+ * Kept apart from the notice so that the notice (what happened) can stand out. Without a name
+ * (random by comment count from no one, a guest's screen) it is ''.
  */
-export function withTriggerName(text, author, random = Math.random) {
+export function triggerNameLead(author, random = Math.random) {
   const name = author == null ? '' : noticeName(author);
-  if (!name) return text;
+  if (!name) return '';
   const who = name === SELF_NAME ? SELF_NAME : `${name}さん`;
   const lead = LEADS[Math.floor(random() * LEADS.length) % LEADS.length];
-  return lead.replace('{who}', who) + text;
+  return lead.replace('{who}', who);
 }

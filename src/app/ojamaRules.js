@@ -59,15 +59,18 @@ export function findTrigger(table, text, mode = 'any') {
   return table.find((t) => keywordMatches(comment, t.word, mode)) ?? null;
 }
 
+/** The types a random ojama may pick: in use (`enabled`) and in the random pool. */
+export function randomTargets(ojama) {
+  const pool = { ...OJAMA_CONFIG.DEFAULT_RANDOM_POOL, ...(ojama.randomPool || {}) };
+  return OJAMA_CONFIG.TYPES.filter((t) => ojama.enabled?.[t] !== false && pool[t]);
+}
+
 /**
- * The type a random ojama picks: one of the types in use and in the random pool, chosen by
- * `random()` (0 <= x < 1). Pieces can only drop when some are placed. Null when none can.
+ * The type a random ojama picks: one of `randomTargets`, chosen by `random()` (0 <= x < 1).
+ * Pieces can only drop when some are placed. Null when none can.
  */
 export function pickRandomOjama({ ojama, hasLocked, random = Math.random }) {
-  const pool = { ...OJAMA_CONFIG.DEFAULT_RANDOM_POOL, ...(ojama.randomPool || {}) };
-  const options = OJAMA_CONFIG.TYPES.filter(
-    (t) => ojama.enabled?.[t] !== false && pool[t] && (t !== 'drop' || hasLocked),
-  );
+  const options = randomTargets(ojama).filter((t) => t !== 'drop' || hasLocked);
   if (options.length === 0) return null;
   return options[Math.min(options.length - 1, Math.floor(random() * options.length))];
 }

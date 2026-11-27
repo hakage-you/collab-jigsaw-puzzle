@@ -1,11 +1,12 @@
 import { OJAMA_CONFIG } from '../config/constants.js';
+import { randomTargets } from '../app/ojamaRules.js';
 import { h, switchEl } from './domBuild.js';
 import { GLOBAL_NUMBERS, MATCH_CHOICES, OJAMA_INFO, readWholeNumber } from './ojamaRulesSpec.js';
 
 /**
  * The right side of the ojama rules tab when "全体の設定" is picked: the wait between ojama,
- * random ojama (by keyword and by comment count, and which types it may pick) and how keywords
- * must appear in a comment.
+ * random ojama (by keyword and by comment count, and which types it may pick), how keywords
+ * must appear in a comment, the keyword guide shown while streaming, and names on the stickers.
  * @param {object} deps
  * @param {object} deps.ojama  settings.ojama
  * @param {(partial: object) => void} deps.patch
@@ -29,7 +30,36 @@ export function buildGlobalDetail({ ojama, patch, keywordEditor, open }) {
     waitCard(number),
     randomCard({ ojama, patch, keywordEditor, open, number }),
     matchCard(ojama, patch),
+    guideCard({ ojama, patch, number }),
     nameCard(ojama, patch),
+  );
+}
+
+/**
+ * The keyword guide (settings.ojama.keywordGuideOn): while comments come in (YouTube linked or
+ * the CPU's comments), the board shows viewers which keywords do what, one line at a time.
+ */
+function guideCard({ ojama, patch, number }) {
+  const on = ojama.keywordGuideOn === true;
+  const interval = number('keywordGuideIntervalSec');
+  interval.disabled = !on;
+  return card(
+    'キーワードの案内',
+    'YouTube連動中とCPU自動お邪魔の実行中に、盤面の左上で、反応するキーワードと発動するお邪魔を1つずつ順番に紹介します。参加者の画面には出ません。',
+    h(
+      'div',
+      { class: 'rules-line' },
+      switchEl({
+        checked: on,
+        label: '配信中、キーワードの案内を画面に出す',
+        onChange: (v) => {
+          interval.disabled = !v;
+          patch({ keywordGuideOn: v });
+        },
+      }),
+      ' 配信中、キーワードの案内を画面に出す',
+    ),
+    h('p', { class: 'rules-line' }, '案内を ', interval, ' 秒ごとに切り替える'),
   );
 }
 
@@ -94,8 +124,7 @@ function randomCard({ ojama, patch, keywordEditor, open, number }) {
   const countOn = ojama.commentCountOn !== false;
   const count = number('commentThreshold');
   count.disabled = !countOn;
-  const pool = { ...OJAMA_CONFIG.DEFAULT_RANDOM_POOL, ...ojama.randomPool };
-  const targets = OJAMA_CONFIG.TYPES.filter((t) => ojama.enabled?.[t] !== false && pool[t]);
+  const targets = randomTargets(ojama);
   return card(
     'ランダム発動',
     '対象のお邪魔の中から、ランダムに1つ出します。',

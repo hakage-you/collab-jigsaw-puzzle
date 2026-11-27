@@ -3,7 +3,7 @@ import {
   NOTICE_NAME_MAX,
   SELF_NAME,
   noticeName,
-  withTriggerName,
+  triggerNameLead,
 } from '../../src/app/ojamaNotice.js';
 
 // The name of whoever set an ojama off, in front of its notice (settings.ojama.showTriggerName).
@@ -11,25 +11,27 @@ import {
 const first = () => 0;
 const TEXT = 'ピース3個がくるりと回転した！';
 
-describe('withTriggerName', () => {
+describe('triggerNameLead', () => {
   it('puts the viewer, with さん, in front of what happened', () => {
-    expect(withTriggerName(TEXT, 'たろう', first)).toBe(`たろうさんの叫びで、${TEXT}`);
+    expect(triggerNameLead('たろう', first)).toBe('たろうさんの叫びで、');
+    expect(triggerNameLead('たろう', first) + TEXT).toBe(`たろうさんの叫びで、${TEXT}`);
   });
 
   it('picks one of several ways to say it', () => {
     const said = new Set();
-    for (let i = 0; i < 6; i++) said.add(withTriggerName(TEXT, 'たろう', () => i / 6));
+    for (let i = 0; i < 6; i++) said.add(triggerNameLead('たろう', () => i / 6));
     expect(said.size).toBe(6);
     for (const s of said) expect(s.startsWith('たろうさん')).toBe(true);
   });
 
   it('calls the streamer by the test buttons name, without さん', () => {
-    expect(withTriggerName(TEXT, SELF_NAME, first)).toBe(`${SELF_NAME}の叫びで、${TEXT}`);
+    expect(triggerNameLead(SELF_NAME, first)).toBe(`${SELF_NAME}の叫びで、`);
   });
 
-  it('leaves the text as it is without a name', () => {
-    expect(withTriggerName(TEXT, null, first)).toBe(TEXT);
-    expect(withTriggerName(TEXT, '   ', first)).toBe(TEXT);
+  it('is empty without a name', () => {
+    expect(triggerNameLead(null, first)).toBe('');
+    expect(triggerNameLead(undefined, first)).toBe('');
+    expect(triggerNameLead('   ', first)).toBe('');
   });
 });
 

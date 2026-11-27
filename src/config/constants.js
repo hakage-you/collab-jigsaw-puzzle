@@ -199,6 +199,8 @@ export const OJAMA_CONFIG = {
   /** How a keyword must appear in a comment: 'any' (anywhere), 'start' or 'whole'. */
   DEFAULT_MATCH_MODE: 'any',
   MATCH_MODES: Object.freeze(['any', 'start', 'whole']),
+  /** Seconds each line of the keyword guide (shown while streaming) stays before the next one. */
+  DEFAULT_KEYWORD_GUIDE_INTERVAL_SEC: 4,
   /** Heavy pieces: seconds a dragged piece takes to close about 63% of the gap to the cursor. */
   HEAVY_LEVELS: Object.freeze({ strong: 0.35, heavier: 0.7, heaviest: 1.2 }),
   DEFAULT_HEAVY_LEVEL: 'heaviest',

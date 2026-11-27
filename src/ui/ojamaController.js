@@ -1,5 +1,5 @@
 import { OJAMA_CONFIG } from '../config/constants.js';
-import { withTriggerName } from '../app/ojamaNotice.js';
+import { triggerNameLead } from '../app/ojamaNotice.js';
 import { COMPLETED_NOTICE, decideCommentOjama } from '../app/ojamaRules.js';
 import { sound } from '../services/sound.js';
 import { CpuAutoCommentController } from './cpuAutoCommentController.js';
@@ -104,7 +104,7 @@ export class OjamaController {
    */
   _announce(kind, text, author = null) {
     const showName = this.getSettings().ojama?.showTriggerName === true;
-    this.stickers.show({ kind, text: showName ? withTriggerName(text, author) : text });
+    this.stickers.show({ kind, text, lead: showName ? triggerNameLead(author) : '' });
   }
 
   /** The N key: turns the names on the stickers on or off without opening the settings. */

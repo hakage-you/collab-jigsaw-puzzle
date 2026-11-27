@@ -239,6 +239,26 @@
             <div id="ojamaStickers" class="ojama-stickers" aria-live="polite"></div>
           </div>
 
+          <!-- While streaming: which comment keywords set off which ojama (keywordGuideUI.js) -->
+          <div
+            id="keywordGuide"
+            class="keyword-guide host-only hidden"
+            role="note"
+            aria-label="お邪魔のキーワード"
+          >
+            <p class="keyword-guide-title">コメントでお邪魔効果が発動！</p>
+            <button
+              type="button"
+              class="keyword-guide-close"
+              id="btnCloseKeywordGuide"
+              aria-label="キーワードの案内を消す"
+              title="キーワードの案内を消す（配信・お邪魔設定 → お邪魔ルール → 全体の設定で戻せます）"
+            >
+              ×
+            </button>
+            <div class="keyword-guide-line" id="keywordGuideLine"></div>
+          </div>
+
           <!-- Spotlight Layer -->
           <div id="spotlightOverlay" class="spotlight-overlay hidden"></div>
 

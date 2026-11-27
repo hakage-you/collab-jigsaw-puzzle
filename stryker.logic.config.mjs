@@ -7,6 +7,7 @@ import core from './stryker.config.mjs';
 export default {
   ...core,
   mutate: [
+    'src/app/keywordGuide.js',
     'src/app/ojamaNotice.js',
     'src/app/ojamaRules.js',
     'src/app/ojamaSession.js',

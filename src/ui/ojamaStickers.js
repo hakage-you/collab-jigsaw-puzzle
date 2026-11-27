@@ -12,21 +12,27 @@ const MAX_TILT_DEG = 4;
 /**
  * An ojama's notice as a paper sticker slapped on above the board (styles: .ojama-sticker): the
  * one line on what happened, on the ojama's colour. No heading with the ojama's name: seen on
- * every notice, it only gets in the way. It peels off after a few seconds. Clicks go through it,
- * so it never stops play.
+ * every notice, it only gets in the way. Who set it off (when shown) comes first, on a line of
+ * its own in smaller, lighter type, so that what happened stands out. It peels off after a few seconds. Clicks go through
+ * it, so it never stops play.
  */
 export class OjamaStickers {
   constructor() {
     this.el = document.getElementById('ojamaStickers');
   }
 
-  /** @param {{kind: string, text: string}} notice  kind: an ojama type (OJAMA_INFO) */
-  show({ kind, text }) {
+  /**
+   * @param {{kind: string, text: string, lead?: string}} notice  kind: an ojama type (OJAMA_INFO);
+   *   text: what happened; lead: who set it off ("〇〇さんの叫びで、"), or none
+   */
+  show({ kind, text, lead = '' }) {
     if (!this.el) return;
-    const sticker = h('div', {
-      class: `ojama-sticker is-${OJAMA_INFO[kind] ? kind : 'other'}`,
-      text,
-    });
+    const sticker = h(
+      'div',
+      { class: `ojama-sticker is-${OJAMA_INFO[kind] ? kind : 'other'}` },
+      lead && h('span', { class: 'ojama-sticker-lead', text: lead }),
+      h('strong', { class: 'ojama-sticker-effect', text }),
+    );
     const tilt = (Math.random() * 2 - 1) * MAX_TILT_DEG;
     sticker.style.setProperty('--tilt', `${tilt.toFixed(1)}deg`);
     this.el.append(sticker);

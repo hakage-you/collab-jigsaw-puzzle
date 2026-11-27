@@ -55,6 +55,8 @@ export class YouTubeUI {
       },
     });
 
+    /** Called with { youtube, autoComments } whenever comments start or stop coming in. */
+    this.onLiveChange = null;
     this.isLocalSaveEnabled = false;
     this.isApiKeyVisible = false;
     this._initStoredKey();
@@ -196,9 +198,20 @@ export class YouTubeUI {
     this.elPreview.classList.add('hidden');
   }
 
+  /** Where comments come in from now: YouTube, the CPU's comments (either one is "live"). */
+  liveState() {
+    return {
+      youtube: Boolean(this.client.isPolling),
+      autoComments: Boolean(this.ojama.isAutoCommentsRunning?.()),
+    };
+  }
+
+  /** The live dots, and whoever follows the live state (onLiveChange). */
   syncLiveIndicators() {
-    const active = this.client.isPolling || Boolean(this.ojama.isAutoCommentsRunning?.());
+    const live = this.liveState();
+    const active = live.youtube || live.autoComments;
     for (const el of this.elLiveIndicators) el.classList.toggle('hidden', !active);
+    this.onLiveChange?.(live);
   }
 
   _syncPollButton(isPolling) {

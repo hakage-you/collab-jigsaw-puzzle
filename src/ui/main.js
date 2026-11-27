@@ -2,6 +2,7 @@ import { GameSession } from '../app/gameSession.js';
 import { CanvasInteraction } from './canvasInteraction.js';
 import { ComfortControls } from './comfortControls.js';
 import { DiagnosticsUI } from './diagnosticsUI.js';
+import { KeywordGuideUI } from './keywordGuideUI.js';
 import { LobbyUI } from './lobbyUI.js';
 import { OjamaController } from './ojamaController.js';
 import { NoticeUI } from './noticeUI.js';
@@ -87,7 +88,7 @@ function boot() {
 
   app.setRenderStatsProvider(() => renderer.getStats());
 
-  const showToast = (msg, kind) => topbarUI.showToast(msg, kind);
+  const showToast = (msg, kind, options) => topbarUI.showToast(msg, kind, options);
   const loading = new PuzzleLoading(renderer.viewState);
   const lobbyUI = new LobbyUI({ app, showToast, loading });
   new NoticeUI({ app, actions: { rejoin: () => lobbyUI.rejoinLastRoom() } });
@@ -124,6 +125,9 @@ function boot() {
 
   const youtubeUI = new YouTubeUI({ app, ojama, showToast });
   setUpOjamaRules({ app, ojama, topbarUI, youtubeUI });
+  const keywordGuide = new KeywordGuideUI({ app, showToast });
+  youtubeUI.onLiveChange = (live) => keywordGuide.setLive(live);
+  keywordGuide.setLive(youtubeUI.liveState());
 
   new SaveLoadUI({ app, showToast });
   const diagnosticsUI = new DiagnosticsUI({ app, showToast });
